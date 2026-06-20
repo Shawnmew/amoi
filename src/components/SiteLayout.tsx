@@ -3,6 +3,7 @@ import { useState, type ReactNode } from "react";
 import { Menu, X, Facebook, Instagram, Youtube, Mail, MapPin, Phone } from "lucide-react";
 import logoUrl from "@/assets/amoi-logo.png";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const NAV = [
   { to: "/", label: "Início" },
@@ -44,6 +45,7 @@ export function SiteLayout({ children }: { children: ReactNode }) {
           </nav>
 
           <div className="hidden md:flex items-center gap-2">
+            <ThemeToggle />
             <Button asChild variant="ghost" size="sm">
               <Link to="/login">Entrar</Link>
             </Button>
@@ -52,13 +54,17 @@ export function SiteLayout({ children }: { children: ReactNode }) {
             </Button>
           </div>
 
-          <button
-            className="md:hidden p-2 text-foreground"
-            onClick={() => setOpen(!open)}
-            aria-label="Menu"
-          >
-            {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-          </button>
+          <div className="md:hidden flex items-center gap-2">
+            <ThemeToggle />
+            <button
+              className="p-2 text-foreground"
+              onClick={() => setOpen(!open)}
+              aria-label="Menu"
+            >
+              {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            </button>
+          </div>
+
         </div>
 
         {open && (

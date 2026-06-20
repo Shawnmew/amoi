@@ -20,6 +20,7 @@ import "@fontsource/inter/700.css";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
+import { getInitialThemeScript } from "@/components/ThemeToggle";
 
 function NotFoundComponent() {
   return (
@@ -110,8 +111,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="pt">
       <head>
+        <script dangerouslySetInnerHTML={{ __html: getInitialThemeScript() }} />
         <HeadContent />
       </head>
       <body>
