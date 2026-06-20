@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { useState, type ReactNode } from "react";
 import { Menu, X, Facebook, Instagram, Youtube, Mail, MapPin, Phone } from "lucide-react";
-import logoAsset from "@/assets/amoi-logo.png.asset.json";
+import logoUrl from "@/assets/amoi-logo.png";
 import { Button } from "@/components/ui/button";
 
 const NAV = [
@@ -19,7 +19,7 @@ export function SiteLayout({ children }: { children: ReactNode }) {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 flex items-center justify-between h-20">
           <Link to="/" className="flex items-center gap-3 group">
             <img
-              src={logoAsset.url}
+              src={logoUrl}
               alt="AMOI - Associação Ministério de Oração e Intercessão"
               className="h-12 w-12 object-contain drop-shadow-[0_2px_8px_rgba(212,160,23,0.4)] transition-transform group-hover:scale-105"
             />
@@ -93,7 +93,7 @@ export function SiteLayout({ children }: { children: ReactNode }) {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-14 grid md:grid-cols-4 gap-10">
           <div className="md:col-span-2">
             <div className="flex items-center gap-3 mb-4">
-              <img src={logoAsset.url} alt="AMOI" className="h-14 w-14 object-contain" />
+              <img src={logoUrl} alt="AMOI" className="h-14 w-14 object-contain" />
               <div>
                 <div className="font-display text-xl text-gradient-gold font-bold">AMOI</div>
                 <div className="text-xs uppercase tracking-widest text-muted-foreground">Bravos Guerreiros da Fé</div>

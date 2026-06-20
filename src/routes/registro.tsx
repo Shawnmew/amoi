@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Flame, Mail, Lock, User, Phone, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
-import logoAsset from "@/assets/amoi-logo.png.asset.json";
+import logoUrl from "@/assets/amoi-logo.png";
 
 export const Route = createFileRoute("/registro")({
   head: () => ({
@@ -38,7 +38,7 @@ function Registro() {
         <div className="relative w-full max-w-lg mx-auto px-4">
           <div className="bg-card/80 backdrop-blur-xl border border-primary/20 rounded-3xl p-8 md:p-10 shadow-elevated">
             <div className="text-center">
-              <img src={logoAsset.url} alt="AMOI" className="h-20 w-20 mx-auto object-contain drop-shadow-[0_2px_12px_rgba(212,160,23,0.5)]" />
+              <img src={logoUrl} alt="AMOI" className="h-20 w-20 mx-auto object-contain drop-shadow-[0_2px_12px_rgba(212,160,23,0.5)]" />
               <h1 className="mt-5 font-display text-3xl font-bold text-gradient-gold">Junta-te aos Guerreiros</h1>
               <p className="mt-2 text-sm text-muted-foreground">Cria a tua conta de membro AMOI</p>
             </div>
