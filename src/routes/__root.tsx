@@ -90,11 +90,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: "AMOI — Associação Ministério de Oração e Intercessão" },
       { name: "description", content: "AMOI — Bravos Guerreiros da Fé. Comunidade de oração, intercessão e adoração." },
       { name: "author", content: "AMOI" },
-      { property: "og:title", content: "AMOI — Bravos Guerreiros da Fé" },
-      { property: "og:description", content: "Comunidade de oração, intercessão e adoração ao Deus Altíssimo." },
+      { property: "og:title", content: "AMOI — Associação Ministério de Oração e Intercessão" },
+      { property: "og:description", content: "AMOI — Bravos Guerreiros da Fé. Comunidade de oração, intercessão e adoração." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "AMOI — Associação Ministério de Oração e Intercessão" },
+      { name: "twitter:description", content: "AMOI — Bravos Guerreiros da Fé. Comunidade de oração, intercessão e adoração." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/e6a6f4fa-c7af-45f5-a98b-61cb2e9ba214/id-preview-edd2c042--b87998c7-2c01-44fe-b594-f1eadd4a4603.lovable.app-1781990654257.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/e6a6f4fa-c7af-45f5-a98b-61cb2e9ba214/id-preview-edd2c042--b87998c7-2c01-44fe-b594-f1eadd4a4603.lovable.app-1781990654257.png" },
     ],
     links: [
       {
