@@ -1,11 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { SiteLayout } from "@/components/SiteLayout";
 import { Flame, Quote } from "lucide-react";
-import leader1 from "@/assets/leader-1.jpg";
-import leader2 from "@/assets/leader-2.jpg";
-import leader3 from "@/assets/leader-3.jpg";
-import leader4 from "@/assets/leader-4.jpg";
-import preaching from "@/assets/hero-preaching.jpg";
+import leader1 from "@/assets/pastor-nelson.jpg";
+import leader2 from "@/assets/ancia-isabel.jpg";
+import leader3 from "@/assets/profeta-edgar.jpg";
+import leader4 from "@/assets/profetiza-maria.jpg";
+import leader5 from "@/assets/serva-elizabeth.jpg";
+import leader7 from "@/assets/ancia-rosalina.jpg";
+import leader8 from "@/assets/diaconisa-judith.jpg";
+import preaching from "@/assets/caminhada.jpg";
 
 export const Route = createFileRoute("/sobre")({
   head: () => ({
@@ -20,17 +23,56 @@ export const Route = createFileRoute("/sobre")({
 });
 
 const LEADERS = [
-  { name: "Pastor Principal", role: "Pastor Sénior & Fundador", img: leader1, bio: "Líder visionário da AMOI desde a sua fundação, com mais de duas décadas dedicadas ao ministério pastoral." },
-  { name: "Pastora", role: "Liderança Feminina & Intercessão", img: leader2, bio: "Conduz o ministério de mulheres e a frente de intercessão da igreja com profunda unção." },
-  { name: "Líder de Louvor", role: "Ministério de Música", img: leader3, bio: "Responsável pelo ministério de adoração, conduzindo a igreja diante do trono de Deus." },
-  { name: "Líder de Ensino", role: "Discipulado & Palavra", img: leader4, bio: "Coordena as classes bíblicas, formação de discípulos e ensino sistemático." },
+  { name: "Serva Elizabeth CastelBranco", role: "Líder & Visionária da AMOI", img: leader5, bio: "Esposa do Pastor Nicolau CastelBranco, é a líder e visionária fundadora da AMOI, guiando o ministério com sabedoria, oração e direção divina." },
+  { name: "Pastor Nelson Nunes", role: "Pastor", img: leader1, bio: "Pastor dedicado ao ministério na AMOI, focado no ensino da Palavra e no cuidado espiritual da igreja." },
+  { name: "Anciã Isabel Nunes", role: "Anciã", img: leader2, bio: "Esposa do Pastor Nelson Nunes, é uma anciã dedicada à intercessão, apoio espiritual e ao fortalecimento das famílias na igreja." },
+  { name: "Profeta Edgar Marcolino", role: "Profeta", img: leader3, bio: "Ministério profético da AMOI, atuando no despertamento espiritual e na revelação da palavra de Deus." },
+  { name: "Profetisa Maria Júlia Marcolino", role: "Profetisa", img: leader4, bio: "Esposa do Profeta Edgar Marcolino, atua no ministério profético com forte revelação, oração e aconselhamento." },
+  { name: "Anciã Rosalina Canjila", role: "Anciã", img: leader7, bio: "Consagrada anciã da AMOI, atua com dedicação e coração disponível para Deus nas reuniões de aconselhamento e oração." },
+  { name: "Diaconisa Judith Fernandes", role: "Diaconisa", img: leader8, bio: "Diaconisa da AMOI, dedicada ao serviço da casa do Senhor com alegria, zelo e apoio constante a todos os membros." },
 ];
 
 const TIMELINE = [
-  { year: "Início", title: "O Chamado", desc: "Tudo começou com um pequeno grupo de oração, reunido com fome da presença de Deus." },
-  { year: "Crescimento", title: "Formação da Igreja", desc: "O grupo cresceu e tornou-se uma comunidade local, oficialmente organizada como AMOI." },
-  { year: "Expansão", title: "Bravos Guerreiros da Fé", desc: "A visão expandiu-se para formar guerreiros espirituais firmes na Palavra e na oração." },
-  { year: "Hoje", title: "Uma Família que Arde", desc: "Centenas de vidas tocadas, gerações sendo levantadas para o serviço do Reino." },
+  {
+    year: "2011",
+    title: "O Chamado na Inglaterra",
+    desc: "A Serva Elizabeth CastelBranco recebe a revelação divina por meio da Sister Mucha na Inglaterra de que o seu chamado espiritual deveria ser estabelecido em Luanda, Angola, para restaurar famílias através da oração e intercessão.",
+  },
+  {
+    year: "2012 / 2013",
+    title: "Chegada a Luanda e Primeiros Passos",
+    desc: "A Serva Elizabeth CastelBranco e Sister Mucha iniciam o grupo de oração em Luanda de forma muito simples. Irmãs como Neusa João integram-se ao propósito inicial desde cedo.",
+  },
+  {
+    year: "Crescimento",
+    title: "Reuniões em Casa da Anciã Isabel",
+    desc: "As orações passam a ser realizadas aos sábados na residência da Anciã Isabel Nunes. O Pastor Nelson Nunes é impactado pelo Espírito Santo e junta-se ao grupo, fortalecendo a oração pelas famílias.",
+  },
+  {
+    year: "Expansão",
+    title: "Conferências de Oração e Batismo",
+    desc: "O ministério cresce com conferências na Cefojor, IMEL e Rádio LAC. O Profeta Edgar Marcolino e a Profetisa Maria Júlia Marcolino unem-se à obra. Mais tarde, os casais e irmãos são batizados juntos.",
+  },
+  {
+    year: "Missão",
+    title: "Auxílio e Avivamento no Palanca",
+    desc: "O ministério apoia outras igrejas locais, como a do Palanca (que cresceu de 2 para mais de 40 membros) e a Alvorada. É celebrado o primeiro casamento do ministério (Paula Congo e Sanito).",
+  },
+  {
+    year: "2019",
+    title: "Consagração do Templo no Zango",
+    desc: "O ministério estabelece-se no Zango. Em 2019, com a visita da Sister Mucha, o templo é consagrado como consultório de oração e são ungidos formalmente os pastores, profeta e anciãs.",
+  },
+  {
+    year: "Consolidação",
+    title: "O Nascimento da AMOI",
+    desc: "A adoração prossegue sob condições humildes de lonas e blocos. Com o crescimento e a sugestão do Pastor Nicolau CastelBranco, a obra evolui de consultório para igreja, fundando oficialmente a AMOI.",
+  },
+  {
+    year: "Hoje",
+    title: "Templo Estruturado e Crescimento",
+    desc: "Com um templo confortável e estruturado, o ministério continua a restaurar casamentos e famílias. Novas lideranças, como a Anciã Rosalina Canjila, são consagradas para continuar a expansão do Reino em Angola.",
+  },
 ];
 
 function Sobre() {
@@ -60,14 +102,14 @@ function Sobre() {
           <div className="lg:col-span-2 lg:sticky lg:top-28">
             <div className="relative">
               <div className="absolute -inset-4 bg-gradient-gold opacity-20 blur-3xl rounded-full" />
-              <img src={preaching} alt="Pregação na AMOI" className="relative rounded-2xl shadow-elevated border border-primary/20" loading="lazy" />
+              <img src={preaching} alt="Culto e oração na AMOI" className="relative rounded-2xl shadow-elevated border border-primary/20" loading="lazy" />
             </div>
             <figure className="mt-8 p-6 rounded-2xl bg-card border border-primary/20">
               <Quote className="h-7 w-7 text-primary" />
-              <blockquote className="mt-3 font-display text-lg italic text-foreground leading-relaxed">
-                "Edificai-vos a vós mesmos sobre a vossa santíssima fé, orando no Espírito Santo."
+              <blockquote className="mt-3 font-display text-sm md:text-base italic text-foreground leading-relaxed">
+                "O Espírito do Senhor DEUS está sobre mim, porque o SENHOR tem me ungido para pregar boas novas ao pobre. Ele tem me enviado para atar as feridas do dilacerado, para proclamar liberdade aos cativos e a abertura da prisão para aqueles que estão encarcerados; para proclamar o ano aceitável do SENHOR, e o dia da vingança do nosso Deus, para confortar todos que pranteiam; para nomear aqueles que pranteiam em Sião, para dar-lhes beleza em lugar de cinzas, o óleo de alegria em lugar de pranto, a veste de louvor em lugar de espírito de opressão..."
               </blockquote>
-              <figcaption className="mt-3 text-sm text-muted-foreground">— Judas 1:20</figcaption>
+              <figcaption className="mt-3 text-sm text-muted-foreground">— Isaías 61:1-3 BKJ</figcaption>
             </figure>
           </div>
 
@@ -99,8 +141,8 @@ function Sobre() {
       <section className="py-20 border-y border-border/60 bg-card/30">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 grid md:grid-cols-3 gap-6">
           {[
-            { title: "Missão", text: "Levar o evangelho do Reino através da oração, ensino e adoração, formando discípulos comprometidos com Cristo." },
-            { title: "Visão", text: "Ser uma comunidade de referência em oração e intercessão, levantando guerreiros espirituais para cada geração." },
+            { title: "Missão", text: "Somos conhecidos como o Ministério de Oração e Intercessão Nacionalmente e Internacionalmente. A nossa missão é de capacitar as pessoas de Deus através da oração, estudo da Palavra e aceitando Jesus Cristo como nosso Senhor e Salvador. Permitir que o Espírito Santo encha nossos corações e revelar coisas mais profundas em libertação e transformação. Nós prosperamos para ensinar e compartilhar a Palavra de Deus com amor e manifestação do Seu Poder." },
+            { title: "Visão", text: "Nossa visão é levar o conhecimento da Palavra de Deus com poder aos quebrantados de coração, através da Oração e da Intercessão. Isaías 61:1-3." },
             { title: "Valores", text: "Fé inabalável · Oração contínua · Palavra sólida · Adoração genuína · Família e comunhão." },
           ].map((b) => (
             <div key={b.title} className="p-8 rounded-2xl bg-card border border-border/60 hover:border-primary/50 transition-all">
@@ -117,14 +159,14 @@ function Sobre() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto">
             <span className="text-xs uppercase tracking-[0.3em] text-primary font-semibold">Liderança</span>
-            <h2 className="mt-3 text-4xl md:text-5xl font-bold">Pastores & <span className="text-gradient-gold">Líderes</span></h2>
+            <h2 className="mt-3 text-4xl md:text-5xl font-bold">Bravos Guerreiros <span className="text-gradient-gold">da Fé</span></h2>
             <div className="gold-divider w-32 mx-auto my-5" />
             <p className="text-muted-foreground">
-              Servos dedicados a apascentar o rebanho do Senhor com amor, sabedoria e ousadia.
+              O grupo de liderança da AMOI, composto por pastores, profetas e servos dedicados a guiar o povo de Deus com amor e sabedoria.
             </p>
           </div>
 
-          <div className="mt-14 grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="mt-14 grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {LEADERS.map((p) => (
               <article key={p.name} className="group relative rounded-2xl overflow-hidden bg-card border border-border/60 hover:border-primary/50 transition-all hover:-translate-y-1 shadow-elevated">
                 <div className="aspect-[4/5] overflow-hidden">
@@ -143,10 +185,6 @@ function Sobre() {
               </article>
             ))}
           </div>
-
-          <p className="text-center text-sm text-muted-foreground mt-10 italic">
-            Os nomes e fotos exibidos são marcadores — substitua pelos dados reais da liderança da AMOI.
-          </p>
         </div>
       </section>
     </SiteLayout>

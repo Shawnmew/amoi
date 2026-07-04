@@ -9,6 +9,7 @@ const NAV = [
   { to: "/", label: "Início" },
   { to: "/sobre", label: "Sobre" },
   { to: "/cultos", label: "Cultos" },
+  { to: "/o-chamado", label: "O Chamado" },
 ];
 
 export function SiteLayout({ children }: { children: ReactNode }) {
@@ -150,9 +151,9 @@ export function SiteLayout({ children }: { children: ReactNode }) {
           <div>
             <h4 className="font-display text-sm uppercase tracking-widest text-primary mb-4">Contacto</h4>
             <ul className="space-y-3 text-sm text-muted-foreground">
-              <li className="flex items-start gap-2"><MapPin className="h-4 w-4 mt-0.5 text-primary shrink-0" /> Sede AMOI, endereço a definir</li>
-              <li className="flex items-center gap-2"><Phone className="h-4 w-4 text-primary shrink-0" /> +000 000 000</li>
-              <li className="flex items-center gap-2"><Mail className="h-4 w-4 text-primary shrink-0" /> contacto@amoi.org</li>
+              <li className="flex items-start gap-2"><MapPin className="h-4 w-4 mt-0.5 text-primary shrink-0" /> Bairro Mandume B, Quarteirão 3, Rua Projectada, Zango 1, Paragem da Praça, Entrada dos Motoqueiros, Bengo, Angola (XCX3+WH9)</li>
+              <li className="flex items-center gap-2"><Phone className="h-4 w-4 text-primary shrink-0" /> +244 930 565 382</li>
+              <li className="flex items-center gap-2"><Mail className="h-4 w-4 text-primary shrink-0" /> secretaria.amoi@ministerioamoi.it.ao</li>
             </ul>
           </div>
         </div>

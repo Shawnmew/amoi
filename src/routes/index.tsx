@@ -174,10 +174,9 @@ function Home() {
             <div className="gold-divider w-32 my-6" />
             <ul className="space-y-4">
               {[
-                { day: "Domingo", time: "09h00 · Culto da Família" },
-                { day: "Quarta", time: "19h30 · Estudo Bíblico" },
-                { day: "Sexta", time: "19h30 · Vigília de Oração" },
-                { day: "Sábado", time: "16h00 · Encontro de Jovens" },
+                { day: "Domingo", time: "09h00 às 12h30 · Culto de Adoração" },
+                { day: "Quarta-Feira", time: "18h00 às 19h00 · Culto de Libertação" },
+                { day: "Sexta-Feira", time: "18h00 às 19h00 · Culto de Libertação" },
               ].map((s) => (
                 <li key={s.day} className="flex items-center gap-4 p-4 rounded-xl bg-card border border-border/60 hover:border-primary/50 transition-colors">
                   <div className="h-12 w-12 rounded-lg bg-secondary/30 border border-secondary flex items-center justify-center text-primary">
@@ -202,7 +201,7 @@ function Home() {
             <div className="relative">
               <Flame className="h-10 w-10 text-primary mx-auto animate-flicker" />
               <h2 className="mt-5 text-3xl md:text-5xl font-bold">
-                Junta-te aos <span className="text-gradient-gold">Bravos Guerreiros</span>
+                Junta-te a <span className="text-gradient-gold">Familia AMOI</span>
               </h2>
               <p className="mt-4 text-muted-foreground max-w-2xl mx-auto">
                 Cria a tua conta de membro para acompanhares os cultos gravados, agenda e conteúdos exclusivos da igreja.

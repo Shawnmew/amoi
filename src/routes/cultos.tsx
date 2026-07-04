@@ -28,15 +28,15 @@ type Culto = {
 
 // Placeholder YouTube IDs — substituir pelos cultos reais do canal @ministerioamoi
 const CULTOS: Culto[] = [
-  { id: "1", title: "O Poder da Oração Persistente", speaker: "Pastor Principal", date: "2026-06-15", category: "Pregação", youtubeId: "dQw4w9WgXcQ" },
+  { id: "1", title: "O Poder da Oração Persistente", speaker: "Pastor Nelson Nunes", date: "2026-06-15", category: "Pregação", youtubeId: "9K_BRUFp8qg?si=dqN2RVeyss7mLb63" },
   { id: "2", title: "Vigília — Quebrando Barreiras", speaker: "Equipa de Intercessão", date: "2026-06-13", category: "Vigília", youtubeId: "dQw4w9WgXcQ" },
   { id: "3", title: "Louvor ao Trono — Ao Vivo", speaker: "Ministério de Louvor", date: "2026-06-08", category: "Louvor", youtubeId: "dQw4w9WgXcQ" },
-  { id: "4", title: "A Fé que Move Montanhas", speaker: "Pastor Principal", date: "2026-06-01", category: "Pregação", youtubeId: "dQw4w9WgXcQ" },
-  { id: "5", title: "Culto de Acção de Graças", speaker: "Pastora", date: "2026-05-25", category: "Especial", youtubeId: "dQw4w9WgXcQ" },
-  { id: "6", title: "Bravos Guerreiros da Fé", speaker: "Pastor Principal", date: "2026-05-18", category: "Pregação", youtubeId: "dQw4w9WgXcQ" },
+  { id: "4", title: "A Fé que Move Montanhas", speaker: "Pastor Nelson Nunes", date: "2026-06-01", category: "Pregação", youtubeId: "dQw4w9WgXcQ" },
+  { id: "5", title: "Culto de Acção de Graças", speaker: "Anciã Isabel Nunes", date: "2026-05-25", category: "Especial", youtubeId: "dQw4w9WgXcQ" },
+  { id: "6", title: "Bravos Guerreiros da Fé", speaker: "Pastor Nelson Nunes", date: "2026-05-18", category: "Pregação", youtubeId: "dQw4w9WgXcQ" },
   { id: "7", title: "Encontro de Jovens — Arde", speaker: "Líder de Jovens", date: "2026-05-11", category: "Especial", youtubeId: "dQw4w9WgXcQ" },
   { id: "8", title: "Adoração Profética", speaker: "Ministério de Louvor", date: "2026-05-04", category: "Louvor", youtubeId: "dQw4w9WgXcQ" },
-  { id: "9", title: "A Palavra que Cura", speaker: "Pastor Principal", date: "2026-04-27", category: "Pregação", youtubeId: "dQw4w9WgXcQ" },
+  { id: "9", title: "A Palavra que Cura", speaker: "Pastor Nelson Nunes", date: "2026-04-27", category: "Pregação", youtubeId: "dQw4w9WgXcQ" },
 ];
 
 const CATEGORIES = ["Todos", "Pregação", "Louvor", "Vigília", "Especial"] as const;
