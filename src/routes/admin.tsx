@@ -6,6 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth, UserRole } from "../hooks/useAuth";
+import { firebaseConfig } from "../lib/firebase";
+import { initializeApp } from "firebase/app";
+import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
 import {
   CarouselSlide,
   Announcement,
@@ -83,6 +86,15 @@ function AdminDashboard() {
   const [newAnnContent, setNewAnnContent] = useState("");
   const [newAnnImage, setNewAnnImage] = useState("");
   const [annImageType, setAnnImageType] = useState<"url" | "upload">("upload");
+
+  // User creation form state
+  const [newUserEmail, setNewUserEmail] = useState("");
+  const [newUserPassword, setNewUserPassword] = useState("");
+  const [newUserName, setNewUserName] = useState("");
+  const [newUserPhone, setNewUserPhone] = useState("");
+  const [newUserRole, setNewUserRole] = useState<UserRole>("membro");
+  const [newUserNewsletter, setNewUserNewsletter] = useState(true);
+  const [creatingUser, setCreatingUser] = useState(false);
 
   const handleAnnImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -326,6 +338,131 @@ function AdminDashboard() {
       await deleteDynamicUser(targetUser.uid, targetUser.email);
       setUsersList(usersList.filter(u => u.uid !== targetUser.uid));
       toast.success("Membro removido da base de dados.");
+    }
+  };
+
+  const handleCreateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newUserEmail || !newUserPassword || !newUserName) {
+      toast.warning("Nome, E-mail e Palavra-passe são obrigatórios.");
+      return;
+    }
+    if (newUserPassword.length < 6) {
+      toast.warning("A palavra-passe deve ter pelo menos 6 caracteres.");
+      return;
+    }
+
+    setCreatingUser(true);
+    const emailClean = newUserEmail.trim().toLowerCase();
+
+    try {
+      const isFirebaseActive = !!auth;
+
+      if (isFirebaseActive) {
+        // 1. Firebase Mode: Create user securely via temporary Firebase Auth app instance.
+        // This avoids logging out the currently authenticated admin.
+        const tempApp = initializeApp(firebaseConfig, "TempAdminCreateUserApp-" + Date.now());
+        const tempAuth = getAuth(tempApp);
+
+        try {
+          const userCredential = await createUserWithEmailAndPassword(
+            tempAuth,
+            emailClean,
+            newUserPassword
+          );
+          
+          const newUid = userCredential.user.uid;
+          const newChurchUser: ChurchUser = {
+            uid: newUid,
+            email: emailClean,
+            displayName: newUserName.trim(),
+            role: newUserRole,
+            newsletter: newUserNewsletter,
+            phone: newUserPhone.trim() || undefined
+          };
+
+          // Save profile in Firestore
+          await saveDynamicUser(newChurchUser);
+          
+          // Add to current usersList view
+          setUsersList(prev => [...prev, newChurchUser]);
+          toast.success(`Utilizador ${newChurchUser.displayName} criado com sucesso no Firebase!`);
+
+          // Reset Form
+          setNewUserEmail("");
+          setNewUserPassword("");
+          setNewUserName("");
+          setNewUserPhone("");
+          setNewUserRole("membro");
+          setNewUserNewsletter(true);
+        } catch (authErr: any) {
+          console.error("Auth creation error:", authErr);
+          if (authErr.code === "auth/email-already-in-use") {
+            toast.error("Este endereço de e-mail já está associado a outra conta.");
+          } else {
+            toast.error(authErr.message || "Erro ao criar utilizador no Firebase Auth.");
+          }
+        } finally {
+          // Cleanup secondary app instance from memory
+          await tempApp.delete();
+        }
+      } else {
+        // 2. Mock Mode: Add user to local storage mock database
+        const mockDbStr = localStorage.getItem("amoi_mock_users_db");
+        let list: any[] = [];
+        if (mockDbStr) {
+          try {
+            list = JSON.parse(mockDbStr);
+          } catch {}
+        }
+
+        const emailExists = list.some(u => u.email.toLowerCase() === emailClean);
+        if (emailExists) {
+          toast.error("Este endereço de e-mail já está associado a outra conta.");
+          setCreatingUser(false);
+          return;
+        }
+
+        const newUid = "mock-uid-" + Date.now();
+        const newMockUser = {
+          uid: newUid,
+          email: emailClean,
+          password: newUserPassword,
+          name: newUserName.trim(),
+          role: newUserRole,
+          newsletter: newUserNewsletter,
+          phone: newUserPhone.trim() || ""
+        };
+
+        list.push(newMockUser);
+        localStorage.setItem("amoi_mock_users_db", JSON.stringify(list));
+
+        // Add to current usersList view
+        const newChurchUser: ChurchUser = {
+          uid: newUid,
+          email: emailClean,
+          displayName: newMockUser.name,
+          role: newUserRole,
+          newsletter: newUserNewsletter,
+          phone: newUserPhone.trim() || undefined
+        };
+        setUsersList(prev => [...prev, newChurchUser]);
+        
+        toast.success(`[Modo Demo] Utilizador ${newChurchUser.displayName} criado com sucesso!`);
+
+        // Reset Form
+        setNewUserEmail("");
+        setNewUserPassword("");
+        setNewUserName("");
+        setNewUserPhone("");
+        setNewUserRole("membro");
+        setNewUserNewsletter(true);
+      }
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || "Erro ao criar o utilizador.");
+    } finally {
+      setCreatingUser(false);
     }
   };
 
@@ -871,6 +1008,93 @@ function AdminDashboard() {
                     <h2 className="text-2xl font-bold font-display text-primary flex items-center gap-2 mb-6">
                       <Users className="h-5 w-5" /> Controlo de Membros & Níveis de Acesso
                     </h2>
+
+                    {/* Criar Novo Utilizador Form */}
+                    <form onSubmit={handleCreateUser} className="bg-background/40 border border-primary/20 rounded-2xl p-5 mb-8 space-y-4">
+                      <div className="font-semibold text-sm text-primary flex items-center gap-2 mb-2">
+                        <PlusCircle className="h-4 w-4" /> Registar Novo Membro / Utilizador
+                      </div>
+                      
+                      <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="user-name" className="text-xs uppercase tracking-wider text-muted-foreground">Nome Completo</Label>
+                          <Input
+                            id="user-name"
+                            placeholder="Ex: Irmão Silva"
+                            required
+                            value={newUserName}
+                            onChange={(e) => setNewUserName(e.target.value)}
+                            className="bg-card border-border/60"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="user-email" className="text-xs uppercase tracking-wider text-muted-foreground">Endereço de E-mail</Label>
+                          <Input
+                            id="user-email"
+                            type="email"
+                            placeholder="Ex: irmao.silva@amoi.org"
+                            required
+                            value={newUserEmail}
+                            onChange={(e) => setNewUserEmail(e.target.value)}
+                            className="bg-card border-border/60"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="user-password" className="text-xs uppercase tracking-wider text-muted-foreground">Palavra-passe</Label>
+                          <Input
+                            id="user-password"
+                            type="password"
+                            placeholder="Mínimo 6 caracteres"
+                            required
+                            value={newUserPassword}
+                            onChange={(e) => setNewUserPassword(e.target.value)}
+                            className="bg-card border-border/60 text-sm"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4 items-center">
+                        <div className="space-y-2">
+                          <Label htmlFor="user-phone" className="text-xs uppercase tracking-wider text-muted-foreground">Telemóvel (Opcional)</Label>
+                          <Input
+                            id="user-phone"
+                            placeholder="Ex: 912345678"
+                            value={newUserPhone}
+                            onChange={(e) => setNewUserPhone(e.target.value)}
+                            className="bg-card border-border/60"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="user-role" className="text-xs uppercase tracking-wider text-muted-foreground">Função / Nível de Acesso</Label>
+                          <select
+                            id="user-role"
+                            value={newUserRole}
+                            onChange={(e) => setNewUserRole(e.target.value as UserRole)}
+                            className="w-full h-10 px-3 rounded-lg border border-border/60 bg-card text-sm focus:outline-none focus:border-primary font-semibold text-primary"
+                          >
+                            <option value="membro">Membro</option>
+                            <option value="Editor">Editor</option>
+                            <option value="Servo de Deus">Servo de Deus (Admin)</option>
+                          </select>
+                        </div>
+                        <div className="flex items-center gap-2 pt-6">
+                          <input
+                            id="user-newsletter"
+                            type="checkbox"
+                            checked={newUserNewsletter}
+                            onChange={(e) => setNewUserNewsletter(e.target.checked)}
+                            className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary accent-primary"
+                          />
+                          <Label htmlFor="user-newsletter" className="text-xs uppercase tracking-wider text-muted-foreground cursor-pointer select-none">
+                            Subscrever Newsletter
+                          </Label>
+                        </div>
+                      </div>
+
+                      <Button type="submit" disabled={creatingUser} className="bg-gradient-gold text-primary-foreground font-semibold shadow-gold">
+                        {creatingUser ? "A registar..." : "Registar Utilizador"}
+                      </Button>
+                    </form>
 
                     <div className="overflow-x-auto rounded-2xl border border-border/60">
                       <table className="w-full text-left border-collapse text-sm">
