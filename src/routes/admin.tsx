@@ -23,7 +23,6 @@ import {
   deleteDynamicUser,
   convertGoogleDriveLink
 } from "../lib/dynamicContent";
-import { sendAnnouncementNotification } from "../lib/email";
 import {
   LayoutDashboard,
   Image as ImageIcon,
@@ -192,36 +191,12 @@ function AdminDashboard() {
       await saveDynamicAnnouncement(newAnn);
       setAnnouncements([newAnn, ...announcements]);
 
-      // Buscar utilizadores subscritos à newsletter
-      const allUsers = await getDynamicUsers();
-      const subscribers = allUsers
-        .filter(u => u.newsletter)
-        .map(u => ({ email: u.email, displayName: u.displayName }));
-
-      // Enviar e-mails de notificação
-      const emailResult = await sendAnnouncementNotification({
-        data: {
-          title: newAnn.title,
-          category: newAnn.category,
-          content: newAnn.content,
-          author: newAnn.author,
-          imageUrl: newAnn.imageUrl,
-          subscribers
-        }
-      });
-
-      if (emailResult.success) {
-        if (emailResult.mock) {
-          toast.info(`Publicação criada! Simulação de envio efetuada para ${emailResult.count} membros (detalhes na consola do servidor).`);
-        } else {
-          toast.success(`Publicação criada e ${emailResult.count} membros notificados por e-mail!`);
-        }
-      } else {
-        toast.warning(`Publicação criada, mas houve um erro no envio de e-mails: ${emailResult.error}`);
-      }
+      // Newsletter por e-mail não disponível em alojamento estático (GitHub Pages).
+      // As publicações são guardadas no Firestore e visíveis no site.
+      toast.success(`Publicação "${newAnn.title}" criada com sucesso!`);
     } catch (err) {
-      console.error("Error creating announcement / sending emails:", err);
-      toast.error("Erro ao processar a publicação ou ao enviar as notificações por e-mail.");
+      console.error("Erro ao guardar publicação:", err);
+      toast.error("Erro ao guardar a publicação. Tente novamente.");
     }
 
     // reset
