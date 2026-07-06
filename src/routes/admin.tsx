@@ -94,7 +94,7 @@ function AdminDashboard() {
 
   // Load Data
   useEffect(() => {
-    if (user && user.role !== "membro") {
+    if (user && user.role?.toLowerCase() !== "membro") {
       loadAllData();
     }
   }, [user]);
@@ -318,7 +318,7 @@ function AdminDashboard() {
     );
   }
 
-  if (user.role === "membro") {
+  if (user.role?.toLowerCase() === "membro") {
     return (
       <SiteLayout>
         <section className="min-h-[calc(100vh-6rem)] flex items-center justify-center px-4 py-16">

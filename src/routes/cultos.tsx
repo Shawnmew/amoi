@@ -99,8 +99,13 @@ export const getVideos = createServerFn({ method: "GET" }).handler(async () => {
 
 export const Route = createFileRoute("/cultos")({
   loader: async () => {
-    const videos = await getVideos();
-    return { videos };
+    try {
+      const videos = await getVideos();
+      return { videos: videos || [] };
+    } catch (e) {
+      console.warn("Could not load real-time videos via server function (Static host environment):", e);
+      return { videos: [] };
+    }
   },
   head: () => ({
     meta: [

@@ -110,7 +110,7 @@ function Login() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="password" className="text-xs uppercase tracking-widest text-primary">Palavra-passe</Label>
-                  <button type="button" className="text-xs text-muted-foreground hover:text-primary">Esqueceu?</button>
+                  <Link to="/recuperar-senha" className="text-xs text-muted-foreground hover:text-primary hover:underline">Esqueceu?</Link>
                 </div>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />

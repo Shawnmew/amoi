@@ -55,8 +55,13 @@ export function SiteLayout({ children }: { children: ReactNode }) {
                 <span className="text-xs text-muted-foreground mr-2 max-w-[120px] truncate" title={user.displayName || user.email || ""}>
                   Olá, {user.displayName?.split(" ")[0] || user.email}
                 </span>
-                <Button asChild variant="ghost" size="sm" className="mr-1 text-primary hover:text-primary">
-                  <Link to="/admin">Painel</Link>
+                {user.role?.toLowerCase() !== "membro" && (
+                  <Button asChild variant="ghost" size="sm" className="mr-1 text-primary hover:text-primary">
+                    <Link to="/admin">Painel</Link>
+                  </Button>
+                )}
+                <Button asChild variant="ghost" size="sm" className="mr-1">
+                  <Link to="/perfil">Perfil</Link>
                 </Button>
                 <Button onClick={logout} variant="ghost" size="sm">
                   Sair
@@ -100,28 +105,37 @@ export function SiteLayout({ children }: { children: ReactNode }) {
                   {item.label}
                 </Link>
               ))}
-              <div className="flex gap-2 pt-3 border-t border-border/60 mt-2">
+              <div className="flex flex-col gap-2 pt-3 border-t border-border/60 mt-2">
                 {user ? (
                   <>
-                    <span className="text-xs text-muted-foreground self-center flex-1 truncate px-2">
-                      Olá, {user.displayName || user.email}
-                    </span>
-                    <Button asChild size="sm" variant="ghost" className="flex-1 text-primary hover:text-primary mr-1">
-                      <Link to="/admin" onClick={() => setOpen(false)}>Painel</Link>
-                    </Button>
-                    <Button onClick={() => { logout(); setOpen(false); }} size="sm" variant="outline" className="flex-1">
-                      Sair
-                    </Button>
+                    <div className="flex items-center justify-between px-2 py-1">
+                      <span className="text-xs text-muted-foreground truncate">
+                        Olá, {user.displayName || user.email}
+                      </span>
+                    </div>
+                    <div className="flex gap-2">
+                      {user.role?.toLowerCase() !== "membro" && (
+                        <Button asChild size="sm" variant="ghost" className="flex-1 text-primary hover:text-primary">
+                          <Link to="/admin" onClick={() => setOpen(false)}>Painel</Link>
+                        </Button>
+                      )}
+                      <Button asChild size="sm" variant="ghost" className="flex-1">
+                        <Link to="/perfil" onClick={() => setOpen(false)}>Perfil</Link>
+                      </Button>
+                      <Button onClick={() => { logout(); setOpen(false); }} size="sm" variant="outline" className="flex-1">
+                        Sair
+                      </Button>
+                    </div>
                   </>
                 ) : (
-                  <>
+                  <div className="flex gap-2">
                     <Button asChild variant="ghost" size="sm" className="flex-1">
                       <Link to="/login" onClick={() => setOpen(false)}>Entrar</Link>
                     </Button>
                     <Button asChild size="sm" className="flex-1 bg-gradient-gold text-primary-foreground font-semibold">
                       <Link to="/registro" onClick={() => setOpen(false)}>Registar</Link>
                     </Button>
-                  </>
+                  </div>
                 )}
               </div>
             </div>

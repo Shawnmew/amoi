@@ -11,6 +11,8 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SobreRouteImport } from './routes/sobre'
 import { Route as RegistroRouteImport } from './routes/registro'
+import { Route as RecuperarSenhaRouteImport } from './routes/recuperar-senha'
+import { Route as PerfilRouteImport } from './routes/perfil'
 import { Route as OChamadoRouteImport } from './routes/o-chamado'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as CultosRouteImport } from './routes/cultos'
@@ -25,6 +27,16 @@ const SobreRoute = SobreRouteImport.update({
 const RegistroRoute = RegistroRouteImport.update({
   id: '/registro',
   path: '/registro',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RecuperarSenhaRoute = RecuperarSenhaRouteImport.update({
+  id: '/recuperar-senha',
+  path: '/recuperar-senha',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PerfilRoute = PerfilRouteImport.update({
+  id: '/perfil',
+  path: '/perfil',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OChamadoRoute = OChamadoRouteImport.update({
@@ -59,6 +71,8 @@ export interface FileRoutesByFullPath {
   '/cultos': typeof CultosRoute
   '/login': typeof LoginRoute
   '/o-chamado': typeof OChamadoRoute
+  '/perfil': typeof PerfilRoute
+  '/recuperar-senha': typeof RecuperarSenhaRoute
   '/registro': typeof RegistroRoute
   '/sobre': typeof SobreRoute
 }
@@ -68,6 +82,8 @@ export interface FileRoutesByTo {
   '/cultos': typeof CultosRoute
   '/login': typeof LoginRoute
   '/o-chamado': typeof OChamadoRoute
+  '/perfil': typeof PerfilRoute
+  '/recuperar-senha': typeof RecuperarSenhaRoute
   '/registro': typeof RegistroRoute
   '/sobre': typeof SobreRoute
 }
@@ -78,6 +94,8 @@ export interface FileRoutesById {
   '/cultos': typeof CultosRoute
   '/login': typeof LoginRoute
   '/o-chamado': typeof OChamadoRoute
+  '/perfil': typeof PerfilRoute
+  '/recuperar-senha': typeof RecuperarSenhaRoute
   '/registro': typeof RegistroRoute
   '/sobre': typeof SobreRoute
 }
@@ -89,6 +107,8 @@ export interface FileRouteTypes {
     | '/cultos'
     | '/login'
     | '/o-chamado'
+    | '/perfil'
+    | '/recuperar-senha'
     | '/registro'
     | '/sobre'
   fileRoutesByTo: FileRoutesByTo
@@ -98,6 +118,8 @@ export interface FileRouteTypes {
     | '/cultos'
     | '/login'
     | '/o-chamado'
+    | '/perfil'
+    | '/recuperar-senha'
     | '/registro'
     | '/sobre'
   id:
@@ -107,6 +129,8 @@ export interface FileRouteTypes {
     | '/cultos'
     | '/login'
     | '/o-chamado'
+    | '/perfil'
+    | '/recuperar-senha'
     | '/registro'
     | '/sobre'
   fileRoutesById: FileRoutesById
@@ -117,6 +141,8 @@ export interface RootRouteChildren {
   CultosRoute: typeof CultosRoute
   LoginRoute: typeof LoginRoute
   OChamadoRoute: typeof OChamadoRoute
+  PerfilRoute: typeof PerfilRoute
+  RecuperarSenhaRoute: typeof RecuperarSenhaRoute
   RegistroRoute: typeof RegistroRoute
   SobreRoute: typeof SobreRoute
 }
@@ -135,6 +161,20 @@ declare module '@tanstack/react-router' {
       path: '/registro'
       fullPath: '/registro'
       preLoaderRoute: typeof RegistroRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/recuperar-senha': {
+      id: '/recuperar-senha'
+      path: '/recuperar-senha'
+      fullPath: '/recuperar-senha'
+      preLoaderRoute: typeof RecuperarSenhaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/perfil': {
+      id: '/perfil'
+      path: '/perfil'
+      fullPath: '/perfil'
+      preLoaderRoute: typeof PerfilRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/o-chamado': {
@@ -181,6 +221,8 @@ const rootRouteChildren: RootRouteChildren = {
   CultosRoute: CultosRoute,
   LoginRoute: LoginRoute,
   OChamadoRoute: OChamadoRoute,
+  PerfilRoute: PerfilRoute,
+  RecuperarSenhaRoute: RecuperarSenhaRoute,
   RegistroRoute: RegistroRoute,
   SobreRoute: SobreRoute,
 }

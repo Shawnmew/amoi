@@ -30,6 +30,12 @@ service cloud.firestore {
       allow delete: if isServo();
     }
 
+    // --- Password Resets ---
+    match /password_resets/{email} {
+      // Aberto para leitura/gravação pública para viabilizar o fluxo de redefinição sem autenticação
+      allow read, write: if true;
+    }
+
     // --- Carousel Slides ---
     match /carousel_slides/{slideId} {
       // Público pode ver slides
