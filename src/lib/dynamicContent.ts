@@ -1,4 +1,4 @@
-import { collection, getDocs, doc, setDoc, deleteDoc, query, orderBy } from "firebase/firestore";
+import { collection, getDocs, doc, setDoc, deleteDoc, query, orderBy, addDoc } from "firebase/firestore";
 import { db } from "./firebase";
 
 import worship from "@/assets/hero-worship.jpg";
@@ -351,4 +351,70 @@ export async function deleteDynamicUser(uid: string, email: string): Promise<voi
     console.error("Error deleting user from Firestore:", e);
   }
 }
+
+export async function queueNewsletterEmail(
+  title: string,
+  category: string,
+  content: string,
+  author: string,
+  imageUrl: string | undefined,
+  recipients: string[]
+): Promise<{ success: boolean; mock?: boolean; error?: string }> {
+  if (recipients.length === 0) return { success: true, mock: true };
+
+  // If Firebase is NOT active (no db), mock the dispatch
+  if (!db) {
+    console.log("\n=========================================");
+    console.log("MOCK NEWSLETTER EMAIL QUEUED (No Firebase)");
+    console.log(`To: ${recipients.join(", ")}`);
+    console.log(`Subject: [AMOI] ${category}: ${title}`);
+    console.log("=========================================\n");
+    return { success: true, mock: true };
+  }
+
+  const htmlBody = `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 12px; background-color: #ffffff;">
+      <div style="text-align: center; border-bottom: 2px solid #D4A017; padding-bottom: 15px; margin-bottom: 20px;">
+        <h2 style="color: #D4A017; margin: 0; font-family: Georgia, serif; font-size: 26px;">AMOI</h2>
+        <p style="color: #666; margin: 5px 0 0 0; font-size: 12px; text-transform: uppercase; letter-spacing: 2px;">Associação Ministério de Oração e Intercessão</p>
+      </div>
+      
+      <span style="display: inline-block; padding: 4px 10px; font-size: 10px; font-weight: bold; background-color: rgba(212,160,23,0.15); color: #D4A017; border-radius: 20px; text-transform: uppercase; letter-spacing: 1px; border: 1px solid rgba(212,160,23,0.3); margin-bottom: 15px;">
+        ${category}
+      </span>
+      
+      <h1 style="color: #111; font-size: 22px; margin: 0 0 15px 0;">${title}</h1>
+      
+      <p style="color: #444; font-size: 14px; line-height: 1.6; margin-bottom: 20px; white-space: pre-wrap;">
+        ${content}
+      </p>
+      
+      ${imageUrl ? `
+        <div style="margin: 20px 0; border-radius: 8px; overflow: hidden; border: 1px solid #ddd; max-height: 300px;">
+          <img src="${imageUrl}" alt="${title}" style="width: 100%; height: auto; max-height: 300px; object-fit: cover; display: block;" />
+        </div>
+      ` : ""}
+      
+      <div style="border-top: 1px solid #eee; padding-top: 15px; margin-top: 25px; color: #888; font-size: 11px;">
+        <p style="margin: 0;">Publicado por: <strong>${author}</strong></p>
+        <p style="margin: 5px 0 0 0;">Esta é uma notificação automática para os membros registados da AMOI. Se deseja cancelar a receção de comunicações, atualize as suas preferências no seu perfil de membro no portal.</p>
+      </div>
+    </div>
+  `;
+
+  try {
+    await addDoc(collection(db, "mail"), {
+      to: recipients,
+      message: {
+        subject: `[AMOI] ${category}: ${title}`,
+        html: htmlBody,
+      }
+    });
+    return { success: true };
+  } catch (e: any) {
+    console.error("Error queueing email in Firestore:", e);
+    return { success: false, error: e.message || "Failed to queue email in Firestore" };
+  }
+}
+
 

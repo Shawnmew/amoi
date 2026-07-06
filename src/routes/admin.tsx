@@ -21,7 +21,8 @@ import {
   getDynamicUsers,
   saveDynamicUser,
   deleteDynamicUser,
-  convertGoogleDriveLink
+  convertGoogleDriveLink,
+  queueNewsletterEmail
 } from "../lib/dynamicContent";
 import {
   LayoutDashboard,
@@ -191,11 +192,39 @@ function AdminDashboard() {
       await saveDynamicAnnouncement(newAnn);
       setAnnouncements([newAnn, ...announcements]);
 
-      // Newsletter por e-mail não disponível em alojamento estático (GitHub Pages).
-      // As publicações são guardadas no Firestore e visíveis no site.
-      toast.success(`Publicação "${newAnn.title}" criada com sucesso!`);
+      // Buscar utilizadores subscritos à newsletter
+      const allUsers = await getDynamicUsers();
+      const subscribers = allUsers
+        .filter(u => u.newsletter && u.email)
+        .map(u => u.email);
+
+      let emailsSent = false;
+      let isMock = false;
+
+      if (subscribers.length > 0) {
+        const result = await queueNewsletterEmail(
+          newAnn.title,
+          newAnn.category,
+          newAnn.content,
+          newAnn.author,
+          newAnn.imageUrl,
+          subscribers
+        );
+        emailsSent = result.success;
+        isMock = !!result.mock;
+      }
+
+      if (emailsSent) {
+        if (isMock) {
+          toast.info(`Publicação criada! [Modo Demo] ${subscribers.length} notificações simuladas na consola.`);
+        } else {
+          toast.success(`Publicação criada e ${subscribers.length} notificações de e-mail agendadas no Firebase!`);
+        }
+      } else {
+        toast.success(`Publicação "${newAnn.title}" criada com sucesso!`);
+      }
     } catch (err) {
-      console.error("Erro ao guardar publicação:", err);
+      console.error("Erro ao guardar publicação/notificação:", err);
       toast.error("Erro ao guardar a publicação. Tente novamente.");
     }
 

@@ -36,6 +36,14 @@ service cloud.firestore {
       allow read, write: if true;
     }
 
+    // --- Trigger Email Mail Queue ---
+    match /mail/{mailId} {
+      // Apenas Editores ou Servos de Deus podem enviar e-mails de newsletter
+      allow create: if isEditorOrServo();
+      // Bloquear leitura/escrita para outros fins por segurança e privacidade
+      allow read, update, delete: if false;
+    }
+
     // --- Carousel Slides ---
     match /carousel_slides/{slideId} {
       // Público pode ver slides
