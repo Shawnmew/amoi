@@ -10,6 +10,7 @@ import { useAuth } from "../hooks/useAuth";
 const NAV = [
   { to: "/", label: "Início" },
   { to: "/sobre", label: "Sobre" },
+  { to: "/boas-novas", label: "Boas Novas" },
   { to: "/cultos", label: "Cultos" },
   { to: "/o-chamado", label: "O Chamado" },
 ];

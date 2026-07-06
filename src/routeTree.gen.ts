@@ -16,6 +16,7 @@ import { Route as PerfilRouteImport } from './routes/perfil'
 import { Route as OChamadoRouteImport } from './routes/o-chamado'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as CultosRouteImport } from './routes/cultos'
+import { Route as BoasNovasRouteImport } from './routes/boas-novas'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 
@@ -54,6 +55,11 @@ const CultosRoute = CultosRouteImport.update({
   path: '/cultos',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BoasNovasRoute = BoasNovasRouteImport.update({
+  id: '/boas-novas',
+  path: '/boas-novas',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminRoute = AdminRouteImport.update({
   id: '/admin',
   path: '/admin',
@@ -68,6 +74,7 @@ const IndexRoute = IndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/boas-novas': typeof BoasNovasRoute
   '/cultos': typeof CultosRoute
   '/login': typeof LoginRoute
   '/o-chamado': typeof OChamadoRoute
@@ -79,6 +86,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/boas-novas': typeof BoasNovasRoute
   '/cultos': typeof CultosRoute
   '/login': typeof LoginRoute
   '/o-chamado': typeof OChamadoRoute
@@ -91,6 +99,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/boas-novas': typeof BoasNovasRoute
   '/cultos': typeof CultosRoute
   '/login': typeof LoginRoute
   '/o-chamado': typeof OChamadoRoute
@@ -104,6 +113,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin'
+    | '/boas-novas'
     | '/cultos'
     | '/login'
     | '/o-chamado'
@@ -115,6 +125,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/admin'
+    | '/boas-novas'
     | '/cultos'
     | '/login'
     | '/o-chamado'
@@ -126,6 +137,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/admin'
+    | '/boas-novas'
     | '/cultos'
     | '/login'
     | '/o-chamado'
@@ -138,6 +150,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
+  BoasNovasRoute: typeof BoasNovasRoute
   CultosRoute: typeof CultosRoute
   LoginRoute: typeof LoginRoute
   OChamadoRoute: typeof OChamadoRoute
@@ -198,6 +211,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CultosRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/boas-novas': {
+      id: '/boas-novas'
+      path: '/boas-novas'
+      fullPath: '/boas-novas'
+      preLoaderRoute: typeof BoasNovasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin': {
       id: '/admin'
       path: '/admin'
@@ -218,6 +238,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
+  BoasNovasRoute: BoasNovasRoute,
   CultosRoute: CultosRoute,
   LoginRoute: LoginRoute,
   OChamadoRoute: OChamadoRoute,
