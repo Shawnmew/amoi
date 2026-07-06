@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth, UserRole } from "../hooks/useAuth";
-import { firebaseConfig } from "../lib/firebase";
+import { firebaseConfig, auth } from "../lib/firebase";
 import { initializeApp } from "firebase/app";
 import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
 import {
