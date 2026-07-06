@@ -1,0 +1,57 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper to get current user data
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    // Helper check if user is signed in
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Helper checks for roles
+    function isServo() {
+      return isSignedIn() && (getUserData().role == 'Servo de Deus');
+    }
+
+    function isEditorOrServo() {
+      return isSignedIn() && (getUserData().role == 'Editor' || getUserData().role == 'Servo de Deus');
+    }
+
+    // --- Users Collection ---
+    match /users/{userId} {
+      // Qualquer pessoa autenticada pode ler perfis
+      allow read: if isSignedIn();
+      // O próprio usuário pode se registrar/editar, ou um Servo de Deus pode alterar dados de membros
+      allow create, update: if isSignedIn() && (request.auth.uid == userId || isServo());
+      // Apenas Servo de Deus pode excluir contas de utilizadores
+      allow delete: if isServo();
+    }
+
+    // --- Carousel Slides ---
+    match /carousel_slides/{slideId} {
+      // Público pode ver slides
+      allow read: if true;
+      // Apenas Editores ou Servos de Deus podem modificar
+      allow write: if isEditorOrServo();
+    }
+
+    // --- Announcements / News ---
+    match /announcements/{annId} {
+      // Público pode ver publicações
+      allow read: if true;
+      // Apenas Editores ou Servos de Deus podem modificar
+      allow write: if isEditorOrServo();
+    }
+
+    // --- Church Page General Copy & Schedules ---
+    match /church_info/{infoId} {
+      // Público pode ver informações
+      allow read: if true;
+      // Apenas Editores ou Servos de Deus podem modificar
+      allow write: if isEditorOrServo();
+    }
+  }
+}

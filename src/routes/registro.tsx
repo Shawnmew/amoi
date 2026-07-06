@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { SiteLayout } from "@/components/SiteLayout";
 import { Button } from "@/components/ui/button";
@@ -6,6 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Flame, Mail, Lock, User, Phone, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
+import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
+import { doc, setDoc } from "firebase/firestore";
+import { auth, db } from "../lib/firebase";
+import { useAuth } from "../hooks/useAuth";
 import logoUrl from "@/assets/amoi-logo.png";
 
 export const Route = createFileRoute("/registro")({
@@ -21,14 +25,111 @@ export const Route = createFileRoute("/registro")({
 function Registro() {
   const [show, setShow] = useState(false);
   const [loading, setLoading] = useState(false);
+  
+  const [firstname, setFirstname] = useState("");
+  const [lastname, setLastname] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
+  const [newsletter, setNewsletter] = useState(true);
+  
+  const navigate = useNavigate();
+  const { loginMock } = useAuth();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setTimeout(() => {
+
+    // 1. Caso o Firebase esteja ativo
+    if (auth) {
+      try {
+        // 1. Criar utilizador com email e senha
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+        
+        // 2. Atualizar perfil com o Nome Completo
+        const displayName = `${firstname} ${lastname}`.trim();
+        await updateProfile(user, { displayName });
+        
+        // Determine role based on administrative email presets
+        let role = "membro";
+        const emailLower = email.toLowerCase();
+        if (emailLower === "admin@amoi.org" || emailLower === "admin@ministerioamoi.it.ao") {
+          role = "Servo de Deus";
+        } else if (emailLower === "editor@amoi.org" || emailLower === "editor@ministerioamoi.it.ao") {
+          role = "Editor";
+        }
+
+        // 3. Gravar dados adicionais no Firestore (se configurado)
+        if (db) {
+          await setDoc(doc(db, "users", user.uid), {
+            uid: user.uid,
+            firstname,
+            lastname,
+            displayName,
+            email,
+            phone,
+            role,
+            newsletter,
+            createdAt: new Date().toISOString()
+          });
+        }
+        
+        toast.success("Conta criada com sucesso! Bem-vindo à AMOI.");
+        navigate({ to: "/" });
+      } catch (err: any) {
+        console.error(err);
+        let errorMsg = "Erro ao criar conta. Por favor, tente novamente.";
+        if (err.code === "auth/email-already-in-use") {
+          errorMsg = "Este email já está em uso por outra conta.";
+        } else if (err.code === "auth/weak-password") {
+          errorMsg = "A palavra-passe é demasiado fraca.";
+        } else if (err.code === "auth/invalid-email") {
+          errorMsg = "Formato de email inválido.";
+        }
+        toast.error(errorMsg);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
+    // 2. Caso o Firebase NÃO esteja configurado (Modo Mock/Local)
+    try {
+      if (typeof window !== "undefined") {
+        const mockDbStr = localStorage.getItem("amoi_mock_users_db");
+        const mockDb = mockDbStr ? JSON.parse(mockDbStr) : [];
+        
+        if (mockDb.some((u: any) => u.email === email)) {
+          toast.error("Este email já está registado (Modo Demo).");
+          setLoading(false);
+          return;
+        }
+        
+        const newMUser = {
+          uid: "mock-uid-" + Date.now(),
+          email,
+          password,
+          name: `${firstname} ${lastname}`.trim(),
+          role: "membro",
+          newsletter,
+          phone,
+          createdAt: new Date().toISOString()
+        };
+        
+        mockDb.push(newMUser);
+        localStorage.setItem("amoi_mock_users_db", JSON.stringify(mockDb));
+        
+        loginMock(newMUser.email, newMUser.name, "membro", newsletter);
+        toast.success("Conta de teste criada com sucesso!");
+        navigate({ to: "/" });
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Erro ao criar conta simulada.");
+    } finally {
       setLoading(false);
-      toast.info("Registo ainda não está ligado a um backend. Esta é a interface de demonstração.");
-    }, 700);
+    }
   };
 
   return (
@@ -49,20 +150,45 @@ function Registro() {
                   <Label htmlFor="firstname" className="text-xs uppercase tracking-widest text-primary">Nome</Label>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input id="firstname" required placeholder="Nome" className="pl-10 bg-background/60 border-border/60" />
+                    <Input 
+                      id="firstname" 
+                      required 
+                      placeholder="Nome" 
+                      value={firstname}
+                      onChange={(e) => setFirstname(e.target.value)}
+                      className="pl-10 bg-background/60 border-border/60" 
+                    />
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="lastname" className="text-xs uppercase tracking-widest text-primary">Apelido</Label>
-                  <Input id="lastname" required placeholder="Apelido" className="bg-background/60 border-border/60" />
+                  <Label htmlFor="lastname" className="text-xs uppercase tracking-widest text-primary">Sobrenome</Label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input 
+                      id="lastname" 
+                      required 
+                      placeholder="Sobrenome" 
+                      value={lastname}
+                      onChange={(e) => setLastname(e.target.value)}
+                      className="pl-10 bg-background/60 border-border/60" 
+                    />
+                  </div>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-xs uppercase tracking-widest text-primary">Email</Label>
+                <Label htmlFor="email" className="text-xs uppercase tracking-widest text-primary">E-mail</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input id="email" type="email" required placeholder="seu@email.com" className="pl-10 bg-background/60 border-border/60" />
+                  <Input 
+                    id="email" 
+                    type="email" 
+                    required 
+                    placeholder="exemplo@email.com" 
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="pl-10 bg-background/60 border-border/60" 
+                  />
                 </div>
               </div>
 
@@ -70,7 +196,14 @@ function Registro() {
                 <Label htmlFor="phone" className="text-xs uppercase tracking-widest text-primary">Telemóvel</Label>
                 <div className="relative">
                   <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input id="phone" type="tel" placeholder="+000 000 000" className="pl-10 bg-background/60 border-border/60" />
+                  <Input 
+                    id="phone" 
+                    type="tel" 
+                    placeholder="9xx xxx xxx" 
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className="pl-10 bg-background/60 border-border/60" 
+                  />
                 </div>
               </div>
 
@@ -78,17 +211,40 @@ function Registro() {
                 <Label htmlFor="password" className="text-xs uppercase tracking-widest text-primary">Palavra-passe</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input id="password" type={show ? "text" : "password"} required minLength={6} placeholder="Mínimo 6 caracteres" className="pl-10 pr-10 bg-background/60 border-border/60" />
-                  <button type="button" onClick={() => setShow(!show)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary">
+                  <Input 
+                    id="password" 
+                    type={show ? "text" : "password"} 
+                    required 
+                    placeholder="Palavra-passe" 
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="pl-10 pr-10 bg-background/60 border-border/60" 
+                  />
+                  <button 
+                    type="button" 
+                    onClick={() => setShow(!show)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
                     {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
               </div>
 
-              <label className="flex items-start gap-3 text-sm text-muted-foreground cursor-pointer">
-                <input type="checkbox" required className="mt-1 accent-primary" />
-                <span>Aceito os termos da igreja e desejo receber comunicações da AMOI.</span>
-              </label>
+              <div className="space-y-3 pt-2">
+                <label className="flex items-start gap-3 text-sm text-muted-foreground cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    checked={newsletter} 
+                    onChange={(e) => setNewsletter(e.target.checked)} 
+                    className="mt-1 accent-primary" 
+                  />
+                  <span>Desejo receber a Newsletter e comunicações da AMOI via e-mail.</span>
+                </label>
+                <label className="flex items-start gap-3 text-sm text-muted-foreground cursor-pointer">
+                  <input type="checkbox" required className="mt-1 accent-primary" />
+                  <span>Aceito os termos da igreja e políticas de privacidade.</span>
+                </label>
+              </div>
 
               <Button type="submit" disabled={loading} className="w-full bg-gradient-gold text-primary-foreground font-semibold shadow-gold hover:opacity-90">
                 {loading ? "A criar conta..." : (<><Flame className="mr-2 h-4 w-4" /> Criar Conta</>)}
@@ -114,3 +270,4 @@ function Registro() {
     </SiteLayout>
   );
 }
+

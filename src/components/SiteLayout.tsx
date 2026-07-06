@@ -4,6 +4,8 @@ import { Menu, X, Facebook, Instagram, Youtube, Mail, MapPin, Phone } from "luci
 import logoUrl from "@/assets/amoi-logo.png";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { useAuth } from "../hooks/useAuth";
+
 
 const NAV = [
   { to: "/", label: "Início" },
@@ -14,6 +16,7 @@ const NAV = [
 
 export function SiteLayout({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
+  const { user, logout } = useAuth();
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -47,12 +50,28 @@ export function SiteLayout({ children }: { children: ReactNode }) {
 
           <div className="hidden md:flex items-center gap-2">
             <ThemeToggle />
-            <Button asChild variant="ghost" size="sm">
-              <Link to="/login">Entrar</Link>
-            </Button>
-            <Button asChild size="sm" className="bg-gradient-gold text-primary-foreground hover:opacity-90 shadow-gold font-semibold">
-              <Link to="/registro">Registar</Link>
-            </Button>
+            {user ? (
+              <>
+                <span className="text-xs text-muted-foreground mr-2 max-w-[120px] truncate" title={user.displayName || user.email || ""}>
+                  Olá, {user.displayName?.split(" ")[0] || user.email}
+                </span>
+                <Button asChild variant="ghost" size="sm" className="mr-1 text-primary hover:text-primary">
+                  <Link to="/admin">Painel</Link>
+                </Button>
+                <Button onClick={logout} variant="ghost" size="sm">
+                  Sair
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button asChild variant="ghost" size="sm">
+                  <Link to="/login">Entrar</Link>
+                </Button>
+                <Button asChild size="sm" className="bg-gradient-gold text-primary-foreground hover:opacity-90 shadow-gold font-semibold">
+                  <Link to="/registro">Registar</Link>
+                </Button>
+              </>
+            )}
           </div>
 
           <div className="md:hidden flex items-center gap-2">
@@ -82,12 +101,28 @@ export function SiteLayout({ children }: { children: ReactNode }) {
                 </Link>
               ))}
               <div className="flex gap-2 pt-3 border-t border-border/60 mt-2">
-                <Button asChild variant="ghost" size="sm" className="flex-1">
-                  <Link to="/login" onClick={() => setOpen(false)}>Entrar</Link>
-                </Button>
-                <Button asChild size="sm" className="flex-1 bg-gradient-gold text-primary-foreground font-semibold">
-                  <Link to="/registro" onClick={() => setOpen(false)}>Registar</Link>
-                </Button>
+                {user ? (
+                  <>
+                    <span className="text-xs text-muted-foreground self-center flex-1 truncate px-2">
+                      Olá, {user.displayName || user.email}
+                    </span>
+                    <Button asChild size="sm" variant="ghost" className="flex-1 text-primary hover:text-primary mr-1">
+                      <Link to="/admin" onClick={() => setOpen(false)}>Painel</Link>
+                    </Button>
+                    <Button onClick={() => { logout(); setOpen(false); }} size="sm" variant="outline" className="flex-1">
+                      Sair
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button asChild variant="ghost" size="sm" className="flex-1">
+                      <Link to="/login" onClick={() => setOpen(false)}>Entrar</Link>
+                    </Button>
+                    <Button asChild size="sm" className="flex-1 bg-gradient-gold text-primary-foreground font-semibold">
+                      <Link to="/registro" onClick={() => setOpen(false)}>Registar</Link>
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
           </div>

@@ -14,6 +14,7 @@ import { Route as RegistroRouteImport } from './routes/registro'
 import { Route as OChamadoRouteImport } from './routes/o-chamado'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as CultosRouteImport } from './routes/cultos'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 
 const SobreRoute = SobreRouteImport.update({
@@ -41,6 +42,11 @@ const CultosRoute = CultosRouteImport.update({
   path: '/cultos',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -49,6 +55,7 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/cultos': typeof CultosRoute
   '/login': typeof LoginRoute
   '/o-chamado': typeof OChamadoRoute
@@ -57,6 +64,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/cultos': typeof CultosRoute
   '/login': typeof LoginRoute
   '/o-chamado': typeof OChamadoRoute
@@ -66,6 +74,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/cultos': typeof CultosRoute
   '/login': typeof LoginRoute
   '/o-chamado': typeof OChamadoRoute
@@ -74,12 +83,27 @@ export interface FileRoutesById {
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/cultos' | '/login' | '/o-chamado' | '/registro' | '/sobre'
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/cultos'
+    | '/login'
+    | '/o-chamado'
+    | '/registro'
+    | '/sobre'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/cultos' | '/login' | '/o-chamado' | '/registro' | '/sobre'
+  to:
+    | '/'
+    | '/admin'
+    | '/cultos'
+    | '/login'
+    | '/o-chamado'
+    | '/registro'
+    | '/sobre'
   id:
     | '__root__'
     | '/'
+    | '/admin'
     | '/cultos'
     | '/login'
     | '/o-chamado'
@@ -89,6 +113,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRoute: typeof AdminRoute
   CultosRoute: typeof CultosRoute
   LoginRoute: typeof LoginRoute
   OChamadoRoute: typeof OChamadoRoute
@@ -133,6 +158,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CultosRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -145,6 +177,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRoute: AdminRoute,
   CultosRoute: CultosRoute,
   LoginRoute: LoginRoute,
   OChamadoRoute: OChamadoRoute,

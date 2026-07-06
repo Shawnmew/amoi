@@ -4,8 +4,104 @@ import { SiteLayout } from "@/components/SiteLayout";
 import { Play, Search, Youtube } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { createServerFn } from "@tanstack/react-start";
+
+type Culto = {
+  id: string;
+  title: string;
+  speaker: string;
+  date: string;
+  category: "Pregação" | "Louvor" | "Vigília" | "Especial";
+  youtubeId: string;
+};
+
+// Decodificador simples de entidades XML/HTML
+function decodeEntities(str: string): string {
+  return str
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&apos;/g, "'");
+}
+
+// Função de servidor para buscar e parsear os vídeos do feed RSS do YouTube
+export const getVideos = createServerFn({ method: "GET" }).handler(async () => {
+  try {
+    const channelId = "UCp2wLGoGyAL5NQiAHHFn9uw";
+    const response = await fetch(
+      `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`
+    );
+    if (!response.ok) {
+      throw new Error(`Failed to fetch YouTube feed: ${response.statusText}`);
+    }
+    const xml = await response.text();
+    
+    const entries: Culto[] = [];
+    const entryRegex = /<entry>([\s\S]*?)<\/entry>/g;
+    let match;
+    let count = 0;
+    
+    while ((match = entryRegex.exec(xml)) !== null && count < 15) {
+      const entryContent = match[1];
+      
+      const idMatch = entryContent.match(/<yt:videoId>(.*?)<\/yt:videoId>/);
+      const titleMatch = entryContent.match(/<title>(.*?)<\/title>/);
+      const publishedMatch = entryContent.match(/<published>(.*?)<\/published>/);
+      
+      if (idMatch && titleMatch) {
+        const videoId = idMatch[1].trim();
+        const rawTitle = titleMatch[1].replace(/<!\[CDATA\[(.*?)\]\]>/, "$1").trim();
+        const title = decodeEntities(rawTitle);
+        const dateStr = publishedMatch ? publishedMatch[1].split("T")[0] : new Date().toISOString().split("T")[0];
+        
+        // Determinar o pregador/orador baseado no título
+        let speaker = "Pastor Nelson Nunes";
+        if (title.toLowerCase().includes("profeta") || title.toLowerCase().includes("edgar")) {
+          speaker = "Profeta Edgar";
+        } else if (title.toLowerCase().includes("profetiza") || title.toLowerCase().includes("maria")) {
+          speaker = "Profetiza Maria";
+        } else if (title.toLowerCase().includes("ancia") || title.toLowerCase().includes("isabel")) {
+          speaker = "Anciã Isabel Nunes";
+        } else if (title.toLowerCase().includes("louvor") || title.toLowerCase().includes("ministério")) {
+          speaker = "Ministério de Louvor";
+        }
+        
+        // Determinar a categoria baseada no título
+        let category: Culto["category"] = "Pregação";
+        if (title.toLowerCase().includes("louvor") || title.toLowerCase().includes("adoração")) {
+          category = "Louvor";
+        } else if (title.toLowerCase().includes("vigília") || title.toLowerCase().includes("oração")) {
+          category = "Vigília";
+        } else if (title.toLowerCase().includes("especial") || title.toLowerCase().includes("festa")) {
+          category = "Especial";
+        }
+
+        entries.push({
+          id: videoId,
+          title,
+          speaker,
+          date: dateStr,
+          category,
+          youtubeId: videoId
+        });
+        count++;
+      }
+    }
+    
+    return entries;
+  } catch (e) {
+    console.error("Error fetching YouTube videos:", e);
+    return [];
+  }
+});
 
 export const Route = createFileRoute("/cultos")({
+  loader: async () => {
+    const videos = await getVideos();
+    return { videos };
+  },
   head: () => ({
     meta: [
       { title: "Cultos Gravados — AMOI" },
@@ -17,18 +113,9 @@ export const Route = createFileRoute("/cultos")({
   component: Cultos,
 });
 
-type Culto = {
-  id: string;
-  title: string;
-  speaker: string;
-  date: string;
-  category: "Pregação" | "Louvor" | "Vigília" | "Especial";
-  youtubeId: string;
-};
-
-// Placeholder YouTube IDs — substituir pelos cultos reais do canal @ministerioamoi
+// Fallback de cultos em caso de falha de rede
 const CULTOS: Culto[] = [
-  { id: "1", title: "O Poder da Oração Persistente", speaker: "Pastor Nelson Nunes", date: "2026-06-15", category: "Pregação", youtubeId: "9K_BRUFp8qg?si=dqN2RVeyss7mLb63" },
+  { id: "1", title: "O Poder da Oração Persistente", speaker: "Pastor Nelson Nunes", date: "2026-06-15", category: "Pregação", youtubeId: "9K_BRUFp8qg" },
   { id: "2", title: "Vigília — Quebrando Barreiras", speaker: "Equipa de Intercessão", date: "2026-06-13", category: "Vigília", youtubeId: "dQw4w9WgXcQ" },
   { id: "3", title: "Louvor ao Trono — Ao Vivo", speaker: "Ministério de Louvor", date: "2026-06-08", category: "Louvor", youtubeId: "dQw4w9WgXcQ" },
   { id: "4", title: "A Fé que Move Montanhas", speaker: "Pastor Nelson Nunes", date: "2026-06-01", category: "Pregação", youtubeId: "dQw4w9WgXcQ" },
@@ -42,20 +129,39 @@ const CULTOS: Culto[] = [
 const CATEGORIES = ["Todos", "Pregação", "Louvor", "Vigília", "Especial"] as const;
 
 function Cultos() {
+  const { videos } = Route.useLoaderData();
+  const cultosList = useMemo(() => {
+    return videos && videos.length > 0 ? videos : CULTOS;
+  }, [videos]);
+
   const [query, setQuery] = useState("");
   const [cat, setCat] = useState<(typeof CATEGORIES)[number]>("Todos");
-  const [selected, setSelected] = useState<Culto>(CULTOS[0]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
-    return CULTOS.filter((c) => {
+    return cultosList.filter((c) => {
       const matchesCat = cat === "Todos" || c.category === cat;
       const matchesQuery = c.title.toLowerCase().includes(query.toLowerCase()) ||
         c.speaker.toLowerCase().includes(query.toLowerCase());
       return matchesCat && matchesQuery;
     });
-  }, [query, cat]);
+  }, [cultosList, query, cat]);
 
-  const fmtDate = (d: string) => new Date(d).toLocaleDateString("pt-PT", { day: "2-digit", month: "long", year: "numeric" });
+  const selected = useMemo(() => {
+    if (selectedId) {
+      const found = cultosList.find((c) => c.id === selectedId);
+      if (found) return found;
+    }
+    return filtered[0] || cultosList[0] || CULTOS[0];
+  }, [selectedId, filtered, cultosList]);
+
+  const fmtDate = (d: string) => {
+    try {
+      return new Date(d).toLocaleDateString("pt-PT", { day: "2-digit", month: "long", year: "numeric" });
+    } catch {
+      return d;
+    }
+  };
 
   return (
     <SiteLayout>
@@ -148,7 +254,7 @@ function Cultos() {
                   <button
                     key={c.id}
                     onClick={() => {
-                      setSelected(c);
+                      setSelectedId(c.id);
                       window.scrollTo({ top: 0, behavior: "smooth" });
                     }}
                     className={`group text-left rounded-2xl overflow-hidden bg-card border transition-all hover:-translate-y-1 ${
@@ -185,10 +291,11 @@ function Cultos() {
           )}
 
           <p className="text-center text-xs text-muted-foreground mt-10 italic">
-            * Os vídeos exibidos são marcadores. Substitua os IDs do YouTube pelos cultos reais do canal @ministerioamoi.
+            * Os vídeos são carregados em tempo real diretamente do canal oficial @ministerioamoi.
           </p>
         </div>
       </section>
     </SiteLayout>
   );
 }
+

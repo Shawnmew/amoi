@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { SiteLayout } from "@/components/SiteLayout";
 import { Button } from "@/components/ui/button";
@@ -6,6 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Flame, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from "../lib/firebase";
+import { useAuth } from "../hooks/useAuth";
 import logoUrl from "@/assets/amoi-logo.png";
 
 export const Route = createFileRoute("/login")({
@@ -21,15 +24,59 @@ export const Route = createFileRoute("/login")({
 function Login() {
   const [show, setShow] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const navigate = useNavigate();
+  const { loginMock } = useAuth();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setTimeout(() => {
+
+    // 1. Caso o Firebase esteja ativo
+    if (auth) {
+      try {
+        await signInWithEmailAndPassword(auth, email, password);
+        toast.success("Bem-vindo de volta à AMOI!");
+        navigate({ to: "/" });
+      } catch (err: any) {
+        console.error(err);
+        let errorMsg = "Erro ao entrar. Por favor, verifique as suas credenciais.";
+        if (err.code === "auth/invalid-credential" || err.code === "auth/wrong-password" || err.code === "auth/user-not-found") {
+          errorMsg = "Email ou palavra-passe incorretos.";
+        } else if (err.code === "auth/invalid-email") {
+          errorMsg = "Formato de email inválido.";
+        }
+        toast.error(errorMsg);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
+    // 2. Caso o Firebase NÃO esteja configurado (Modo Mock/Local)
+    try {
+      if (typeof window !== "undefined") {
+        const mockDbStr = localStorage.getItem("amoi_mock_users_db");
+        const mockDb = mockDbStr ? JSON.parse(mockDbStr) : [];
+        const found = mockDb.find((u: any) => u.email === email && u.password === password);
+        
+        if (found) {
+          loginMock(found.email, found.name, found.role || "membro", typeof found.newsletter === "boolean" ? found.newsletter : true);
+          toast.success(`Entrou no Modo Demo como ${found.name}!`);
+          navigate({ to: "/" });
+        } else {
+          toast.error("Email ou palavra-passe incorretos (Use: admin@amoi.org / admin).");
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Erro ao autenticar no modo de demonstração.");
+    } finally {
       setLoading(false);
-      toast.info("Login ainda não está ligado a um backend. Esta é a interface de demonstração.");
-    }, 700);
+    }
   };
+
 
   return (
     <SiteLayout>
@@ -48,7 +95,15 @@ function Login() {
                 <Label htmlFor="email" className="text-xs uppercase tracking-widest text-primary">Email</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input id="email" type="email" required placeholder="seu@email.com" className="pl-10 bg-background/60 border-border/60" />
+                  <Input 
+                    id="email" 
+                    type="email" 
+                    required 
+                    placeholder="seu@email.com" 
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="pl-10 bg-background/60 border-border/60" 
+                  />
                 </div>
               </div>
 
@@ -59,7 +114,15 @@ function Login() {
                 </div>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input id="password" type={show ? "text" : "password"} required placeholder="••••••••" className="pl-10 pr-10 bg-background/60 border-border/60" />
+                  <Input 
+                    id="password" 
+                    type={show ? "text" : "password"} 
+                    required 
+                    placeholder="••••••••" 
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="pl-10 pr-10 bg-background/60 border-border/60" 
+                  />
                   <button type="button" onClick={() => setShow(!show)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary">
                     {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
@@ -90,3 +153,4 @@ function Login() {
     </SiteLayout>
   );
 }
+

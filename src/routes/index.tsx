@@ -4,12 +4,20 @@ import Autoplay from "embla-carousel-autoplay";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, type CarouselApi } from "@/components/ui/carousel";
 import { Button } from "@/components/ui/button";
 import { SiteLayout } from "@/components/SiteLayout";
-import { ArrowRight, Calendar, Flame, HandHeart, Users, BookOpenText } from "lucide-react";
+import { ArrowRight, Calendar, Flame, HandHeart, Users, BookOpenText, User, Bell } from "lucide-react";
+import {
+  CarouselSlide,
+  Announcement,
+  ChurchInfo,
+  getDynamicSlides,
+  getDynamicInfo,
+  getDynamicAnnouncements,
+  DEFAULT_SLIDES,
+  DEFAULT_INFO,
+  DEFAULT_ANNOUNCEMENTS,
+  convertGoogleDriveLink
+} from "../lib/dynamicContent";
 import worship from "@/assets/hero-worship.jpg";
-import preaching from "@/assets/hero-preaching.jpg";
-import choir from "@/assets/hero-choir.jpg";
-import prayer from "@/assets/hero-prayer.jpg";
-import baptism from "@/assets/hero-baptism.jpg";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -23,17 +31,30 @@ export const Route = createFileRoute("/")({
   component: Home,
 });
 
-const SLIDES = [
-  { src: worship, title: "Adoração que Move o Céu", subtitle: "Cultos com a presença viva do Espírito Santo" },
-  { src: preaching, title: "A Palavra que Transforma", subtitle: "Ensino bíblico sólido para todas as idades" },
-  { src: choir, title: "Louvor de Vitória", subtitle: "Ministério de música ungido e vibrante" },
-  { src: prayer, title: "Oração e Intercessão", subtitle: "Quebrando barreiras pelo poder do Espírito" },
-  { src: baptism, title: "Vidas Renovadas", subtitle: "Celebramos novas conversões e batismos" },
-];
-
 function Home() {
   const [api, setApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
+
+  // Dynamic Content states initialized with default values for SSR speed
+  const [slides, setSlides] = useState<CarouselSlide[]>(DEFAULT_SLIDES);
+  const [info, setInfo] = useState<ChurchInfo>(DEFAULT_INFO);
+  const [announcements, setAnnouncements] = useState<Announcement[]>(DEFAULT_ANNOUNCEMENTS);
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const fetchedSlides = await getDynamicSlides();
+        const fetchedInfo = await getDynamicInfo();
+        const fetchedAnns = await getDynamicAnnouncements();
+        setSlides(fetchedSlides);
+        setInfo(fetchedInfo);
+        setAnnouncements(fetchedAnns);
+      } catch (e) {
+        console.error("Error loading dynamic content:", e);
+      }
+    }
+    loadData();
+  }, []);
 
   useEffect(() => {
     if (!api) return;
@@ -52,11 +73,11 @@ function Home() {
           className="w-full"
         >
           <CarouselContent>
-            {SLIDES.map((s, i) => (
-              <CarouselItem key={i}>
+            {slides.map((s, i) => (
+              <CarouselItem key={s.id}>
                 <div className="relative h-[78vh] min-h-[560px] w-full overflow-hidden">
                   <img
-                    src={s.src}
+                    src={convertGoogleDriveLink(s.src)}
                     alt={s.title}
                     className="absolute inset-0 h-full w-full object-cover scale-105"
                     {...(i === 0 ? {} : { loading: "lazy" as const })}
@@ -92,7 +113,7 @@ function Home() {
         </Carousel>
 
         <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 z-10">
-          {SLIDES.map((_, i) => (
+          {slides.map((_, i) => (
             <button
               key={i}
               onClick={() => api?.scrollTo(i)}
@@ -109,13 +130,19 @@ function Home() {
           <div>
             <span className="text-xs uppercase tracking-[0.3em] text-primary font-semibold">Bem-vindo</span>
             <h2 className="mt-3 text-4xl md:text-5xl font-bold">
-              Uma casa de <span className="text-gradient-gold">oração</span> para todos os povos.
+              {info.welcomeTitle.includes("oração") ? (
+                <>
+                  {info.welcomeTitle.split("oração")[0]}
+                  <span className="text-gradient-gold">oração</span>
+                  {info.welcomeTitle.split("oração")[1]}
+                </>
+              ) : (
+                info.welcomeTitle
+              )}
             </h2>
             <div className="gold-divider w-32 my-6" />
             <p className="text-muted-foreground leading-relaxed text-lg">
-              A AMOI é mais do que uma igreja — é uma família espiritual que arde pela presença de Deus.
-              Acreditamos no poder transformador da oração, na centralidade da Palavra e na adoração
-              que move o coração do Pai.
+              {info.welcomeDesc}
             </p>
             <p className="mt-4 text-muted-foreground leading-relaxed">
               Sejas tu novo na fé ou caminhando há muito tempo, há um lugar reservado para ti entre os
@@ -127,7 +154,7 @@ function Home() {
           </div>
           <div className="relative">
             <div className="absolute -inset-4 bg-gradient-gold opacity-20 blur-3xl rounded-full" />
-            <img src={prayer} alt="Comunidade em oração" className="relative rounded-2xl shadow-elevated border border-primary/20" loading="lazy" />
+            <img src={worship} alt="Comunidade em oração" className="relative rounded-2xl shadow-elevated border border-primary/20" loading="lazy" />
           </div>
         </div>
       </section>
@@ -159,6 +186,44 @@ function Home() {
         </div>
       </section>
 
+      {/* ANNOUNCEMENTS / NEWS WALL */}
+      {announcements.length > 0 && (
+        <section className="py-24 bg-card/10">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="text-center max-w-2xl mx-auto mb-16">
+              <span className="text-xs uppercase tracking-[0.3em] text-primary font-semibold">Mural</span>
+              <h2 className="mt-3 text-4xl font-bold">Notícias & Eventos</h2>
+              <div className="gold-divider w-32 mx-auto my-5" />
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-8">
+              {announcements.map((ann) => (
+                <div key={ann.id} className="relative group p-8 rounded-3xl bg-card border border-border/60 hover:border-primary/40 transition-all shadow-elevated">
+                  <div className="absolute top-0 right-8 -translate-y-1/2 px-4 py-1 rounded-full bg-gradient-gold text-primary-foreground text-[10px] uppercase font-bold tracking-widest shadow-gold">
+                    {ann.category}
+                  </div>
+                  {ann.imageUrl && (
+                    <div className="aspect-video w-full rounded-2xl overflow-hidden mb-6 border border-border/50 relative">
+                      <img src={convertGoogleDriveLink(ann.imageUrl)} alt={ann.title} className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500" />
+                    </div>
+                  )}
+                  <div className="flex items-center gap-4 text-xs text-muted-foreground mb-4">
+                    <span className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5 text-primary" /> {ann.date}</span>
+                    <span className="flex items-center gap-1"><User className="h-3.5 w-3.5 text-primary" /> {ann.author}</span>
+                  </div>
+                  <h3 className="font-display text-2xl font-bold text-foreground group-hover:text-primary transition-colors mb-3">
+                    {ann.title}
+                  </h3>
+                  <p className="text-muted-foreground leading-relaxed text-sm">
+                    {ann.content}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* SCHEDULE */}
       <section className="py-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 grid md:grid-cols-2 gap-14 items-center">
@@ -173,11 +238,7 @@ function Home() {
             </h2>
             <div className="gold-divider w-32 my-6" />
             <ul className="space-y-4">
-              {[
-                { day: "Domingo", time: "09h00 às 12h30 · Culto de Adoração" },
-                { day: "Quarta-Feira", time: "18h00 às 19h00 · Culto de Libertação" },
-                { day: "Sexta-Feira", time: "18h00 às 19h00 · Culto de Libertação" },
-              ].map((s) => (
+              {info.schedule.map((s) => (
                 <li key={s.day} className="flex items-center gap-4 p-4 rounded-xl bg-card border border-border/60 hover:border-primary/50 transition-colors">
                   <div className="h-12 w-12 rounded-lg bg-secondary/30 border border-secondary flex items-center justify-center text-primary">
                     <Calendar className="h-5 w-5" />
