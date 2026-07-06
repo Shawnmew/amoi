@@ -42,7 +42,9 @@ import {
   Mail,
   CheckCircle,
   XCircle,
-  Phone
+  Phone,
+  Pencil,
+  X
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -72,6 +74,7 @@ function AdminDashboard() {
   const [newSlideSrc, setNewSlideSrc] = useState("");
   const [newSlideTitle, setNewSlideTitle] = useState("");
   const [newSlideSubtitle, setNewSlideSubtitle] = useState("");
+  const [editingSlideId, setEditingSlideId] = useState<string | null>(null);
 
   // Announcement form state
   const [newAnnTitle, setNewAnnTitle] = useState("");
@@ -121,25 +124,68 @@ function AdminDashboard() {
   };
 
   // Carousel actions
-  const handleAddSlide = async (e: React.FormEvent) => {
+  const handleSaveSlide = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newSlideSrc || !newSlideTitle) {
       toast.warning("A imagem e o título são obrigatórios.");
       return;
     }
-    const newSlide: CarouselSlide = {
-      id: "slide-" + Date.now(),
-      src: convertGoogleDriveLink(newSlideSrc),
-      title: newSlideTitle,
-      subtitle: newSlideSubtitle,
-      order: slides.length + 1
-    };
-    const updated = [...slides, newSlide];
+
+    let updated: CarouselSlide[];
+
+    if (editingSlideId) {
+      // Editar slide existente
+      updated = slides.map(s => {
+        if (s.id === editingSlideId) {
+          return {
+            ...s,
+            src: convertGoogleDriveLink(newSlideSrc),
+            title: newSlideTitle,
+            subtitle: newSlideSubtitle
+          };
+        }
+        return s;
+      });
+      toast.success("Slide atualizado com sucesso!");
+      setEditingSlideId(null);
+    } else {
+      // Adicionar novo slide
+      const newSlide: CarouselSlide = {
+        id: "slide-" + Date.now(),
+        src: convertGoogleDriveLink(newSlideSrc),
+        title: newSlideTitle,
+        subtitle: newSlideSubtitle,
+        order: slides.length + 1
+      };
+      updated = [...slides, newSlide];
+      toast.success("Slide adicionado com sucesso!");
+    }
+
     setSlides(updated);
     await saveDynamicSlides(updated);
-    toast.success("Slide adicionado com sucesso!");
     
     // reset form
+    setNewSlideSrc("");
+    setNewSlideTitle("");
+    setNewSlideSubtitle("");
+  };
+
+  const handleStartEditSlide = (slide: CarouselSlide) => {
+    setEditingSlideId(slide.id);
+    setNewSlideTitle(slide.title);
+    setNewSlideSubtitle(slide.subtitle || "");
+    setNewSlideSrc(slide.src);
+    // Rolar suavemente para o formulário de edição
+    const formElement = document.getElementById("slide-form");
+    if (formElement) {
+      formElement.scrollIntoView({ behavior: "smooth" });
+    } else {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
+  const handleCancelEditSlide = () => {
+    setEditingSlideId(null);
     setNewSlideSrc("");
     setNewSlideTitle("");
     setNewSlideSubtitle("");
@@ -439,9 +485,13 @@ function AdminDashboard() {
                     </h2>
                     
                     {/* Add new slide form */}
-                    <form onSubmit={handleAddSlide} className="bg-background/40 border border-primary/20 rounded-2xl p-5 mb-8 space-y-4">
+                    <form id="slide-form" onSubmit={handleSaveSlide} className="bg-background/40 border border-primary/20 rounded-2xl p-5 mb-8 space-y-4">
                       <div className="font-semibold text-sm text-primary flex items-center gap-2 mb-2">
-                        <PlusCircle className="h-4 w-4" /> Adicionar Novo Slide
+                        {editingSlideId ? (
+                          <><Pencil className="h-4 w-4" /> Editar Slide</>
+                        ) : (
+                          <><PlusCircle className="h-4 w-4" /> Adicionar Novo Slide</>
+                        )}
                       </div>
                       
                       <div className="grid sm:grid-cols-2 gap-4">
@@ -489,9 +539,25 @@ function AdminDashboard() {
                         </div>
                       )}
 
-                      <Button type="submit" className="bg-gradient-gold text-primary-foreground font-semibold shadow-gold">
-                        <Plus className="mr-2 h-4 w-4" /> Adicionar Slide
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button type="submit" className="bg-gradient-gold text-primary-foreground font-semibold shadow-gold">
+                          {editingSlideId ? (
+                            <><Save className="mr-2 h-4 w-4" /> Guardar Alterações</>
+                          ) : (
+                            <><Plus className="mr-2 h-4 w-4" /> Adicionar Slide</>
+                          )}
+                        </Button>
+                        {editingSlideId && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={handleCancelEditSlide}
+                            className="border-border/60"
+                          >
+                            <X className="mr-2 h-4 w-4" /> Cancelar
+                          </Button>
+                        )}
+                      </div>
                     </form>
 
                     {/* Slides List */}
@@ -535,8 +601,17 @@ function AdminDashboard() {
                                 </button>
                                 <button
                                   type="button"
+                                  onClick={() => handleStartEditSlide(slide)}
+                                  className="p-1.5 rounded-lg border border-primary/20 hover:bg-primary/10 text-primary"
+                                  title="Editar slide"
+                                >
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </button>
+                                <button
+                                  type="button"
                                   onClick={() => handleDeleteSlide(slide.id)}
                                   className="p-1.5 rounded-lg border border-red-500/20 hover:bg-red-500/10 text-red-500"
+                                  title="Remover slide"
                                 >
                                   <Trash2 className="h-3.5 w-3.5" />
                                 </button>
