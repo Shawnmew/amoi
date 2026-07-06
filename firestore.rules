@@ -13,11 +13,20 @@ service cloud.firestore {
 
     // Helper checks for roles
     function isServo() {
-      return isSignedIn() && (getUserData().role == 'Servo de Deus');
+      return isSignedIn() && (
+        getUserData().role == 'Servo de Deus' || 
+        getUserData().role == 'servo de deus'
+      );
     }
 
+    // Apenas quem é Editor ou Servo de Deus (Admin)
     function isEditorOrServo() {
-      return isSignedIn() && (getUserData().role == 'Editor' || getUserData().role == 'Servo de Deus');
+      return isSignedIn() && (
+        getUserData().role == 'Editor' || 
+        getUserData().role == 'editor' || 
+        getUserData().role == 'Servo de Deus' || 
+        getUserData().role == 'servo de deus'
+      );
     }
 
     // --- Users Collection ---
