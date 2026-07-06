@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>AMOI</title>
+    <script>
+      // GitHub Pages SPA redirect hack.
+      // When GitHub Pages returns a 404, this page redirects back to the root
+      // and encodes the original path as a query parameter so the SPA can restore it.
+      var l = window.location;
+      l.replace(
+        l.protocol + '//' + l.host + l.pathname.split('/').slice(0, 1).join('/') +
+        '/?/' + l.pathname.slice(1) + (l.search ? '&' + l.search.slice(1) : '') + l.hash
+      );
+    </script>
+  </head>
+  <body></body>
+</html>

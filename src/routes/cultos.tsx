@@ -4,7 +4,6 @@ import { SiteLayout } from "@/components/SiteLayout";
 import { Play, Search, Youtube } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { createServerFn } from "@tanstack/react-start";
 
 type Culto = {
   id: string;
@@ -26,8 +25,10 @@ function decodeEntities(str: string): string {
     .replace(/&apos;/g, "'");
 }
 
-// Função de servidor para buscar e parsear os vídeos do feed RSS do YouTube
-export const getVideos = createServerFn({ method: "GET" }).handler(async () => {
+// Busca e parseia os vídeos do feed RSS do YouTube.
+// Funciona durante o prerender (SSR build). No lado do cliente (GitHub Pages estático),
+// o CORS bloqueia o fetch e o catch devolve [] — usam-se então os dados do CULTOS estático.
+async function getVideos(): Promise<Culto[]> {
   try {
     const channelId = "UCp2wLGoGyAL5NQiAHHFn9uw";
     const response = await fetch(
@@ -95,7 +96,7 @@ export const getVideos = createServerFn({ method: "GET" }).handler(async () => {
     console.error("Error fetching YouTube videos:", e);
     return [];
   }
-});
+}
 
 export const Route = createFileRoute("/cultos")({
   loader: async () => {
