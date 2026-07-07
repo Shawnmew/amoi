@@ -43,10 +43,36 @@ function Home() {
   const [current, setCurrent] = useState(0);
   const [selectedAnn, setSelectedAnn] = useState<Announcement | null>(null);
 
-  // Dynamic Content states initialized with default values for SSR speed
-  const [slides, setSlides] = useState<CarouselSlide[]>(DEFAULT_SLIDES);
-  const [info, setInfo] = useState<ChurchInfo>(DEFAULT_INFO);
-  const [announcements, setAnnouncements] = useState<Announcement[]>(DEFAULT_ANNOUNCEMENTS);
+  // Dynamic Content states initialized with cached values for instant render on refresh
+  const [slides, setSlides] = useState<CarouselSlide[]>(() => {
+    if (typeof window !== "undefined") {
+      const local = localStorage.getItem("amoi_carousel_slides");
+      if (local) {
+        try { return JSON.parse(local); } catch {}
+      }
+    }
+    return DEFAULT_SLIDES;
+  });
+
+  const [info, setInfo] = useState<ChurchInfo>(() => {
+    if (typeof window !== "undefined") {
+      const local = localStorage.getItem("amoi_church_info");
+      if (local) {
+        try { return JSON.parse(local); } catch {}
+      }
+    }
+    return DEFAULT_INFO;
+  });
+
+  const [announcements, setAnnouncements] = useState<Announcement[]>(() => {
+    if (typeof window !== "undefined") {
+      const local = localStorage.getItem("amoi_announcements");
+      if (local) {
+        try { return JSON.parse(local); } catch {}
+      }
+    }
+    return DEFAULT_ANNOUNCEMENTS;
+  });
 
   useEffect(() => {
     async function loadData() {

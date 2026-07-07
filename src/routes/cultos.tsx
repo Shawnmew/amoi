@@ -42,7 +42,16 @@ const CATEGORIES = ["Todos", "Pregação", "Louvor", "Vigília", "Especial"] as 
 
 function Cultos() {
   const { videos } = Route.useLoaderData();
-  const [clientVideos, setClientVideos] = useState<ChurchVideo[]>(videos || []);
+  const [clientVideos, setClientVideos] = useState<ChurchVideo[]>(() => {
+    if (videos && videos.length > 0) return videos;
+    if (typeof window !== "undefined") {
+      const local = localStorage.getItem("amoi_mock_videos_db");
+      if (local) {
+        try { return JSON.parse(local); } catch {}
+      }
+    }
+    return [];
+  });
 
   useEffect(() => {
     let active = true;

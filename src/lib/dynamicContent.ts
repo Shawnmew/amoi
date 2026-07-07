@@ -98,7 +98,12 @@ export async function getDynamicSlides(): Promise<CarouselSlide[]> {
       snap.forEach((doc) => {
         list.push({ id: doc.id, ...doc.data() } as CarouselSlide);
       });
-      if (list.length > 0) return list;
+      if (list.length > 0) {
+        if (typeof window !== "undefined") {
+          localStorage.setItem("amoi_carousel_slides", JSON.stringify(list));
+        }
+        return list;
+      }
     }
   } catch (e) {
     console.error("Error loading slides from Firestore:", e);
@@ -145,7 +150,12 @@ export async function getDynamicAnnouncements(): Promise<Announcement[]> {
       snap.forEach((doc) => {
         list.push({ id: doc.id, ...doc.data() } as Announcement);
       });
-      if (list.length > 0) return list;
+      if (list.length > 0) {
+        if (typeof window !== "undefined") {
+          localStorage.setItem("amoi_announcements", JSON.stringify(list));
+        }
+        return list;
+      }
     }
   } catch (e) {
     console.error("Error loading announcements from Firestore:", e);
@@ -216,7 +226,12 @@ export async function getDynamicInfo(): Promise<ChurchInfo> {
           info = doc.data() as ChurchInfo;
         }
       });
-      if (info.welcomeTitle) return info as ChurchInfo;
+      if (info.welcomeTitle) {
+        if (typeof window !== "undefined") {
+          localStorage.setItem("amoi_church_info", JSON.stringify(info));
+        }
+        return info as ChurchInfo;
+      }
     }
   } catch (e) {
     console.error("Error loading info from Firestore:", e);
@@ -491,7 +506,12 @@ export async function getDynamicVideos(): Promise<ChurchVideo[]> {
         list.push({ id: doc.id, ...doc.data() } as ChurchVideo);
       });
       list.sort((a, b) => b.date.localeCompare(a.date));
-      if (list.length > 0) return list;
+      if (list.length > 0) {
+        if (typeof window !== "undefined") {
+          localStorage.setItem("amoi_mock_videos_db", JSON.stringify(list));
+        }
+        return list;
+      }
     }
   } catch (e) {
     console.error("Error loading videos from Firestore:", e);
