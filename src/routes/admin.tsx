@@ -97,6 +97,7 @@ const SERVANT_DEPARTMENTS = [
   "Departamento Administrativo",
   "Secretaria",
   "Ação Social",
+  "Departamento de Comunicação e Imagem",
   "Departamento das Mulheres",
   "Departamento dos Homens"
 ];

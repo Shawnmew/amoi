@@ -39,6 +39,7 @@ const DEPARTMENTS = [
   "Departamento das Crianças",
   "Departamento dos Jovens",
   "Ação Social",
+  "Departamento de Comunicação e Imagem",
   "Departamento das Mulheres",
   "Departamento dos Homens",
 ] as const;
