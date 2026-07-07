@@ -5,6 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { useAuth, UserRole } from "../hooks/useAuth";
 import { firebaseConfig, auth } from "../lib/firebase";
 import { initializeApp } from "firebase/app";
@@ -101,6 +108,13 @@ function AdminDashboard() {
   const [newUserRole, setNewUserRole] = useState<UserRole>("membro");
   const [newUserNewsletter, setNewUserNewsletter] = useState(true);
   const [creatingUser, setCreatingUser] = useState(false);
+
+  // User editing state
+  const [editingUser, setEditingUser] = useState<ChurchUser | null>(null);
+  const [editUserName, setEditUserName] = useState("");
+  const [editUserPhone, setEditUserPhone] = useState("");
+  const [editUserRole, setEditUserRole] = useState<UserRole>("membro");
+  const [editUserNewsletter, setEditUserNewsletter] = useState(true);
 
   // WhatsApp automation state
   const [waSettings, setWaSettings] = useState<WhatsAppSettings>({ gatewayType: "link" });
@@ -364,6 +378,41 @@ function AdminDashboard() {
       await deleteDynamicUser(targetUser.uid, targetUser.email);
       setUsersList(usersList.filter(u => u.uid !== targetUser.uid));
       toast.success("Membro removido da base de dados.");
+    }
+  };
+
+  const handleStartEditUser = (usr: ChurchUser) => {
+    setEditingUser(usr);
+    setEditUserName(usr.displayName);
+    setEditUserPhone(usr.phone || "");
+    setEditUserRole(usr.role);
+    setEditUserNewsletter(usr.newsletter);
+  };
+
+  const handleSaveEditUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingUser) return;
+    if (!editUserName.trim()) {
+      toast.warning("O nome é obrigatório.");
+      return;
+    }
+
+    const updated: ChurchUser = {
+      ...editingUser,
+      displayName: editUserName.trim(),
+      phone: editUserPhone.trim(),
+      role: editUserRole,
+      newsletter: editUserNewsletter
+    };
+
+    try {
+      await saveDynamicUser(updated);
+      setUsersList(usersList.map(u => u.uid === editingUser.uid ? updated : u));
+      toast.success("Utilizador atualizado com sucesso!");
+      setEditingUser(null);
+    } catch (error) {
+      console.error(error);
+      toast.error("Erro ao atualizar o utilizador.");
     }
   };
 
@@ -1349,14 +1398,23 @@ function AdminDashboard() {
                                   </select>
                                 </td>
                                 <td className="p-4 text-right">
-                                  <button
-                                    onClick={() => handleDeleteUser(usr)}
-                                    disabled={usr.email === user.email}
-                                    className="p-2 text-red-500 border border-red-500/20 hover:bg-red-500/10 rounded-xl disabled:opacity-30 disabled:pointer-events-none transition-colors"
-                                    title="Remover Utilizador"
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </button>
+                                  <div className="flex justify-end gap-2">
+                                    <button
+                                      onClick={() => handleStartEditUser(usr)}
+                                      className="p-2 text-primary border border-primary/20 hover:bg-primary/10 rounded-xl transition-colors"
+                                      title="Editar Utilizador"
+                                    >
+                                      <Pencil className="h-4 w-4" />
+                                    </button>
+                                    <button
+                                      onClick={() => handleDeleteUser(usr)}
+                                      disabled={usr.email === user.email}
+                                      className="p-2 text-red-500 border border-red-500/20 hover:bg-red-500/10 rounded-xl disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                                      title="Remover Utilizador"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </button>
+                                  </div>
                                 </td>
                               </tr>
                             ))
@@ -1364,6 +1422,106 @@ function AdminDashboard() {
                         </tbody>
                       </table>
                     </div>
+
+                    {/* Dialog to edit user details */}
+                    <Dialog open={editingUser !== null} onOpenChange={(open) => !open && setEditingUser(null)}>
+                      <DialogContent className="max-w-md bg-card border border-primary/20 backdrop-blur-md p-6 rounded-3xl shadow-elevated">
+                        <DialogHeader>
+                          <DialogTitle className="font-display text-xl font-bold text-primary mb-2">
+                            Editar Utilizador
+                          </DialogTitle>
+                          <DialogDescription className="text-muted-foreground text-xs">
+                            Modifique as informações do membro da AMOI.
+                          </DialogDescription>
+                        </DialogHeader>
+
+                        {editingUser && (
+                          <form onSubmit={handleSaveEditUser} className="space-y-4 mt-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="edit-user-email" className="text-xs uppercase tracking-wider text-muted-foreground">E-mail (Não Editável)</Label>
+                              <Input
+                                id="edit-user-email"
+                                type="email"
+                                value={editingUser.email}
+                                disabled
+                                className="bg-muted border-border/40 text-sm cursor-not-allowed opacity-70"
+                              />
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label htmlFor="edit-user-name" className="text-xs uppercase tracking-wider text-muted-foreground">Nome Completo</Label>
+                              <Input
+                                id="edit-user-name"
+                                type="text"
+                                placeholder="Nome do utilizador"
+                                value={editUserName}
+                                onChange={(e) => setEditUserName(e.target.value)}
+                                className="bg-card border-border/60 text-sm focus:border-primary font-semibold text-primary font-sans"
+                                required
+                              />
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label htmlFor="edit-user-phone" className="text-xs uppercase tracking-wider text-muted-foreground">Telemóvel</Label>
+                              <Input
+                                id="edit-user-phone"
+                                type="tel"
+                                placeholder="Ex: 912345678"
+                                value={editUserPhone}
+                                onChange={(e) => setEditUserPhone(e.target.value)}
+                                className="bg-card border-border/60 text-sm focus:border-primary font-semibold text-primary font-sans"
+                              />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label htmlFor="edit-user-role" className="text-xs uppercase tracking-wider text-muted-foreground">Função / Nível</Label>
+                                <select
+                                  id="edit-user-role"
+                                  value={editUserRole}
+                                  onChange={(e) => setEditUserRole(e.target.value as UserRole)}
+                                  className="w-full h-10 px-3 rounded-lg border border-border/60 bg-card text-sm focus:outline-none focus:border-primary font-semibold text-primary font-sans"
+                                >
+                                  <option value="membro">Membro</option>
+                                  <option value="Editor">Editor</option>
+                                  <option value="Servo de Deus">Servo de Deus (Admin)</option>
+                                </select>
+                              </div>
+
+                              <div className="flex items-center gap-2 pt-6">
+                                <input
+                                  id="edit-user-newsletter"
+                                  type="checkbox"
+                                  checked={editUserNewsletter}
+                                  onChange={(e) => setEditUserNewsletter(e.target.checked)}
+                                  className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary accent-primary"
+                                />
+                                <Label htmlFor="edit-user-newsletter" className="text-xs uppercase tracking-wider text-muted-foreground cursor-pointer select-none">
+                                  Newsletter
+                                </Label>
+                              </div>
+                            </div>
+
+                            <div className="flex justify-end gap-2 pt-4">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setEditingUser(null)}
+                                className="border-border/60 text-muted-foreground"
+                              >
+                                Cancelar
+                              </Button>
+                              <Button
+                                type="submit"
+                                className="bg-gradient-gold text-primary-foreground font-semibold shadow-gold"
+                              >
+                                Guardar Alterações
+                              </Button>
+                            </div>
+                          </form>
+                        )}
+                      </DialogContent>
+                    </Dialog>
                   </div>
                 )}
 
