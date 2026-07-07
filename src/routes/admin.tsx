@@ -39,7 +39,11 @@ import {
   ChurchVideo,
   getDynamicVideos,
   saveDynamicVideo,
-  deleteDynamicVideo
+  deleteDynamicVideo,
+  ChurchServant,
+  getDynamicServants,
+  saveDynamicServant,
+  deleteDynamicServant
 } from "../lib/dynamicContent";
 import {
   LayoutDashboard,
@@ -82,7 +86,17 @@ export const Route = createFileRoute("/admin")({
   component: AdminDashboard,
 });
 
-type TabType = "carousel" | "announcements" | "info" | "users" | "whatsapp" | "videos";
+type TabType = "carousel" | "announcements" | "info" | "users" | "whatsapp" | "videos" | "servants";
+
+const SERVANT_DEPARTMENTS = [
+  "Departamento das Crianças",
+  "Departamento dos Jovens",
+  "Departamento Administrativo",
+  "Secretaria",
+  "Ação Social",
+  "Departamento das Mulheres",
+  "Departamento dos Homens"
+];
 
 function AdminDashboard() {
   const { user, loading } = useAuth();
@@ -94,6 +108,16 @@ function AdminDashboard() {
   const [info, setInfo] = useState<ChurchInfo | null>(null);
   const [usersList, setUsersList] = useState<ChurchUser[]>([]);
   const [videos, setVideos] = useState<ChurchVideo[]>([]);
+  const [servantsList, setServantsList] = useState<ChurchServant[]>([]);
+
+  // Servant Form State
+  const [servantName, setServantName] = useState("");
+  const [servantRole, setServantRole] = useState("");
+  const [servantDept, setServantDept] = useState("Departamento Administrativo");
+  const [servantBio, setServantBio] = useState("");
+  const [servantImg, setServantImg] = useState("");
+  const [editingServantId, setEditingServantId] = useState<string | null>(null);
+  const [savingServant, setSavingServant] = useState(false);
 
   // Video Form State
   const [videoTitle, setVideoTitle] = useState("");
@@ -167,11 +191,13 @@ function AdminDashboard() {
       const fetchedAnns = await getDynamicAnnouncements();
       const fetchedInfo = await getDynamicInfo();
       const fetchedVideos = await getDynamicVideos();
+      const fetchedServants = await getDynamicServants();
       
       setSlides(fetchedSlides);
       setAnnouncements(fetchedAnns);
       setInfo(fetchedInfo);
       setVideos(fetchedVideos);
+      setServantsList(fetchedServants);
 
       // Apenas Servos de Deus podem ver utilizadores
       if (user?.role === "Servo de Deus") {
@@ -539,6 +565,73 @@ function AdminDashboard() {
     } catch (err) {
       console.error(err);
       toast.error("Erro ao eliminar o vídeo.");
+    }
+  };
+
+  // Servant CRUD Handlers
+  const handleSaveServant = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!servantName.trim() || !servantRole.trim() || !servantBio.trim()) {
+      toast.warning("Nome, cargo e biografia são obrigatórios.");
+      return;
+    }
+
+    setSavingServant(true);
+    try {
+      const servantData: ChurchServant = {
+        id: editingServantId || `servant-${Date.now()}`,
+        name: servantName.trim(),
+        role: servantRole.trim(),
+        dept: servantDept,
+        bio: servantBio.trim(),
+        img: servantImg.trim() || undefined
+      };
+
+      await saveDynamicServant(servantData);
+      toast.success(editingServantId ? "Servo atualizado com sucesso!" : "Servo adicionado com sucesso!");
+
+      // Reset form
+      setServantName("");
+      setServantRole("");
+      setServantDept("Departamento Administrativo");
+      setServantBio("");
+      setServantImg("");
+      setEditingServantId(null);
+
+      const fetched = await getDynamicServants();
+      setServantsList(fetched);
+    } catch (err) {
+      console.error(err);
+      toast.error("Erro ao guardar o servo.");
+    } finally {
+      setSavingServant(false);
+    }
+  };
+
+  const handleStartEditServant = (servant: ChurchServant) => {
+    setEditingServantId(servant.id);
+    setServantName(servant.name);
+    setServantRole(servant.role);
+    setServantDept(servant.dept);
+    setServantBio(servant.bio);
+    setServantImg(servant.img || "");
+
+    const formEl = document.getElementById("servant-form-section");
+    if (formEl) {
+      formEl.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
+  const handleDeleteServant = async (id: string) => {
+    if (!window.confirm("Tem a certeza que deseja eliminar este servo?")) return;
+    try {
+      await deleteDynamicServant(id);
+      toast.success("Servo eliminado com sucesso!");
+      const fetched = await getDynamicServants();
+      setServantsList(fetched);
+    } catch (err) {
+      console.error(err);
+      toast.error("Erro ao eliminar o servo.");
     }
   };
 
@@ -943,6 +1036,18 @@ function AdminDashboard() {
               >
                 <Video className="h-4 w-4" />
                 Cultos & Vídeos
+              </button>
+
+              <button
+                onClick={() => setActiveTab("servants")}
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all border ${
+                  activeTab === "servants"
+                    ? "bg-gradient-gold text-primary-foreground border-transparent shadow-gold"
+                    : "bg-card border-border/60 text-muted-foreground hover:text-primary hover:border-primary/30"
+                }`}
+              >
+                <Users className="h-4 w-4" />
+                Equipa & Servos
               </button>
 
               {user.role === "Servo de Deus" && (
@@ -2093,6 +2198,166 @@ function AdminDashboard() {
                                       <button
                                         onClick={() => handleDeleteVideo(vid.id)}
                                         className="p-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500/25 hover:text-red-600 transition-all cursor-pointer"
+                                        title="Eliminar"
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* 7. SERVANTS TAB */}
+                {activeTab === "servants" && (
+                  <div>
+                    <h2 className="text-2xl font-bold font-display text-primary flex items-center gap-2 mb-6">
+                      <Users className="h-5 w-5" /> Gestão de Servos & Departamentos (O Chamado)
+                    </h2>
+
+                    {/* Formulário de Adicionar / Editar */}
+                    <div id="servant-form-section" className="bg-background/40 border border-primary/20 rounded-2xl p-5 mb-8">
+                      <div className="font-semibold text-sm text-primary flex items-center gap-2 mb-4">
+                        {editingServantId ? <Pencil className="h-4 w-4" /> : <PlusCircle className="h-4 w-4" />}
+                        {editingServantId ? "Editar Servo / Irmão" : "Adicionar Novo Servo / Irmão"}
+                      </div>
+                      
+                      <form onSubmit={handleSaveServant} className="space-y-4">
+                        <div className="grid sm:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label className="text-xs uppercase tracking-wider text-muted-foreground">Nome Completo</Label>
+                            <Input
+                              placeholder="Ex: Anciã Sandra Congo ou Irmão Mateus"
+                              value={servantName}
+                              onChange={(e) => setServantName(e.target.value)}
+                              className="bg-card border-border/60"
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label className="text-xs uppercase tracking-wider text-muted-foreground">Cargo / Função Ministerial</Label>
+                            <Input
+                              placeholder="Ex: Coordenadora do Ministério Infantil ou Tesoureiro"
+                              value={servantRole}
+                              onChange={(e) => setServantRole(e.target.value)}
+                              className="bg-card border-border/60"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid sm:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label className="text-xs uppercase tracking-wider text-muted-foreground">Departamento</Label>
+                            <select
+                              value={servantDept}
+                              onChange={(e) => setServantDept(e.target.value)}
+                              className="w-full rounded-md border border-border/60 bg-card px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                            >
+                              {SERVANT_DEPARTMENTS.map((dept) => (
+                                <option key={dept} value={dept}>{dept}</option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label className="text-xs uppercase tracking-wider text-muted-foreground">Foto (URL de imagem ou link Google Drive)</Label>
+                            <Input
+                              placeholder="Ex: https://drive.google.com/file/d/... ou deixe vazio"
+                              value={servantImg}
+                              onChange={(e) => setServantImg(e.target.value)}
+                              className="bg-card border-border/60"
+                            />
+                            <p className="text-[10px] text-muted-foreground font-semibold">
+                              * Dica: Pode usar palavras-chave como `pastor-nelson`, `ancia-isabel`, `pastor-nicolau`, `ancia-rosalina`, `diaconisa-judith` para usar as fotos padrão dos líderes!
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label className="text-xs uppercase tracking-wider text-muted-foreground">Biografia / Descrição Curta</Label>
+                          <textarea
+                            rows={3}
+                            placeholder="Escreva uma breve descrição das tarefas ou da missão do servo..."
+                            value={servantBio}
+                            onChange={(e) => setServantBio(e.target.value)}
+                            className="w-full rounded-md border border-border/60 bg-card px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                          />
+                        </div>
+
+                        <div className="flex justify-end gap-2 pt-2">
+                          {editingServantId && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => {
+                                setEditingServantId(null);
+                                setServantName("");
+                                setServantRole("");
+                                setServantDept("Departamento Administrativo");
+                                setServantBio("");
+                                setServantImg("");
+                              }}
+                              className="border-border/60 text-muted-foreground cursor-pointer"
+                            >
+                              Cancelar
+                            </Button>
+                          )}
+                          <Button
+                            type="submit"
+                            disabled={savingServant}
+                            className="bg-gradient-gold text-primary-foreground font-semibold shadow-gold cursor-pointer"
+                          >
+                            {savingServant ? "A Guardar..." : editingServantId ? "Atualizar Servo" : "Adicionar Servo"}
+                          </Button>
+                        </div>
+                      </form>
+                    </div>
+
+                    {/* Tabela de Servos Existentes */}
+                    <div className="bg-background/40 border border-primary/20 rounded-2xl p-5">
+                      <div className="font-semibold text-sm text-primary mb-4 flex items-center gap-2">
+                        <Users className="h-4 w-4" /> Lista de Servos e Cargos ({servantsList.length})
+                      </div>
+
+                      {servantsList.length === 0 ? (
+                        <p className="text-sm text-muted-foreground text-center py-8">Nenhum servo registado.</p>
+                      ) : (
+                        <div className="overflow-x-auto rounded-xl border border-border/60">
+                          <table className="w-full text-left border-collapse text-sm">
+                            <thead>
+                              <tr className="bg-muted/40 border-b border-border/60">
+                                <th className="p-4 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Nome</th>
+                                <th className="p-4 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Função / Cargo</th>
+                                <th className="p-4 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Departamento</th>
+                                <th className="p-4 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Biografia</th>
+                                <th className="p-4 text-right font-semibold text-xs uppercase tracking-wider text-muted-foreground">Ações</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {servantsList.map((srv) => (
+                                <tr key={srv.id} className="border-b border-border/40 hover:bg-card/25 transition-colors">
+                                  <td className="p-4 font-medium text-foreground">{srv.name}</td>
+                                  <td className="p-4 text-primary font-semibold text-xs">{srv.role}</td>
+                                  <td className="p-4 text-muted-foreground text-xs">{srv.dept}</td>
+                                  <td className="p-4 text-muted-foreground text-xs max-w-xs truncate" title={srv.bio}>{srv.bio}</td>
+                                  <td className="p-4 text-right">
+                                    <div className="flex justify-end items-center gap-2">
+                                      <button
+                                        onClick={() => handleStartEditServant(srv)}
+                                        className="p-2 rounded-lg bg-primary/10 border border-primary/20 text-primary hover:bg-primary/20 hover:text-primary transition-all cursor-pointer"
+                                        title="Editar"
+                                      >
+                                        <Pencil className="h-4 w-4" />
+                                      </button>
+                                      <button
+                                        onClick={() => handleDeleteServant(srv.id)}
+                                        className="p-2 rounded-lg bg-red-500/10 border border-red-500/25 text-red-500 hover:bg-red-500/20 hover:text-red-500 transition-all cursor-pointer"
                                         title="Eliminar"
                                       >
                                         <Trash2 className="h-4 w-4" />

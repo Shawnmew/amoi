@@ -100,5 +100,13 @@ service cloud.firestore {
       // Apenas Editores ou Servos de Deus podem modificar
       allow write: if isEditorOrServo();
     }
+
+    // --- Servants (O Chamado) ---
+    match /servants/{servantId} {
+      // Público pode ler servos
+      allow read: if true;
+      // Apenas Editores ou Servos de Deus podem modificar
+      allow write: if isEditorOrServo();
+    }
   }
 }

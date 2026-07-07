@@ -632,6 +632,106 @@ export function getShortEmbedUrl(url: string): { embedUrl: string; platform: "yo
   return null;
 }
 
+// ============ SERVANTS (O CHAMADO) MANAGEMENT ============
+
+export interface ChurchServant {
+  id: string;
+  name: string;
+  role: string;
+  dept: string;
+  bio: string;
+  img?: string;
+}
+
+export const DEFAULT_SERVANTS: ChurchServant[] = [
+  { id: "s1", name: "Anciã Sandra Congo", role: "Coordenadora do Ministério Infantil", dept: "Departamento das Crianças", bio: "Guia as crianças nos primeiros passos da fé com amor, ensino bíblico e paciência." },
+  { id: "s2", name: "Pastor Tiago Congo", role: "Coordenador Geral dos Jovens", dept: "Departamento dos Jovens", bio: "Lidera a juventude com dinamismo, focando no despertamento espiritual e santidade." },
+  { id: "s3", name: "Pastor Nicolau CastelBranco", role: "Conselheiro Administrativo", img: "pastor-nicolau", dept: "Departamento Administrativo", bio: "Apoia o comitê da igreja no planeamento estratégico e estabilidade institucional." },
+  { id: "s4", name: "Pastor Nelson Nunes", role: "Conselheiro Geral", img: "pastor-nelson", dept: "Departamento Administrativo", bio: "Acompanha os projetos de expansão física e administrativa do ministério." },
+  { id: "s5", name: "Diaconisa Judith Fernandes", role: "Secretária Geral", img: "diaconisa-judith", dept: "Secretaria", bio: "Garante a organização administrativa e a comunicação oficial com os membros." },
+  { id: "s6", name: "Anciã Rosalina Canjila", role: "Coordenadora de Ação Social", img: "ancia-rosalina", dept: "Ação Social", bio: "Lidera os projetos de apoio às famílias carenciadas e visitas de amparo." },
+  { id: "s7", name: "Diaconisa Judith Fernandes", role: "Apoio a Ação Social", img: "diaconisa-judith", dept: "Ação Social", bio: "Garante o controle e a distribuição das doações entregues à igreja." },
+  { id: "s8", name: "Anciã Isabel Nunes", role: "Coordenadora do Círculo de Oração", img: "ancia-isabel", dept: "Departamento das Mulheres", bio: "Lidera as reuniões de oração, aconselhamento e edificação das mulheres." },
+  { id: "s9", name: "Anciã Sandra Congo", role: "Apoio ao Ministério de Mulheres", dept: "Departamento das Mulheres", bio: "Trabalha no fortalecimento espiritual e no apoio mútuo entre as irmãs." },
+  { id: "s10", name: "Pastor Nelson Nunes", role: "Conselheiro dos Varões", img: "pastor-nelson", dept: "Departamento dos Homens", bio: "Ministra a Palavra aos homens, focando no papel do homem segundo o coração de Deus." },
+  { id: "s11", name: "Pastor Tiago Congo", role: "Líder dos Varões", dept: "Departamento dos Homens", bio: "Organiza as vigílias e encontros de edificação masculina na igreja." }
+];
+
+export async function getDynamicServants(): Promise<ChurchServant[]> {
+  try {
+    if (db) {
+      const snap = await getDocs(collection(db, "servants"));
+      const list: ChurchServant[] = [];
+      snap.forEach((doc) => {
+        list.push({ id: doc.id, ...doc.data() } as ChurchServant);
+      });
+      if (list.length > 0) {
+        if (typeof window !== "undefined") {
+          localStorage.setItem("amoi_servants", JSON.stringify(list));
+        }
+        return list;
+      }
+    }
+  } catch (e) {
+    console.error("Error loading servants from Firestore:", e);
+  }
+
+  // LocalStorage Fallback
+  if (typeof window !== "undefined") {
+    const local = localStorage.getItem("amoi_servants");
+    if (local) {
+      try {
+        return JSON.parse(local);
+      } catch {}
+    }
+  }
+  return DEFAULT_SERVANTS;
+}
+
+export async function saveDynamicServant(servant: ChurchServant): Promise<void> {
+  // LocalStorage
+  if (typeof window !== "undefined") {
+    const list = await getDynamicServants();
+    const idx = list.findIndex(s => s.id === servant.id);
+    if (idx >= 0) {
+      list[idx] = servant;
+    } else {
+      list.push(servant);
+    }
+    localStorage.setItem("amoi_servants", JSON.stringify(list));
+  }
+
+  // Firestore
+  try {
+    if (db) {
+      await setDoc(doc(db, "servants", servant.id), servant, { merge: true });
+    }
+  } catch (e) {
+    console.error("Error saving servant to Firestore:", e);
+    throw e;
+  }
+}
+
+export async function deleteDynamicServant(id: string): Promise<void> {
+  // LocalStorage
+  if (typeof window !== "undefined") {
+    const list = await getDynamicServants();
+    const updated = list.filter(s => s.id !== id);
+    localStorage.setItem("amoi_servants", JSON.stringify(updated));
+  }
+
+  // Firestore
+  try {
+    if (db) {
+      await deleteDoc(doc(db, "servants", id));
+    }
+  } catch (e) {
+    console.error("Error deleting servant from Firestore:", e);
+    throw e;
+  }
+}
+
+
 
 
 

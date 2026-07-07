@@ -1,8 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { SiteLayout } from "@/components/SiteLayout";
-import { Award, Heart, Search, Users } from "lucide-react";
+import { Award, Search, Users } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import {
+  ChurchServant,
+  getDynamicServants,
+  DEFAULT_SERVANTS,
+  convertGoogleDriveLink
+} from "../lib/dynamicContent";
 
 import leader1 from "@/assets/pastor-nelson.jpg";
 import leader2 from "@/assets/ancia-isabel.jpg";
@@ -22,14 +28,6 @@ export const Route = createFileRoute("/o-chamado")({
   component: OChamado,
 });
 
-type Servant = {
-  name: string;
-  role: string;
-  dept: string;
-  bio: string;
-  img?: string;
-};
-
 const DEPARTMENTS = [
   "Todos",
   "Departamento das Crianças",
@@ -41,47 +39,57 @@ const DEPARTMENTS = [
   "Departamento dos Homens",
 ] as const;
 
-const SERVANTS: Servant[] = [
-  // Departamento das Crianças
-  { name: "Anciã Sandra Congo", role: "Coordenadora do Ministério Infantil", dept: "Departamento das Crianças", bio: "Guia as crianças nos primeiros passos da fé com amor, ensino bíblico e paciência." },
-
-  // Departamento dos Jovens
-  { name: "Pastor Tiago Congo", role: "Coordenador Geral dos Jovens", dept: "Departamento dos Jovens", bio: "Lidera a juventude com dinamismo, focando no despertamento espiritual e santidade." },
-
-  // Departamento Administrativo
-  { name: "Pastor Nicolau CastelBranco", role: "Conselheiro Administrativo", img: leader6, dept: "Departamento Administrativo", bio: "Apoia o comitê da igreja no planeamento estratégico e estabilidade institucional." },
-  { name: "Pastor Nelson Nunes", role: "Conselheiro Geral", img: leader1, dept: "Departamento Administrativo", bio: "Acompanha os projetos de expansão física e administrativa do ministério." },
-
-  // Secretaria
-  { name: "Diaconisa Judith Fernandes", role: "Secretária Geral", img: leader8, dept: "Secretaria", bio: "Garante a organização administrativa e a comunicação oficial com os membros." },
-
-  // Ação Social
-  { name: "Anciã Rosalina Canjila", role: "Coordenadora de Ação Social", img: leader7, dept: "Ação Social", bio: "Lidera os projetos de apoio às famílias carenciadas e visitas de amparo." },
-  { name: "Diaconisa Judith Fernandes", role: "Apoio a Ação Social", img: leader8, dept: "Ação Social", bio: "Garante o controle e a distribuição das doações entregues à igreja." },
-
-  // Departamento das Mulheres
-  { name: "Anciã Isabel Nunes", role: "Coordenadora do Círculo de Oração", img: leader2, dept: "Departamento das Mulheres", bio: "Lidera as reuniões de oração, aconselhamento e edificação das mulheres." },
-  { name: "Anciã Sandra Congo", role: "Apoio ao Ministério de Mulheres", dept: "Departamento das Mulheres", bio: "Trabalha no fortalecimento espiritual e no apoio mútuo entre as irmãs." },
-
-  // Departamento dos Homens
-  { name: "Pastor Nelson Nunes", role: "Conselheiro dos Varões", img: leader1, dept: "Departamento dos Homens", bio: "Ministra a Palavra aos homens, focando no papel do homem segundo o coração de Deus." },
-  { name: "Pastor Tiago Congo", role: "Líder dos Varões", dept: "Departamento dos Homens", bio: "Organiza as vigílias e encontros de edificação masculina na igreja." }
-];
-
 function OChamado() {
+  const [servants, setServants] = useState<ChurchServant[]>(() => {
+    if (typeof window !== "undefined") {
+      const local = localStorage.getItem("amoi_servants");
+      if (local) {
+        try { return JSON.parse(local); } catch {}
+      }
+    }
+    return DEFAULT_SERVANTS;
+  });
+
+  useEffect(() => {
+    let active = true;
+    getDynamicServants().then((fetched) => {
+      if (active && fetched && fetched.length > 0) {
+        setServants(fetched);
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const [query, setQuery] = useState("");
   const [cat, setCat] = useState<string>("Todos");
 
   const filteredServants = useMemo(() => {
-    return SERVANTS.filter((s) => {
+    return servants.filter((s) => {
       const matchesCat = cat === "Todos" || s.dept === cat;
       const matchesQuery = s.name.toLowerCase().includes(query.toLowerCase()) ||
         s.role.toLowerCase().includes(query.toLowerCase());
       return matchesCat && matchesQuery;
     });
-  }, [query, cat]);
+  }, [servants, query, cat]);
 
   const initials = (name: string) => name.split(" ").map(n => n[0]).join("").substring(0, 2).toUpperCase();
+
+  const getServantImage = (s: ChurchServant) => {
+    if (s.img) {
+      if (s.img.startsWith("http")) {
+        return convertGoogleDriveLink(s.img);
+      }
+      if (s.img === "pastor-nelson") return leader1;
+      if (s.img === "ancia-isabel") return leader2;
+      if (s.img === "pastor-nicolau") return leader6;
+      if (s.img === "ancia-rosalina") return leader7;
+      if (s.img === "diaconisa-judith") return leader8;
+      return s.img;
+    }
+    return undefined;
+  };
 
   return (
     <SiteLayout>
@@ -143,27 +151,29 @@ function OChamado() {
             </div>
           ) : (
             <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {filteredServants.map((s, index) => (
-                <article
-                  key={`${s.name}-${s.dept}-${index}`}
-                  className="group relative rounded-2xl overflow-hidden bg-card border border-border/60 hover:border-primary/50 transition-all hover:-translate-y-1 shadow-elevated"
-                >
-                  <div className="aspect-[4/5] overflow-hidden bg-muted">
-                    {s.img ? (
-                      <img
-                        src={s.img}
-                        alt={s.name}
-                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                        loading="lazy"
-                      />
-                    ) : (
-                      <div className="h-full w-full bg-gradient-to-br from-card via-secondary/40 to-primary/20 flex items-center justify-center border border-primary/20 transition-transform duration-500 group-hover:scale-105">
-                        <span className="font-display text-3xl font-bold text-gradient-gold tracking-widest">
-                          {initials(s.name)}
-                        </span>
-                      </div>
-                    )}
-                  </div>
+              {filteredServants.map((s) => {
+                const servantImg = getServantImage(s);
+                return (
+                  <article
+                    key={s.id}
+                    className="group relative rounded-2xl overflow-hidden bg-card border border-border/60 hover:border-primary/50 transition-all hover:-translate-y-1 shadow-elevated"
+                  >
+                    <div className="aspect-[4/5] overflow-hidden bg-muted">
+                      {servantImg ? (
+                        <img
+                          src={servantImg}
+                          alt={s.name}
+                          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="h-full w-full bg-gradient-to-br from-card via-secondary/40 to-primary/20 flex items-center justify-center border border-primary/20 transition-transform duration-500 group-hover:scale-105">
+                          <span className="font-display text-3xl font-bold text-gradient-gold tracking-widest">
+                            {initials(s.name)}
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   <div className="absolute inset-x-0 bottom-0 p-5 bg-gradient-to-t from-card via-card/95 to-transparent pt-16">
                     <h3 className="font-display text-xl text-foreground leading-snug">{s.name}</h3>
                     <div className="text-[10px] uppercase tracking-widest text-primary mt-1 font-bold">
@@ -176,8 +186,9 @@ function OChamado() {
                       {s.bio}
                     </p>
                   </div>
-                </article>
-              ))}
+                  </article>
+                );
+              })}
             </div>
           )}
         </div>
