@@ -72,7 +72,8 @@ import {
   Video,
   Film,
   Youtube,
-  Smartphone
+  Smartphone,
+  FolderOpen
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -86,7 +87,7 @@ export const Route = createFileRoute("/admin")({
   component: AdminDashboard,
 });
 
-type TabType = "carousel" | "announcements" | "info" | "users" | "whatsapp" | "videos" | "servants";
+type TabType = "carousel" | "announcements" | "info" | "users" | "whatsapp" | "videos" | "servants" | "drive";
 
 const SERVANT_DEPARTMENTS = [
   "Os Bravos Guerreiros da Fé",
@@ -1104,6 +1105,18 @@ function AdminDashboard() {
               >
                 <Users className="h-4 w-4" />
                 Equipa & Servos
+              </button>
+
+              <button
+                onClick={() => setActiveTab("drive")}
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all border ${
+                  activeTab === "drive"
+                    ? "bg-gradient-gold text-primary-foreground border-transparent shadow-gold"
+                    : "bg-card border-border/60 text-muted-foreground hover:text-primary hover:border-primary/30"
+                }`}
+              >
+                <FolderOpen className="h-4 w-4" />
+                Biblioteca de Imagens
               </button>
 
               {user.role === "Servo de Deus" && (
@@ -2454,6 +2467,38 @@ function AdminDashboard() {
                           </table>
                         </div>
                       )}
+                    </div>
+                  </div>
+                )}
+
+                {/* 8. DRIVE MEDIA LIBRARY TAB */}
+                {activeTab === "drive" && (
+                  <div>
+                    <h2 className="text-2xl font-bold font-display text-primary flex items-center gap-2 mb-2">
+                      <FolderOpen className="h-5 w-5" /> Biblioteca de Imagens (Google Drive)
+                    </h2>
+                    <p className="text-sm text-muted-foreground mb-6">
+                      Faça upload de fotos para a pasta partilhada ou obtenha os links de partilha para colar nos formulários de slides, notícias e servos.
+                    </p>
+
+                    {/* Dicas / Como Usar */}
+                    <div className="mb-6 p-4 rounded-2xl bg-card border border-primary/20 text-xs leading-relaxed text-muted-foreground">
+                      <strong className="text-primary block mb-2 font-display text-sm">💡 Como copiar e utilizar os links das imagens:</strong>
+                      <ol className="list-decimal pl-4 space-y-1">
+                        <li>Clique duas vezes numa imagem no painel abaixo para a abrir.</li>
+                        <li>Clique nos três pontos horizontais no canto superior direito e selecione <strong>Partilhar</strong> &gt; <strong>Copiar ligação</strong>.</li>
+                        <li>Certifique-se de que o acesso está definido como "Qualquer pessoa com a ligação pode ver".</li>
+                        <li>Cole a ligação no campo de URL correspondente (slides, notícias ou servos). O sistema converterá automaticamente para visualização direta!</li>
+                      </ol>
+                    </div>
+
+                    {/* Google Drive Iframe Wrapper */}
+                    <div className="relative w-full rounded-2xl overflow-hidden border border-primary/20 shadow-elevated bg-card/50 aspect-[16/10] min-h-[500px]">
+                      <iframe
+                        src="https://drive.google.com/embeddedfolderview?id=1jj6lH-tV1R_61hCDlSlTPocYrXOlTJA8#grid"
+                        className="w-full h-full border-0"
+                        allow="autoplay"
+                      />
                     </div>
                   </div>
                 )}
