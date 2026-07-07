@@ -27,7 +27,7 @@ const LEADERS = [
   { name: "Pastor Nelson Nunes", role: "Pastor", img: leader1, bio: "Pastor dedicado ao ministério na AMOI, focado no ensino da Palavra e no cuidado espiritual da igreja." },
   { name: "Anciã Isabel Nunes", role: "Anciã", img: leader2, bio: "Esposa do Pastor Nelson Nunes, é uma anciã dedicada à intercessão, apoio espiritual e ao fortalecimento das famílias na igreja." },
   { name: "Profeta Edgar Marcolino", role: "Profeta", img: leader3, bio: "Ministério profético da AMOI, atuando no despertamento espiritual e na revelação da palavra de Deus." },
-  { name: "Profetisa Maria Júlia Marcolino", role: "Profetisa", img: leader4, bio: "Esposa do Profeta Edgar Marcolino, atua no ministério profético com forte revelação, oração e aconselhamento." },
+  { name: "Anciã Maria Júlia Marcolino", role: "Anciã", img: leader4, bio: "Esposa do Profeta Edgar Marcolino, atua como anciã com dedicação, oração e aconselhamento." },
   { name: "Anciã Rosalina Canjila", role: "Anciã", img: leader7, bio: "Consagrada anciã da AMOI, atua com dedicação e coração disponível para Deus nas reuniões de aconselhamento e oração." },
   { name: "Diaconisa Judith Fernandes", role: "Diaconisa", img: leader8, bio: "Diaconisa da AMOI, dedicada ao serviço da casa do Senhor com alegria, zelo e apoio constante a todos os membros." },
 ];
@@ -51,7 +51,7 @@ const TIMELINE = [
   {
     year: "Expansão",
     title: "Conferências de Oração e Batismo",
-    desc: "O ministério cresce com conferências na Cefojor, IMEL e Rádio LAC. O Profeta Edgar Marcolino e a Profetisa Maria Júlia Marcolino unem-se à obra. Mais tarde, os casais e irmãos são batizados juntos.",
+    desc: "O ministério cresce com conferências na Cefojor, IMEL e Rádio LAC. O Profeta Edgar Marcolino e a Anciã Maria Júlia Marcolino unem-se à obra. Mais tarde, os casais e irmãos são batizados juntos.",
   },
   {
     year: "Missão",
