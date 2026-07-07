@@ -5,6 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Calendar, User, Newspaper, Tag, ArrowRight } from "lucide-react";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import {
   Announcement,
   getDynamicAnnouncements,
   DEFAULT_ANNOUNCEMENTS,
@@ -29,7 +36,7 @@ function BoasNovas() {
   const [announcements, setAnnouncements] = useState<Announcement[]>(DEFAULT_ANNOUNCEMENTS);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<(typeof CATEGORIES)[number]>("Todos");
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [selectedAnn, setSelectedAnn] = useState<Announcement | null>(null);
 
   useEffect(() => {
     async function loadAnnouncements() {
@@ -122,79 +129,114 @@ function BoasNovas() {
               <p className="text-xs text-muted-foreground/80 mt-1">Tente ajustar os filtros ou termo de pesquisa.</p>
             </div>
           ) : (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
-              {filteredAnnouncements.map((ann) => {
-                const isExpanded = expandedId === ann.id;
-                const shouldTruncate = ann.content.length > 250;
-                
-                return (
-                  <article
-                    key={ann.id}
-                    className="flex flex-col rounded-3xl bg-card border border-border/60 hover:border-primary/40 transition-all duration-300 shadow-elevated overflow-hidden group"
-                  >
-                    {/* Image */}
-                    {ann.imageUrl && (
-                      <div className="aspect-[16/10] w-full overflow-hidden border-b border-border/60 relative">
-                        <img
-                          src={convertGoogleDriveLink(ann.imageUrl)}
-                          alt={ann.title}
-                          loading="lazy"
-                          className="object-cover w-full h-full group-hover:scale-[1.03] transition-transform duration-500"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-60 pointer-events-none" />
-                      </div>
-                    )}
+            <>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                {filteredAnnouncements.map((ann) => {
+                  return (
+                    <article
+                      key={ann.id}
+                      onClick={() => setSelectedAnn(ann)}
+                      className="flex flex-col rounded-3xl bg-card border border-border/60 hover:border-primary/40 hover:scale-[1.01] transition-all duration-300 shadow-elevated overflow-hidden group cursor-pointer"
+                    >
+                      {/* Image */}
+                      {ann.imageUrl && (
+                        <div className="aspect-[16/10] w-full overflow-hidden border-b border-border/60 relative">
+                          <img
+                            src={convertGoogleDriveLink(ann.imageUrl)}
+                            alt={ann.title}
+                            loading="lazy"
+                            className="object-cover w-full h-full group-hover:scale-[1.03] transition-transform duration-500"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-60 pointer-events-none" />
+                        </div>
+                      )}
 
-                    {/* Content */}
-                    <div className="p-6 md:p-8 flex-1 flex flex-col justify-between">
-                      <div>
-                        {/* Meta Category & Date */}
-                        <div className="flex items-center justify-between mb-4">
+                      {/* Content */}
+                      <div className="p-6 md:p-8 flex-1 flex flex-col justify-between">
+                        <div>
+                          {/* Meta Category & Date */}
+                          <div className="flex items-center justify-between mb-4">
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-bold uppercase tracking-wider">
+                              <Tag className="h-3 w-3" /> {ann.category}
+                            </span>
+                            <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                              <Calendar className="h-3.5 w-3.5 text-primary" /> {ann.date}
+                            </span>
+                          </div>
+
+                          {/* Title */}
+                          <h3 className="font-display text-xl md:text-2xl font-bold text-foreground leading-snug mb-3 group-hover:text-primary transition-colors duration-300">
+                            {ann.title}
+                          </h3>
+
+                          {/* Content text */}
+                          <p className="text-muted-foreground leading-relaxed text-sm whitespace-pre-wrap line-clamp-3">
+                            {ann.content}
+                          </p>
+                        </div>
+
+                        {/* Footer Actions */}
+                        <div className="mt-6 pt-5 border-t border-border/60 flex items-center justify-between">
+                          <span className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
+                            <User className="h-3.5 w-3.5 text-primary" /> {ann.author}
+                          </span>
+
+                          <span
+                            className="text-xs text-primary font-bold flex items-center gap-1 group-hover:underline"
+                          >
+                            Ler mais
+                            <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+                          </span>
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+
+              {/* Premium Dialog for detailed view */}
+              <Dialog open={selectedAnn !== null} onOpenChange={(open) => !open && setSelectedAnn(null)}>
+                <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-card/95 border border-primary/20 backdrop-blur-md p-0 rounded-3xl overflow-hidden shadow-elevated select-none">
+                  {selectedAnn && (
+                    <div className="select-text">
+                      {/* Large Image Header */}
+                      {selectedAnn.imageUrl && (
+                        <div className="w-full relative aspect-video max-h-[380px] overflow-hidden border-b border-border/40">
+                          <img
+                            src={convertGoogleDriveLink(selectedAnn.imageUrl)}
+                            alt={selectedAnn.title}
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent pointer-events-none" />
+                        </div>
+                      )}
+
+                      {/* Dialog Content Details */}
+                      <div className="p-6 md:p-10">
+                        {/* Meta Tags */}
+                        <div className="flex items-center gap-4 flex-wrap mb-6 text-xs text-muted-foreground">
                           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-bold uppercase tracking-wider">
-                            <Tag className="h-3 w-3" /> {ann.category}
+                            <Tag className="h-3.5 w-3.5" /> {selectedAnn.category}
                           </span>
-                          <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <Calendar className="h-3.5 w-3.5 text-primary" /> {ann.date}
-                          </span>
+                          <span className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5 text-primary" /> {selectedAnn.date}</span>
+                          <span className="flex items-center gap-1"><User className="h-3.5 w-3.5 text-primary" /> {selectedAnn.author}</span>
                         </div>
 
                         {/* Title */}
-                        <h3 className="font-display text-xl md:text-2xl font-bold text-foreground leading-snug mb-3 group-hover:text-primary transition-colors duration-300">
-                          {ann.title}
-                        </h3>
+                        <DialogTitle className="font-display text-2xl md:text-4xl font-bold text-foreground leading-tight mb-6">
+                          {selectedAnn.title}
+                        </DialogTitle>
 
-                        {/* Content text */}
-                        <p className="text-muted-foreground leading-relaxed text-sm whitespace-pre-wrap">
-                          {isExpanded 
-                            ? ann.content 
-                            : shouldTruncate 
-                              ? `${ann.content.substring(0, 240)}...` 
-                              : ann.content
-                          }
-                        </p>
-                      </div>
-
-                      {/* Footer Actions */}
-                      <div className="mt-6 pt-5 border-t border-border/60 flex items-center justify-between">
-                        <span className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
-                          <User className="h-3.5 w-3.5 text-primary" /> {ann.author}
-                        </span>
-
-                        {shouldTruncate && (
-                          <button
-                            onClick={() => setExpandedId(isExpanded ? null : ann.id)}
-                            className="text-xs text-primary font-bold hover:underline flex items-center gap-1 group/btn"
-                          >
-                            {isExpanded ? "Ler menos" : "Ler mais"}
-                            <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover/btn:translate-x-0.5" />
-                          </button>
-                        )}
+                        {/* Content Text */}
+                        <DialogDescription className="text-muted-foreground leading-relaxed text-sm md:text-base whitespace-pre-wrap font-sans text-left mt-2 block select-text">
+                          {selectedAnn.content}
+                        </DialogDescription>
                       </div>
                     </div>
-                  </article>
-                );
-              })}
-            </div>
+                  )}
+                </DialogContent>
+              </Dialog>
+            </>
           )}
         </div>
       </section>

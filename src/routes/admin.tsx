@@ -25,7 +25,10 @@ import {
   saveDynamicUser,
   deleteDynamicUser,
   convertGoogleDriveLink,
-  queueNewsletterEmail
+  queueNewsletterEmail,
+  WhatsAppSettings,
+  getWhatsAppSettings,
+  saveWhatsAppSettings
 } from "../lib/dynamicContent";
 import {
   LayoutDashboard,
@@ -47,7 +50,10 @@ import {
   XCircle,
   Phone,
   Pencil,
-  X
+  X,
+  MessageSquare,
+  Send,
+  Loader2
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -61,7 +67,7 @@ export const Route = createFileRoute("/admin")({
   component: AdminDashboard,
 });
 
-type TabType = "carousel" | "announcements" | "info" | "users";
+type TabType = "carousel" | "announcements" | "info" | "users" | "whatsapp";
 
 function AdminDashboard() {
   const { user, loading } = useAuth();
@@ -96,6 +102,13 @@ function AdminDashboard() {
   const [newUserNewsletter, setNewUserNewsletter] = useState(true);
   const [creatingUser, setCreatingUser] = useState(false);
 
+  // WhatsApp automation state
+  const [waSettings, setWaSettings] = useState<WhatsAppSettings>({ gatewayType: "link" });
+  const [waTemplate, setWaTemplate] = useState("Olá {nome}! Lembramos que hoje teremos o nosso Culto na AMOI. Esperamos por si! Deus abençoe.");
+  const [waStatus, setWaStatus] = useState<Record<string, "pending" | "sending" | "success" | "error">>( {});
+  const [waSending, setWaSending] = useState(false);
+  const [waSelectedUsers, setWaSelectedUsers] = useState<Record<string, boolean>>({});
+
   const handleAnnImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -128,7 +141,20 @@ function AdminDashboard() {
       if (user?.role === "Servo de Deus") {
         const fetchedUsers = await getDynamicUsers();
         setUsersList(fetchedUsers);
+        
+        // Inicializar seleção do WhatsApp
+        const selectedMap: Record<string, boolean> = {};
+        fetchedUsers.forEach(u => {
+          if (u.phone) {
+            selectedMap[u.uid] = true;
+          }
+        });
+        setWaSelectedUsers(selectedMap);
       }
+
+      // Carregar configurações de WhatsApp
+      const fetchedWaSettings = await getWhatsAppSettings();
+      setWaSettings(fetchedWaSettings);
     } catch (e) {
       console.error(e);
       toast.error("Erro ao carregar os dados.");
@@ -466,6 +492,149 @@ function AdminDashboard() {
     }
   };
 
+  // WhatsApp Notification Actions
+  const replacePlaceholders = (template: string, usr: ChurchUser) => {
+    return template
+      .replace(/{nome}/g, usr.displayName || "")
+      .replace(/{email}/g, usr.email || "")
+      .replace(/{telefone}/g, usr.phone || "");
+  };
+
+  const handleSaveWaSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await saveWhatsAppSettings(waSettings);
+      toast.success("Configurações do WhatsApp guardadas com sucesso!");
+    } catch (err) {
+      console.error(err);
+      toast.error("Erro ao guardar as configurações.");
+    }
+  };
+
+  const formatPhoneNumber = (phone: string) => {
+    let cleaned = phone.replace(/\D/g, "");
+    if (cleaned.length === 9) {
+      cleaned = "244" + cleaned; // default to Angola country code
+    }
+    return cleaned;
+  };
+
+  const sendSingleMessage = async (usr: ChurchUser): Promise<boolean> => {
+    if (!usr.phone) return false;
+    
+    const text = replacePlaceholders(waTemplate, usr);
+    const phone = formatPhoneNumber(usr.phone);
+
+    setWaStatus(prev => ({ ...prev, [usr.uid]: "sending" }));
+
+    if (waSettings.gatewayType === "link") {
+      const url = `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(text)}`;
+      window.open(url, "_blank");
+      setWaStatus(prev => ({ ...prev, [usr.uid]: "success" }));
+      return true;
+    }
+
+    if (waSettings.gatewayType === "zapi") {
+      try {
+        const response = await fetch(`${waSettings.zapiUrl}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Client-Token": waSettings.zapiToken || ""
+          },
+          body: JSON.stringify({
+            phone: phone,
+            message: text
+          })
+        });
+        if (response.ok) {
+          setWaStatus(prev => ({ ...prev, [usr.uid]: "success" }));
+          return true;
+        } else {
+          throw new Error("HTTP " + response.status);
+        }
+      } catch (err) {
+        console.error("Z-API Error for " + usr.displayName, err);
+        setWaStatus(prev => ({ ...prev, [usr.uid]: "error" }));
+        return false;
+      }
+    }
+
+    if (waSettings.gatewayType === "twilio") {
+      try {
+        const formData = new URLSearchParams();
+        formData.append("To", `whatsapp:+${phone}`);
+        formData.append("From", `whatsapp:${waSettings.twilioFrom}`);
+        formData.append("Body", text);
+
+        const response = await fetch(
+          `https://api.twilio.com/2010-04-01/Accounts/${waSettings.twilioSid}/Messages.json`,
+          {
+            method: "POST",
+            headers: {
+              "Authorization": "Basic " + btoa(`${waSettings.twilioSid}:${waSettings.twilioToken}`),
+              "Content-Type": "application/x-www-form-urlencoded"
+            },
+            body: formData
+          }
+        );
+        if (response.ok) {
+          setWaStatus(prev => ({ ...prev, [usr.uid]: "success" }));
+          return true;
+        } else {
+          throw new Error("HTTP " + response.status);
+        }
+      } catch (err) {
+        console.error("Twilio Error for " + usr.displayName, err);
+        setWaStatus(prev => ({ ...prev, [usr.uid]: "error" }));
+        return false;
+      }
+    }
+
+    return false;
+  };
+
+  const handleBulkSendWa = async () => {
+    const selectedUsersList = usersList.filter(u => u.phone && waSelectedUsers[u.uid]);
+    if (selectedUsersList.length === 0) {
+      toast.warning("Nenhum destinatário selecionado com telemóvel registado.");
+      return;
+    }
+
+    setWaSending(true);
+    toast.info(`A iniciar envio em massa para ${selectedUsersList.length} membros...`);
+
+    if (waSettings.gatewayType === "link") {
+      // Step-by-step confirmation for manual link generation to avoid pop-up blocking.
+      for (let i = 0; i < selectedUsersList.length; i++) {
+        const u = selectedUsersList[i];
+        const confirmSend = confirm(
+          `[WhatsApp Manual] Enviar para ${u.displayName} (${u.phone})?\n\nClique OK para abrir a janela do WhatsApp.`
+        );
+        if (confirmSend) {
+          await sendSingleMessage(u);
+        } else {
+          setWaStatus(prev => ({ ...prev, [u.uid]: "pending" }));
+        }
+      }
+      toast.success("Envio em massa concluído!");
+      setWaSending(false);
+      return;
+    }
+
+    // Fully automatic gateway dispatch loop.
+    let successCount = 0;
+    for (let i = 0; i < selectedUsersList.length; i++) {
+      const u = selectedUsersList[i];
+      const ok = await sendSingleMessage(u);
+      if (ok) successCount++;
+      await new Promise(resolve => setTimeout(resolve, 1500)); // rate limiting delay
+    }
+
+    toast.success(`Envio concluído! ${successCount} mensagens enviadas com sucesso.`);
+    setWaSending(false);
+  };
+
   // Security Render checking
   if (loading) {
     return (
@@ -602,6 +771,18 @@ function AdminDashboard() {
                   Gerir Utilizadores
                 </button>
               )}
+
+              <button
+                onClick={() => setActiveTab("whatsapp")}
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all border ${
+                  activeTab === "whatsapp"
+                    ? "bg-gradient-gold text-primary-foreground border-transparent shadow-gold"
+                    : "bg-card border-border/60 text-muted-foreground hover:text-primary hover:border-primary/30"
+                }`}
+              >
+                <MessageSquare className="h-4 w-4" />
+                Disparos WhatsApp
+              </button>
               
               <div className="mt-8 p-4 rounded-2xl bg-card/40 border border-primary/10 text-xs text-muted-foreground leading-relaxed">
                 <span className="font-semibold text-primary block mb-1">Permissões de Acesso:</span>
@@ -1186,11 +1367,250 @@ function AdminDashboard() {
                   </div>
                 )}
 
+                {/* 5. WHATSAPP TAB */}
+                {activeTab === "whatsapp" && (
+                  <div>
+                    <h2 className="text-2xl font-bold font-display text-primary flex items-center gap-2 mb-6">
+                      <MessageSquare className="h-5 w-5" /> Notificações & Automação WhatsApp
+                    </h2>
+
+                    {/* Configurações do Gateway */}
+                    <div className="bg-background/40 border border-primary/20 rounded-2xl p-5 mb-8">
+                      <div className="font-semibold text-sm text-primary flex items-center gap-2 mb-4">
+                        <Settings className="h-4 w-4" /> Configurar Gateway de Disparo
+                      </div>
+                      
+                      <form onSubmit={handleSaveWaSettings} className="space-y-4">
+                        <div className="grid sm:grid-cols-3 gap-4">
+                          <div className="space-y-2">
+                            <Label className="text-xs uppercase tracking-wider text-muted-foreground">Tipo de Gateway</Label>
+                            <select
+                              value={waSettings.gatewayType}
+                              onChange={(e) => setWaSettings({ ...waSettings, gatewayType: e.target.value as any })}
+                              className="w-full h-10 px-3 rounded-lg border border-border/60 bg-card text-sm focus:outline-none focus:border-primary font-semibold text-primary font-sans"
+                            >
+                              <option value="link">Via Link (Gratuito / Semi-manual)</option>
+                              <option value="zapi">Z-API / Evolution (Automático)</option>
+                              <option value="twilio">Twilio API (Automático)</option>
+                            </select>
+                          </div>
+                          
+                          {waSettings.gatewayType === "zapi" && (
+                            <>
+                              <div className="space-y-2">
+                                <Label className="text-xs uppercase tracking-wider text-muted-foreground">URL da Instância / Endpoint</Label>
+                                <Input
+                                  placeholder="https://api.z-api.io/.../send-text"
+                                  value={waSettings.zapiUrl || ""}
+                                  onChange={(e) => setWaSettings({ ...waSettings, zapiUrl: e.target.value })}
+                                  className="bg-card border-border/60 text-sm"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label className="text-xs uppercase tracking-wider text-muted-foreground">Token da Instância (Client-Token)</Label>
+                                <Input
+                                  type="password"
+                                  placeholder="Ex: F12345ABC..."
+                                  value={waSettings.zapiToken || ""}
+                                  onChange={(e) => setWaSettings({ ...waSettings, zapiToken: e.target.value })}
+                                  className="bg-card border-border/60 text-sm"
+                                />
+                              </div>
+                            </>
+                          )}
+
+                          {waSettings.gatewayType === "twilio" && (
+                            <>
+                              <div className="space-y-2">
+                                <Label className="text-xs uppercase tracking-wider text-muted-foreground">Account SID</Label>
+                                <Input
+                                  placeholder="Ex: AC1234..."
+                                  value={waSettings.twilioSid || ""}
+                                  onChange={(e) => setWaSettings({ ...waSettings, twilioSid: e.target.value })}
+                                  className="bg-card border-border/60 text-sm"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label className="text-xs uppercase tracking-wider text-muted-foreground">Auth Token</Label>
+                                <Input
+                                  type="password"
+                                  placeholder="Ex: 5abc123..."
+                                  value={waSettings.twilioToken || ""}
+                                  onChange={(e) => setWaSettings({ ...waSettings, twilioToken: e.target.value })}
+                                  className="bg-card border-border/60 text-sm"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label className="text-xs uppercase tracking-wider text-muted-foreground">Número Twilio Remetente (Sem o +)</Label>
+                                <Input
+                                  placeholder="Ex: +14155238886"
+                                  value={waSettings.twilioFrom || ""}
+                                  onChange={(e) => setWaSettings({ ...waSettings, twilioFrom: e.target.value })}
+                                  className="bg-card border-border/60 text-sm"
+                                />
+                              </div>
+                            </>
+                          )}
+                        </div>
+
+                        <Button type="submit" className="bg-gradient-gold text-primary-foreground font-semibold shadow-gold text-xs px-4 py-2">
+                          <Save className="mr-2 h-4 w-4" /> Guardar Configuração
+                        </Button>
+                      </form>
+                    </div>
+
+                    {/* Modelo da Mensagem */}
+                    <div className="bg-background/40 border border-primary/20 rounded-2xl p-5 mb-8 space-y-4">
+                      <div className="font-semibold text-sm text-primary flex items-center gap-2 mb-2">
+                        <FileText className="h-4 w-4" /> Mensagem a Enviar
+                      </div>
+                      <div className="text-xs text-muted-foreground leading-relaxed bg-card/60 p-3.5 rounded-xl border border-border/40">
+                        Pode usar variáveis dinâmicas no texto:<br/>
+                        * <strong>{`{nome}`}</strong> - Substitui pelo Nome Completo do membro.<br/>
+                        * <strong>{`{email}`}</strong> - Substitui pelo E-mail.<br/>
+                        * <strong>{`{telefone}`}</strong> - Substitui pelo Telemóvel.
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="wa-text" className="text-xs uppercase tracking-wider text-muted-foreground">Texto do Modelo</Label>
+                        <Textarea
+                          id="wa-text"
+                          rows={4}
+                          value={waTemplate}
+                          onChange={(e) => setWaTemplate(e.target.value)}
+                          placeholder="Olá {nome}! Lembramos que hoje..."
+                          className="bg-card border-border/60 min-h-[100px] text-sm"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Destinatários e Ações */}
+                    <div className="space-y-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div className="font-semibold text-sm text-muted-foreground">
+                          Destinatários ({usersList.filter(u => u.phone).length} membros com número)
+                        </div>
+                        
+                        <Button
+                          type="button"
+                          onClick={handleBulkSendWa}
+                          disabled={waSending || usersList.filter(u => u.phone && waSelectedUsers[u.uid]).length === 0}
+                          className="bg-gradient-gold text-primary-foreground font-semibold shadow-gold w-full sm:w-auto text-xs py-2 px-4 h-10"
+                        >
+                          {waSending ? (
+                            <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> A disparar...</>
+                          ) : (
+                            <><Send className="mr-2 h-4 w-4" /> Disparar para todos selecionados</>
+                          )}
+                        </Button>
+                      </div>
+
+                      <div className="overflow-x-auto rounded-2xl border border-border/60">
+                        <table className="w-full text-left border-collapse text-sm">
+                          <thead>
+                            <tr className="bg-muted/40 border-b border-border/60">
+                              <th className="p-4 w-12 text-center">
+                                <input
+                                  type="checkbox"
+                                  checked={usersList.filter(u => u.phone).length > 0 && usersList.filter(u => u.phone).every(u => waSelectedUsers[u.uid])}
+                                  onChange={(e) => {
+                                    const checked = e.target.checked;
+                                    const next: Record<string, boolean> = {};
+                                    usersList.forEach(u => {
+                                      if (u.phone) next[u.uid] = checked;
+                                    });
+                                    setWaSelectedUsers(next);
+                                  }}
+                                  className="h-4 w-4 rounded border-gray-300 accent-primary cursor-pointer"
+                                />
+                              </th>
+                              <th className="p-4 font-bold text-xs uppercase tracking-wider text-muted-foreground">Membro</th>
+                              <th className="p-4 font-bold text-xs uppercase tracking-wider text-muted-foreground">Telemóvel</th>
+                              <th className="p-4 font-bold text-xs uppercase tracking-wider text-muted-foreground">Visualização da Mensagem</th>
+                              <th className="p-4 font-bold text-xs uppercase tracking-wider text-muted-foreground">Estado</th>
+                              <th className="p-4 font-bold text-xs uppercase tracking-wider text-muted-foreground text-right">Ação</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {usersList.filter(u => u.phone).length === 0 ? (
+                              <tr>
+                                <td colSpan={6} className="p-8 text-center text-muted-foreground">
+                                  Nenhum membro com número de telemóvel registado.
+                                </td>
+                              </tr>
+                            ) : (
+                              usersList
+                                .filter(u => u.phone)
+                                .map((usr) => {
+                                  const status = waStatus[usr.uid] || "pending";
+                                  const isSelected = !!waSelectedUsers[usr.uid];
+                                  const preview = replacePlaceholders(waTemplate, usr);
+
+                                  return (
+                                    <tr key={usr.uid} className="border-b border-border/30 hover:bg-muted/10 transition-colors">
+                                      <td className="p-4 text-center">
+                                        <input
+                                          type="checkbox"
+                                          checked={isSelected}
+                                          onChange={(e) => {
+                                            setWaSelectedUsers(prev => ({ ...prev, [usr.uid]: e.target.checked }));
+                                          }}
+                                          className="h-4 w-4 rounded border-gray-300 accent-primary cursor-pointer"
+                                        />
+                                      </td>
+                                      <td className="p-4 font-semibold text-foreground">
+                                        {usr.displayName}
+                                      </td>
+                                      <td className="p-4 text-muted-foreground font-mono">
+                                        {usr.phone}
+                                      </td>
+                                      <td className="p-4 max-w-xs text-xs text-muted-foreground/80 truncate" title={preview}>
+                                        {preview}
+                                      </td>
+                                      <td className="p-4">
+                                        {status === "pending" && (
+                                          <span className="text-xs text-muted-foreground">Pendente</span>
+                                        )}
+                                        {status === "sending" && (
+                                          <span className="text-xs text-primary animate-pulse flex items-center gap-1">
+                                            <Loader2 className="h-3.5 w-3.5 animate-spin" /> A enviar
+                                          </span>
+                                        )}
+                                        {status === "success" && (
+                                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/25 text-[10px] font-bold">
+                                            Enviado ✔️
+                                          </span>
+                                        )}
+                                        {status === "error" && (
+                                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-red-500/10 text-red-500 border border-red-500/25 text-[10px] font-bold">
+                                            Erro ❌
+                                          </span>
+                                        )}
+                                      </td>
+                                      <td className="p-4 text-right">
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          onClick={() => sendSingleMessage(usr)}
+                                          disabled={waSending}
+                                          className="text-xs border-primary/40 text-primary hover:bg-primary/10 h-7 px-3"
+                                        >
+                                          Enviar Individual
+                                        </Button>
+                                      </td>
+                                    </tr>
+                                  );
+                                })
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
-
           </div>
-
         </div>
       </section>
     </SiteLayout>

@@ -1,4 +1,4 @@
-import { collection, getDocs, doc, setDoc, deleteDoc, query, orderBy, addDoc } from "firebase/firestore";
+import { collection, getDocs, doc, setDoc, deleteDoc, query, orderBy, addDoc, getDoc } from "firebase/firestore";
 import { db } from "./firebase";
 
 import worship from "@/assets/hero-worship.jpg";
@@ -416,5 +416,58 @@ export async function queueNewsletterEmail(
     return { success: false, error: e.message || "Failed to queue email in Firestore" };
   }
 }
+
+export interface WhatsAppSettings {
+  gatewayType: "link" | "zapi" | "twilio";
+  zapiUrl?: string;
+  zapiToken?: string;
+  twilioSid?: string;
+  twilioToken?: string;
+  twilioFrom?: string;
+}
+
+export async function getWhatsAppSettings(): Promise<WhatsAppSettings> {
+  // LocalStorage Fallback
+  if (typeof window !== "undefined") {
+    const local = localStorage.getItem("amoi_whatsapp_settings");
+    if (local) {
+      try {
+        return JSON.parse(local);
+      } catch {}
+    }
+  }
+
+  try {
+    if (db) {
+      const docSnap = await getDoc(doc(db, "settings", "whatsapp"));
+      if (docSnap.exists()) {
+        const data = docSnap.data() as WhatsAppSettings;
+        if (typeof window !== "undefined") {
+          localStorage.setItem("amoi_whatsapp_settings", JSON.stringify(data));
+        }
+        return data;
+      }
+    }
+  } catch (e) {
+    console.error("Error loading WhatsApp settings from Firestore:", e);
+  }
+  return { gatewayType: "link" };
+}
+
+export async function saveWhatsAppSettings(settings: WhatsAppSettings): Promise<void> {
+  if (typeof window !== "undefined") {
+    localStorage.setItem("amoi_whatsapp_settings", JSON.stringify(settings));
+  }
+
+  try {
+    if (db) {
+      await setDoc(doc(db, "settings", "whatsapp"), settings);
+    }
+  } catch (e) {
+    console.error("Error saving WhatsApp settings to Firestore:", e);
+    throw e;
+  }
+}
+
 
 

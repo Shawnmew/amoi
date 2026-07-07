@@ -76,5 +76,11 @@ service cloud.firestore {
       // Apenas Editores ou Servos de Deus podem modificar
       allow write: if isEditorOrServo();
     }
+
+    // --- General Settings ---
+    match /settings/{settingId} {
+      // Apenas Editores ou Servos de Deus podem visualizar e configurar definições globais
+      allow read, write: if isEditorOrServo();
+    }
   }
 }

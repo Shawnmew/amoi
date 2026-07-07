@@ -4,7 +4,14 @@ import Autoplay from "embla-carousel-autoplay";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, type CarouselApi } from "@/components/ui/carousel";
 import { Button } from "@/components/ui/button";
 import { SiteLayout } from "@/components/SiteLayout";
-import { ArrowRight, Calendar, Flame, HandHeart, Users, BookOpenText, User, Bell } from "lucide-react";
+import { ArrowRight, Calendar, Flame, HandHeart, Users, BookOpenText, User, Bell, Tag } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import {
   CarouselSlide,
   Announcement,
@@ -34,6 +41,7 @@ export const Route = createFileRoute("/")({
 function Home() {
   const [api, setApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
+  const [selectedAnn, setSelectedAnn] = useState<Announcement | null>(null);
 
   // Dynamic Content states initialized with default values for SSR speed
   const [slides, setSlides] = useState<CarouselSlide[]>(DEFAULT_SLIDES);
@@ -198,28 +206,83 @@ function Home() {
 
             <div className="grid md:grid-cols-2 gap-8">
               {announcements.map((ann) => (
-                <div key={ann.id} className="relative group p-8 rounded-3xl bg-card border border-border/60 hover:border-primary/40 transition-all shadow-elevated">
-                  <div className="absolute top-0 right-8 -translate-y-1/2 px-4 py-1 rounded-full bg-gradient-gold text-primary-foreground text-[10px] uppercase font-bold tracking-widest shadow-gold">
-                    {ann.category}
-                  </div>
-                  {ann.imageUrl && (
-                    <div className="aspect-video w-full rounded-2xl overflow-hidden mb-6 border border-border/50 relative">
-                      <img src={convertGoogleDriveLink(ann.imageUrl)} alt={ann.title} className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500" />
+                <div
+                  key={ann.id}
+                  onClick={() => setSelectedAnn(ann)}
+                  className="relative group p-8 rounded-3xl bg-card border border-border/60 hover:border-primary/40 hover:scale-[1.01] transition-all duration-300 shadow-elevated cursor-pointer flex flex-col justify-between"
+                >
+                  <div>
+                    <div className="absolute top-0 right-8 -translate-y-1/2 px-4 py-1 rounded-full bg-gradient-gold text-primary-foreground text-[10px] uppercase font-bold tracking-widest shadow-gold">
+                      {ann.category}
                     </div>
-                  )}
-                  <div className="flex items-center gap-4 text-xs text-muted-foreground mb-4">
-                    <span className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5 text-primary" /> {ann.date}</span>
-                    <span className="flex items-center gap-1"><User className="h-3.5 w-3.5 text-primary" /> {ann.author}</span>
+                    {ann.imageUrl && (
+                      <div className="aspect-video w-full rounded-2xl overflow-hidden mb-6 border border-border/50 relative">
+                        <img src={convertGoogleDriveLink(ann.imageUrl)} alt={ann.title} className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500" />
+                      </div>
+                    )}
+                    <div className="flex items-center gap-4 text-xs text-muted-foreground mb-4">
+                      <span className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5 text-primary" /> {ann.date}</span>
+                      <span className="flex items-center gap-1"><User className="h-3.5 w-3.5 text-primary" /> {ann.author}</span>
+                    </div>
+                    <h3 className="font-display text-2xl font-bold text-foreground group-hover:text-primary transition-colors mb-3">
+                      {ann.title}
+                    </h3>
+                    <p className="text-muted-foreground leading-relaxed text-sm line-clamp-3">
+                      {ann.content}
+                    </p>
                   </div>
-                  <h3 className="font-display text-2xl font-bold text-foreground group-hover:text-primary transition-colors mb-3">
-                    {ann.title}
-                  </h3>
-                  <p className="text-muted-foreground leading-relaxed text-sm">
-                    {ann.content}
-                  </p>
+
+                  <div className="mt-6 pt-4 border-t border-border/40 flex justify-end">
+                    <span className="text-xs text-primary font-bold flex items-center gap-1 group-hover:underline">
+                      Continuar a ler <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+                    </span>
+                  </div>
                 </div>
               ))}
             </div>
+
+            {/* Premium Dialog for detailed view */}
+            <Dialog open={selectedAnn !== null} onOpenChange={(open) => !open && setSelectedAnn(null)}>
+              <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-card/95 border border-primary/20 backdrop-blur-md p-0 rounded-3xl overflow-hidden shadow-elevated select-none">
+                {selectedAnn && (
+                  <div className="select-text">
+                    {/* Large Image Header */}
+                    {selectedAnn.imageUrl && (
+                      <div className="w-full relative aspect-video max-h-[380px] overflow-hidden border-b border-border/40">
+                        <img
+                          src={convertGoogleDriveLink(selectedAnn.imageUrl)}
+                          alt={selectedAnn.title}
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent pointer-events-none" />
+                      </div>
+                    )}
+
+                    {/* Dialog Content Details */}
+                    <div className="p-6 md:p-10">
+                      {/* Meta Tags */}
+                      <div className="flex items-center gap-4 flex-wrap mb-6 text-xs text-muted-foreground">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-bold uppercase tracking-wider">
+                          <Tag className="h-3.5 w-3.5" /> {selectedAnn.category}
+                        </span>
+                        <span className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5 text-primary" /> {selectedAnn.date}</span>
+                        <span className="flex items-center gap-1"><User className="h-3.5 w-3.5 text-primary" /> {selectedAnn.author}</span>
+                      </div>
+
+                      {/* Title */}
+                      <DialogTitle className="font-display text-2xl md:text-4xl font-bold text-foreground leading-tight mb-6">
+                        {selectedAnn.title}
+                      </DialogTitle>
+
+                      {/* Content Text */}
+                      <DialogDescription className="text-muted-foreground leading-relaxed text-sm md:text-base whitespace-pre-wrap font-sans text-left mt-2 block select-text">
+                        {selectedAnn.content}
+                      </DialogDescription>
+                    </div>
+                  </div>
+                )}
+              </DialogContent>
+            </Dialog>
           </div>
         </section>
       )}
