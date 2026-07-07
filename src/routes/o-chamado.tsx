@@ -34,7 +34,6 @@ const DEPARTMENTS = [
   "Todos",
   "Departamento das Crianças",
   "Departamento dos Jovens",
-  "Departamento de Comunicação e Imagem",
   "Departamento Administrativo",
   "Secretaria",
   "Ação Social",
@@ -45,23 +44,16 @@ const DEPARTMENTS = [
 const SERVANTS: Servant[] = [
   // Departamento das Crianças
   { name: "Anciã Sandra Congo", role: "Coordenadora do Ministério Infantil", dept: "Departamento das Crianças", bio: "Guia as crianças nos primeiros passos da fé com amor, ensino bíblico e paciência." },
-  { name: "Irmã Teresa Francisco", role: "Educadora Infantil", dept: "Departamento das Crianças", bio: "Auxilia no ensino bíblico criativo e no cuidado diário das crianças nos cultos." },
 
   // Departamento dos Jovens
   { name: "Pastor Tiago Congo", role: "Coordenador Geral dos Jovens", dept: "Departamento dos Jovens", bio: "Lidera a juventude com dinamismo, focando no despertamento espiritual e santidade." },
-  { name: "Irmão Mateus Manuel", role: "Líder de Jovens", dept: "Departamento dos Jovens", bio: "Ajuda no discipulado de jovens e na organização dos encontros semanais." },
-
-  // Departamento de Comunicação e Imagem
-  { name: "Irmão Lucas Simão", role: "Multimédia & Som", dept: "Departamento de Comunicação e Imagem", bio: "Responsável pela qualidade técnica das transmissões e som da igreja." },
-  { name: "Irmã Rebeca António", role: "Fotografia & Redes Sociais", dept: "Departamento de Comunicação e Imagem", bio: "Regista e partilha os testemunhos e eventos da AMOI com dedicação." },
 
   // Departamento Administrativo
-  { name: "Pastor Nicolau CastelBranco", role: "Conselheiro Administrativo", img: leader6, dept: "Departamento Administrativo", bio: "Apoia o conselho da igreja no planeamento estratégico e estabilidade institucional." },
+  { name: "Pastor Nicolau CastelBranco", role: "Conselheiro Administrativo", img: leader6, dept: "Departamento Administrativo", bio: "Apoia o comitê da igreja no planeamento estratégico e estabilidade institucional." },
   { name: "Pastor Nelson Nunes", role: "Conselheiro Geral", img: leader1, dept: "Departamento Administrativo", bio: "Acompanha os projetos de expansão física e administrativa do ministério." },
 
   // Secretaria
   { name: "Diaconisa Judith Fernandes", role: "Secretária Geral", img: leader8, dept: "Secretaria", bio: "Garante a organização administrativa e a comunicação oficial com os membros." },
-  { name: "Irmã Neusa João", role: "Auxiliar de Secretaria", dept: "Secretaria", bio: "Auxilia no registo de membros, atas e agendamentos pastorais." },
 
   // Ação Social
   { name: "Anciã Rosalina Canjila", role: "Coordenadora de Ação Social", img: leader7, dept: "Ação Social", bio: "Lidera os projetos de apoio às famílias carenciadas e visitas de amparo." },
