@@ -24,6 +24,7 @@ import {
   DEFAULT_ANNOUNCEMENTS,
   convertGoogleDriveLink
 } from "../lib/dynamicContent";
+import { useAuth } from "../hooks/useAuth";
 import worship from "@/assets/hero-worship.jpg";
 
 export const Route = createFileRoute("/")({
@@ -39,6 +40,7 @@ export const Route = createFileRoute("/")({
 });
 
 function Home() {
+  const { user } = useAuth();
   const [api, setApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
   const [selectedAnn, setSelectedAnn] = useState<Announcement | null>(null);
@@ -344,30 +346,32 @@ function Home() {
       </section>
 
       {/* CTA */}
-      <section className="py-20">
-        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
-          <div className="relative overflow-hidden rounded-3xl p-12 md:p-16 text-center border border-primary/30 bg-gradient-to-br from-card via-card to-secondary/20">
-            <div className="absolute inset-0 opacity-30" style={{ background: "var(--gradient-radial-gold)" }} />
-            <div className="relative">
-              <Flame className="h-10 w-10 text-primary mx-auto animate-flicker" />
-              <h2 className="mt-5 text-3xl md:text-5xl font-bold">
-                Junta-te a <span className="text-gradient-gold">Familia AMOI</span>
-              </h2>
-              <p className="mt-4 text-muted-foreground max-w-2xl mx-auto">
-                Cria a tua conta de membro para acompanhares os cultos gravados, agenda e conteúdos exclusivos da igreja.
-              </p>
-              <div className="mt-8 flex flex-wrap gap-3 justify-center">
-                <Button asChild size="lg" className="bg-gradient-gold text-primary-foreground font-semibold shadow-gold">
-                  <Link to="/registro">Registar Conta</Link>
-                </Button>
-                <Button asChild size="lg" variant="outline" className="border-primary/40 text-primary hover:bg-primary/10">
-                  <Link to="/login">Já sou membro</Link>
-                </Button>
+      {!user && (
+        <section className="py-20">
+          <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+            <div className="relative overflow-hidden rounded-3xl p-12 md:p-16 text-center border border-primary/30 bg-gradient-to-br from-card via-card to-secondary/20">
+              <div className="absolute inset-0 opacity-30" style={{ background: "var(--gradient-radial-gold)" }} />
+              <div className="relative">
+                <Flame className="h-10 w-10 text-primary mx-auto animate-flicker" />
+                <h2 className="mt-5 text-3xl md:text-5xl font-bold">
+                  Junta-te a <span className="text-gradient-gold">Familia AMOI</span>
+                </h2>
+                <p className="mt-4 text-muted-foreground max-w-2xl mx-auto">
+                  Cria a tua conta de membro para acompanhares os cultos gravados, agenda e conteúdos exclusivos da igreja.
+                </p>
+                <div className="mt-8 flex flex-wrap gap-3 justify-center">
+                  <Button asChild size="lg" className="bg-gradient-gold text-primary-foreground font-semibold shadow-gold">
+                    <Link to="/registro">Registar Conta</Link>
+                  </Button>
+                  <Button asChild size="lg" variant="outline" className="border-primary/40 text-primary hover:bg-primary/10">
+                    <Link to="/login">Já sou membro</Link>
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
     </SiteLayout>
   );
 }
