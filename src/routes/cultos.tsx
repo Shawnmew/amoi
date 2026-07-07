@@ -87,6 +87,11 @@ function Cultos() {
     }
   };
 
+  const getCleanYoutubeId = (id?: string) => {
+    if (!id) return "";
+    return id.split("?")[0].split("&")[0].split("/")[0].trim();
+  };
+
   return (
     <SiteLayout>
       {/* Header */}
@@ -127,7 +132,7 @@ function Cultos() {
                 <iframe
                   key={selected.id}
                   className="h-full w-full"
-                  src={`https://www.youtube.com/embed/${selected.youtubeId}`}
+                  src={`https://www.youtube.com/embed/${getCleanYoutubeId(selected.youtubeId)}`}
                   title={selected.title}
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
@@ -140,7 +145,7 @@ function Cultos() {
                   <p className="text-sm text-muted-foreground mt-1">{selected.speaker} · {fmtDate(selected.date)}</p>
                 </div>
                 <Button asChild variant="outline" className="border-primary/40 text-primary hover:bg-primary/10 self-start md:self-auto">
-                  <a href={`https://www.youtube.com/watch?v=${selected.youtubeId}`} target="_blank" rel="noopener noreferrer">
+                  <a href={`https://www.youtube.com/watch?v=${getCleanYoutubeId(selected.youtubeId)}`} target="_blank" rel="noopener noreferrer">
                     <Youtube className="mr-2 h-4 w-4" /> Ver no YouTube
                   </a>
                 </Button>
@@ -210,7 +215,7 @@ function Cultos() {
                   >
                     <div className="relative aspect-video overflow-hidden">
                       <img
-                        src={`https://img.youtube.com/vi/${c.youtubeId}/hqdefault.jpg`}
+                        src={`https://img.youtube.com/vi/${getCleanYoutubeId(c.youtubeId)}/hqdefault.jpg`}
                         alt={c.title}
                         loading="lazy"
                         className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"

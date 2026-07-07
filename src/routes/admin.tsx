@@ -458,6 +458,27 @@ function AdminDashboard() {
 
     setSavingVideo(true);
     try {
+      let cleanYoutubeId = "";
+      if (videoType === "youtube") {
+        const trimmedId = videoYoutubeId.trim();
+        if (trimmedId.includes("youtube.com/watch")) {
+          const urlParams = new URLSearchParams(trimmedId.split("?")[1] || "");
+          cleanYoutubeId = urlParams.get("v") || "";
+        } else if (trimmedId.includes("youtu.be/")) {
+          cleanYoutubeId = trimmedId.split("youtu.be/")[1]?.split("?")[0]?.split("/")[0] || "";
+        } else if (trimmedId.includes("youtube.com/embed/")) {
+          cleanYoutubeId = trimmedId.split("youtube.com/embed/")[1]?.split("?")[0]?.split("/")[0] || "";
+        } else {
+          cleanYoutubeId = trimmedId.split("?")[0].split("&")[0].split("/")[0];
+        }
+
+        if (!cleanYoutubeId) {
+          toast.warning("ID do YouTube inválido ou não detetado.");
+          setSavingVideo(false);
+          return;
+        }
+      }
+
       const videoData: ChurchVideo = {
         id: editingVideoId || `video-${Date.now()}`,
         title: videoTitle.trim(),
@@ -465,7 +486,7 @@ function AdminDashboard() {
         date: videoDate,
         category: videoCategory,
         type: videoType,
-        youtubeId: videoType === "youtube" ? videoYoutubeId.trim() : "",
+        youtubeId: videoType === "youtube" ? cleanYoutubeId : "",
         shortUrl: videoType === "short" ? videoShortUrl.trim() : ""
       };
 
