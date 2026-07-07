@@ -465,8 +465,8 @@ function AdminDashboard() {
         date: videoDate,
         category: videoCategory,
         type: videoType,
-        youtubeId: videoType === "youtube" ? videoYoutubeId.trim() : undefined,
-        shortUrl: videoType === "short" ? videoShortUrl.trim() : undefined
+        youtubeId: videoType === "youtube" ? videoYoutubeId.trim() : "",
+        shortUrl: videoType === "short" ? videoShortUrl.trim() : ""
       };
 
       await saveDynamicVideo(videoData);
