@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useMemo, useEffect } from "react";
 import { SiteLayout } from "@/components/SiteLayout";
-import { Award, Search, Users } from "lucide-react";
+import { Award, Search, Users, ChevronDown } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   ChurchServant,
@@ -12,6 +12,9 @@ import {
 
 import leader1 from "@/assets/pastor-nelson.jpg";
 import leader2 from "@/assets/ancia-isabel.jpg";
+import leader3 from "@/assets/profeta-edgar.jpg";
+import leader4 from "@/assets/profetiza-maria.jpg";
+import leader5 from "@/assets/serva-elizabeth.jpg";
 import leader6 from "@/assets/pastor-nicolau.jpg";
 import leader7 from "@/assets/ancia-rosalina.jpg";
 import leader8 from "@/assets/diaconisa-judith.jpg";
@@ -30,10 +33,11 @@ export const Route = createFileRoute("/o-chamado")({
 
 const DEPARTMENTS = [
   "Todos",
-  "Departamento das Crianças",
-  "Departamento dos Jovens",
+  "Os Bravos Guerreiros da Fé",
   "Departamento Administrativo",
   "Secretaria",
+  "Departamento das Crianças",
+  "Departamento dos Jovens",
   "Ação Social",
   "Departamento das Mulheres",
   "Departamento dos Homens",
@@ -65,14 +69,33 @@ function OChamado() {
   const [query, setQuery] = useState("");
   const [cat, setCat] = useState<string>("Todos");
 
-  const filteredServants = useMemo(() => {
-    return servants.filter((s) => {
+  const groupedServants = useMemo(() => {
+    const filtered = servants.filter((s) => {
       const matchesCat = cat === "Todos" || s.dept === cat;
       const matchesQuery = s.name.toLowerCase().includes(query.toLowerCase()) ||
         s.role.toLowerCase().includes(query.toLowerCase());
       return matchesCat && matchesQuery;
     });
+
+    const order = DEPARTMENTS.filter(d => d !== "Todos");
+    const groups: Record<string, ChurchServant[]> = {};
+    order.forEach(d => { groups[d] = []; });
+
+    filtered.forEach(s => {
+      if (!groups[s.dept]) {
+        groups[s.dept] = [];
+      }
+      groups[s.dept].push(s);
+    });
+
+    return order
+      .map(dept => ({ dept, servants: groups[dept] || [] }))
+      .filter(g => g.servants.length > 0);
   }, [servants, query, cat]);
+
+  const totalCount = useMemo(() => {
+    return groupedServants.reduce((sum, g) => sum + g.servants.length, 0);
+  }, [groupedServants]);
 
   const initials = (name: string) => name.split(" ").map(n => n[0]).join("").substring(0, 2).toUpperCase();
 
@@ -83,6 +106,9 @@ function OChamado() {
       }
       if (s.img === "pastor-nelson") return leader1;
       if (s.img === "ancia-isabel") return leader2;
+      if (s.img === "profeta-edgar") return leader3;
+      if (s.img === "ancia-maria-julia") return leader4;
+      if (s.img === "serva-elizabeth") return leader5;
       if (s.img === "pastor-nicolau") return leader6;
       if (s.img === "ancia-rosalina") return leader7;
       if (s.img === "diaconisa-judith") return leader8;
@@ -112,30 +138,35 @@ function OChamado() {
 
       {/* Filters */}
       <section className="py-8">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 flex flex-col gap-6">
-          <div className="relative w-full md:max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Procurar servo ou cargo…"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              className="pl-10 bg-card border-border/60"
-            />
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {DEPARTMENTS.map((d) => (
-              <button
-                key={d}
-                onClick={() => setCat(d)}
-                className={`px-4 py-2 rounded-full text-xs uppercase tracking-widest font-semibold transition-all ${
-                  cat === d
-                    ? "bg-gradient-gold text-primary-foreground shadow-gold"
-                    : "bg-card border border-border/60 text-muted-foreground hover:text-primary hover:border-primary/40"
-                }`}
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center justify-between">
+            <div className="relative w-full sm:max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Procurar servo ou cargo…"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                className="pl-10 bg-card border-border/60"
+              />
+            </div>
+
+            {/* Dropdown Filter */}
+            <div className="relative w-full sm:max-w-xs">
+              <select
+                value={cat}
+                onChange={(e) => setCat(e.target.value)}
+                className="w-full appearance-none rounded-xl border border-border/60 bg-card px-4 py-2.5 pr-10 text-sm font-semibold text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:border-primary/50 shadow-elevated cursor-pointer transition-all hover:border-primary/30"
               >
-                {d}
-              </button>
-            ))}
+                {DEPARTMENTS.map((d) => (
+                  <option key={d} value={d} className="bg-card">
+                    {d === "Todos" ? "Todos os Departamentos" : d}
+                  </option>
+                ))}
+              </select>
+              <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-primary">
+                <ChevronDown className="h-4 w-4" />
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -143,52 +174,66 @@ function OChamado() {
       {/* Grid */}
       <section className="pb-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          {filteredServants.length === 0 ? (
+          {totalCount === 0 ? (
             <div className="text-center py-20 bg-card/30 rounded-2xl border border-border/60">
               <Award className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-foreground">Nenhum servo encontrado</h3>
               <p className="text-sm text-muted-foreground mt-1">Experimenta mudar o termo de pesquisa ou o filtro.</p>
             </div>
           ) : (
-            <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {filteredServants.map((s) => {
-                const servantImg = getServantImage(s);
-                return (
-                  <article
-                    key={s.id}
-                    className="group relative rounded-2xl overflow-hidden bg-card border border-border/60 hover:border-primary/50 transition-all hover:-translate-y-1 shadow-elevated"
-                  >
-                    <div className="aspect-[4/5] overflow-hidden bg-muted">
-                      {servantImg ? (
-                        <img
-                          src={servantImg}
-                          alt={s.name}
-                          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                          loading="lazy"
-                        />
-                      ) : (
-                        <div className="h-full w-full bg-gradient-to-br from-card via-secondary/40 to-primary/20 flex items-center justify-center border border-primary/20 transition-transform duration-500 group-hover:scale-105">
-                          <span className="font-display text-3xl font-bold text-gradient-gold tracking-widest">
-                            {initials(s.name)}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  <div className="absolute inset-x-0 bottom-0 p-5 bg-gradient-to-t from-card via-card/95 to-transparent pt-16">
-                    <h3 className="font-display text-xl text-foreground leading-snug">{s.name}</h3>
-                    <div className="text-[10px] uppercase tracking-widest text-primary mt-1 font-bold">
-                      {s.role}
-                    </div>
-                    <div className="text-[9px] uppercase tracking-widest text-muted-foreground mt-0.5">
-                      {s.dept}
-                    </div>
-                    <p className="mt-2 text-xs text-muted-foreground leading-relaxed line-clamp-3">
-                      {s.bio}
-                    </p>
+            <div className="space-y-16">
+              {groupedServants.map((group) => (
+                <div key={group.dept} className="space-y-6">
+                  {/* Subsection Header */}
+                  <div className="flex items-center gap-3">
+                    <div className="h-2 w-2 rounded-full bg-primary shadow-gold" />
+                    <h2 className="text-2xl font-bold font-display text-foreground tracking-wide">{group.dept}</h2>
+                    <div className="flex-1 h-[1px] bg-gradient-to-r from-border/60 via-border/20 to-transparent ml-4" />
                   </div>
-                  </article>
-                );
-              })}
+
+                  {/* Servants Grid */}
+                  <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                    {group.servants.map((s) => {
+                      const servantImg = getServantImage(s);
+                      return (
+                        <article
+                          key={s.id}
+                          className="group relative rounded-2xl overflow-hidden bg-card border border-border/60 hover:border-primary/50 transition-all hover:-translate-y-1 shadow-elevated"
+                        >
+                          <div className="aspect-[4/5] overflow-hidden bg-muted">
+                            {servantImg ? (
+                              <img
+                                src={servantImg}
+                                alt={s.name}
+                                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                loading="lazy"
+                              />
+                            ) : (
+                              <div className="h-full w-full bg-gradient-to-br from-card via-secondary/40 to-primary/20 flex items-center justify-center border border-primary/20 transition-transform duration-500 group-hover:scale-105">
+                                <span className="font-display text-3xl font-bold text-gradient-gold tracking-widest">
+                                  {initials(s.name)}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                          <div className="absolute inset-x-0 bottom-0 p-5 bg-gradient-to-t from-card via-card/95 to-transparent pt-16">
+                            <h3 className="font-display text-xl text-foreground leading-snug">{s.name}</h3>
+                            <div className="text-[10px] uppercase tracking-widest text-primary mt-1 font-bold">
+                              {s.role}
+                            </div>
+                            <div className="text-[9px] uppercase tracking-widest text-muted-foreground mt-0.5">
+                              {s.dept}
+                            </div>
+                            <p className="mt-2 text-xs text-muted-foreground leading-relaxed line-clamp-3">
+                              {s.bio}
+                            </p>
+                          </div>
+                        </article>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>

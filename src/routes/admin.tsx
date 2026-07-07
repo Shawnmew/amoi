@@ -89,6 +89,7 @@ export const Route = createFileRoute("/admin")({
 type TabType = "carousel" | "announcements" | "info" | "users" | "whatsapp" | "videos" | "servants";
 
 const SERVANT_DEPARTMENTS = [
+  "Os Bravos Guerreiros da Fé",
   "Departamento das Crianças",
   "Departamento dos Jovens",
   "Departamento Administrativo",

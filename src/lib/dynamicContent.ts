@@ -644,14 +644,22 @@ export interface ChurchServant {
 }
 
 export const DEFAULT_SERVANTS: ChurchServant[] = [
+  // Os Bravos Guerreiros da Fé (Liderança Geral)
+  { id: "s12", name: "Serva Elizabeth CastelBranco", role: "Líder & Visionária da AMOI", img: "serva-elizabeth", dept: "Os Bravos Guerreiros da Fé", bio: "Esposa do Pastor Nicolau CastelBranco, é a líder e visionária fundadora da AMOI, guiando o ministério com sabedoria, oração e direção divina." },
+  { id: "s13", name: "Profeta Edgar Marcolino", role: "Profeta", img: "profeta-edgar", dept: "Os Bravos Guerreiros da Fé", bio: "Ministério profético da AMOI, atuando no despertamento espiritual e na revelação da palavra de Deus." },
+  { id: "s14", name: "Anciã Maria Júlia Marcolino", role: "Anciã", img: "ancia-maria-julia", dept: "Os Bravos Guerreiros da Fé", bio: "Esposa do Profeta Edgar Marcolino, atua como anciã com dedicação, oração e aconselhamento." },
+  { id: "s4", name: "Pastor Nelson Nunes", role: "Pastor", img: "pastor-nelson", dept: "Os Bravos Guerreiros da Fé", bio: "Pastor dedicado ao ministério na AMOI, focado no ensino da Palavra e no cuidado espiritual da igreja." },
+  { id: "s8", name: "Anciã Isabel Nunes", role: "Anciã", img: "ancia-isabel", dept: "Os Bravos Guerreiros da Fé", bio: "Esposa do Pastor Nelson Nunes, é uma anciã dedicada à intercessão, apoio espiritual e fortalecimento familiar." },
+  { id: "s6", name: "Anciã Rosalina Canjila", role: "Anciã", img: "ancia-rosalina", dept: "Os Bravos Guerreiros da Fé", bio: "Consagrada anciã da AMOI, atua com dedicação e coração disponível para Deus nas reuniões de aconselhamento e oração." },
+  { id: "s5", name: "Diaconisa Judith Fernandes", role: "Diaconisa", img: "diaconisa-judith", dept: "Os Bravos Guerreiros da Fé", bio: "Diaconisa da AMOI, dedicada ao serviço da casa do Senhor com alegria, zelo e apoio constante." },
+
+  // Departamentos
   { id: "s1", name: "Anciã Sandra Congo", role: "Coordenadora do Ministério Infantil", dept: "Departamento das Crianças", bio: "Guia as crianças nos primeiros passos da fé com amor, ensino bíblico e paciência." },
   { id: "s2", name: "Pastor Tiago Congo", role: "Coordenador Geral dos Jovens", dept: "Departamento dos Jovens", bio: "Lidera a juventude com dinamismo, focando no despertamento espiritual e santidade." },
   { id: "s3", name: "Pastor Nicolau CastelBranco", role: "Conselheiro Administrativo", img: "pastor-nicolau", dept: "Departamento Administrativo", bio: "Apoia o comitê da igreja no planeamento estratégico e estabilidade institucional." },
-  { id: "s4", name: "Pastor Nelson Nunes", role: "Conselheiro Geral", img: "pastor-nelson", dept: "Departamento Administrativo", bio: "Acompanha os projetos de expansão física e administrativa do ministério." },
-  { id: "s5", name: "Diaconisa Judith Fernandes", role: "Secretária Geral", img: "diaconisa-judith", dept: "Secretaria", bio: "Garante a organização administrativa e a comunicação oficial com os membros." },
-  { id: "s6", name: "Anciã Rosalina Canjila", role: "Coordenadora de Ação Social", img: "ancia-rosalina", dept: "Ação Social", bio: "Lidera os projetos de apoio às famílias carenciadas e visitas de amparo." },
+  { id: "s5_dept", name: "Diaconisa Judith Fernandes", role: "Secretária Geral", img: "diaconisa-judith", dept: "Secretaria", bio: "Garante a organização administrativa e a comunicação oficial com os membros." },
+  { id: "s6_dept", name: "Anciã Rosalina Canjila", role: "Coordenadora de Ação Social", img: "ancia-rosalina", dept: "Ação Social", bio: "Lidera os projetos de apoio às famílias carenciadas e visitas de amparo." },
   { id: "s7", name: "Diaconisa Judith Fernandes", role: "Apoio a Ação Social", img: "diaconisa-judith", dept: "Ação Social", bio: "Garante o controle e a distribuição das doações entregues à igreja." },
-  { id: "s8", name: "Anciã Isabel Nunes", role: "Coordenadora do Círculo de Oração", img: "ancia-isabel", dept: "Departamento das Mulheres", bio: "Lidera as reuniões de oração, aconselhamento e edificação das mulheres." },
   { id: "s9", name: "Anciã Sandra Congo", role: "Apoio ao Ministério de Mulheres", dept: "Departamento das Mulheres", bio: "Trabalha no fortalecimento espiritual e no apoio mútuo entre as irmãs." },
   { id: "s10", name: "Pastor Nelson Nunes", role: "Conselheiro dos Varões", img: "pastor-nelson", dept: "Departamento dos Homens", bio: "Ministra a Palavra aos homens, focando no papel do homem segundo o coração de Deus." },
   { id: "s11", name: "Pastor Tiago Congo", role: "Líder dos Varões", dept: "Departamento dos Homens", bio: "Organiza as vigílias e encontros de edificação masculina na igreja." }
