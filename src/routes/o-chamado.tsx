@@ -68,6 +68,7 @@ function OChamado() {
 
   const [query, setQuery] = useState("");
   const [cat, setCat] = useState<string>("Todos");
+  const [brokenImages, setBrokenImages] = useState<Record<string, boolean>>({});
 
   const groupedServants = useMemo(() => {
     const filtered = servants.filter((s) => {
@@ -204,16 +205,21 @@ function OChamado() {
                   <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                     {group.servants.map((s) => {
                       const servantImg = getServantImage(s);
+                      const isBroken = brokenImages[s.id];
+                      const showFallback = !servantImg || isBroken;
                       return (
                         <article
                           key={s.id}
                           className="group relative rounded-2xl overflow-hidden bg-card border border-border/60 hover:border-primary/50 transition-all hover:-translate-y-1 shadow-elevated"
                         >
                           <div className="aspect-[4/5] overflow-hidden bg-muted">
-                            {servantImg ? (
+                            {!showFallback ? (
                               <img
                                 src={servantImg}
                                 alt={s.name}
+                                onError={() => {
+                                  setBrokenImages(prev => ({ ...prev, [s.id]: true }));
+                                }}
                                 className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                                 loading="lazy"
                               />
