@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { SiteLayout } from "@/components/SiteLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -633,6 +633,61 @@ function AdminDashboard() {
     } catch (err) {
       console.error(err);
       toast.error("Erro ao eliminar o servo.");
+    }
+  };
+
+  const sortedServantsForTable = useMemo(() => {
+    return [...servantsList].sort((a, b) => {
+      const deptCompare = a.dept.localeCompare(b.dept);
+      if (deptCompare !== 0) return deptCompare;
+      
+      const orderA = a.order !== undefined ? a.order : 999;
+      const orderB = b.order !== undefined ? b.order : 999;
+      if (orderA !== orderB) return orderA - orderB;
+      return a.name.localeCompare(b.name);
+    });
+  }, [servantsList]);
+
+  const handleMoveServant = async (servantId: string, direction: "up" | "down") => {
+    const target = servantsList.find(s => s.id === servantId);
+    if (!target) return;
+
+    const inSameDept = servantsList.filter(s => s.dept === target.dept);
+    const sortedSameDept = [...inSameDept].sort((a, b) => {
+      const orderA = a.order !== undefined ? a.order : 999;
+      const orderB = b.order !== undefined ? b.order : 999;
+      if (orderA !== orderB) return orderA - orderB;
+      return a.id.localeCompare(b.id);
+    });
+
+    const index = sortedSameDept.findIndex(s => s.id === servantId);
+    if (index === -1) return;
+
+    if (direction === "up" && index === 0) return;
+    if (direction === "down" && index === sortedSameDept.length - 1) return;
+
+    const targetIdx = direction === "up" ? index - 1 : index + 1;
+    
+    // Assign sequential orders to all elements in this department to ensure consistency
+    sortedSameDept.forEach((s, idx) => {
+      s.order = idx;
+    });
+
+    // Swap the order property
+    const temp = sortedSameDept[index].order;
+    sortedSameDept[index].order = sortedSameDept[targetIdx].order;
+    sortedSameDept[targetIdx].order = temp;
+
+    try {
+      for (const s of sortedSameDept) {
+        await saveDynamicServant(s);
+      }
+      toast.success("Ordem dos servos atualizada!");
+      const fetched = await getDynamicServants();
+      setServantsList(fetched);
+    } catch (e) {
+      console.error(e);
+      toast.error("Erro ao alterar a ordem.");
     }
   };
 
@@ -2341,32 +2396,60 @@ function AdminDashboard() {
                               </tr>
                             </thead>
                             <tbody>
-                              {servantsList.map((srv) => (
-                                <tr key={srv.id} className="border-b border-border/40 hover:bg-card/25 transition-colors">
-                                  <td className="p-4 font-medium text-foreground">{srv.name}</td>
-                                  <td className="p-4 text-primary font-semibold text-xs">{srv.role}</td>
-                                  <td className="p-4 text-muted-foreground text-xs">{srv.dept}</td>
-                                  <td className="p-4 text-muted-foreground text-xs max-w-xs truncate" title={srv.bio}>{srv.bio}</td>
-                                  <td className="p-4 text-right">
-                                    <div className="flex justify-end items-center gap-2">
-                                      <button
-                                        onClick={() => handleStartEditServant(srv)}
-                                        className="p-2 rounded-lg bg-primary/10 border border-primary/20 text-primary hover:bg-primary/20 hover:text-primary transition-all cursor-pointer"
-                                        title="Editar"
-                                      >
-                                        <Pencil className="h-4 w-4" />
-                                      </button>
-                                      <button
-                                        onClick={() => handleDeleteServant(srv.id)}
-                                        className="p-2 rounded-lg bg-red-500/10 border border-red-500/25 text-red-500 hover:bg-red-500/20 hover:text-red-500 transition-all cursor-pointer"
-                                        title="Eliminar"
-                                      >
-                                        <Trash2 className="h-4 w-4" />
-                                      </button>
-                                    </div>
-                                  </td>
-                                </tr>
-                              ))}
+                              {sortedServantsForTable.map((srv) => {
+                                const deptServants = sortedServantsForTable.filter(s => s.dept === srv.dept);
+                                const idx = deptServants.findIndex(s => s.id === srv.id);
+                                const isFirst = idx === 0;
+                                const isLast = idx === deptServants.length - 1;
+
+                                return (
+                                  <tr key={srv.id} className="border-b border-border/40 hover:bg-card/25 transition-colors">
+                                    <td className="p-4 font-medium text-foreground">{srv.name}</td>
+                                    <td className="p-4 text-primary font-semibold text-xs">{srv.role}</td>
+                                    <td className="p-4 text-muted-foreground text-xs">{srv.dept}</td>
+                                    <td className="p-4 text-muted-foreground text-xs max-w-xs truncate" title={srv.bio}>{srv.bio}</td>
+                                    <td className="p-4 text-right">
+                                      <div className="flex justify-end items-center gap-2">
+                                        {/* Sorting Buttons */}
+                                        <button
+                                          onClick={() => handleMoveServant(srv.id, "up")}
+                                          disabled={isFirst}
+                                          className="p-1.5 rounded-lg border border-border hover:bg-muted text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+                                          title="Subir"
+                                        >
+                                          <ArrowUp className="h-3.5 w-3.5" />
+                                        </button>
+                                        <button
+                                          onClick={() => handleMoveServant(srv.id, "down")}
+                                          disabled={isLast}
+                                          className="p-1.5 rounded-lg border border-border hover:bg-muted text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+                                          title="Descer"
+                                        >
+                                          <ArrowDown className="h-3.5 w-3.5" />
+                                        </button>
+
+                                        <div className="h-4 w-[1px] bg-border mx-1" />
+
+                                        {/* CRUD Actions */}
+                                        <button
+                                          onClick={() => handleStartEditServant(srv)}
+                                          className="p-2 rounded-lg bg-primary/10 border border-primary/20 text-primary hover:bg-primary/20 hover:text-primary transition-all cursor-pointer"
+                                          title="Editar"
+                                        >
+                                          <Pencil className="h-4 w-4" />
+                                        </button>
+                                        <button
+                                          onClick={() => handleDeleteServant(srv.id)}
+                                          className="p-2 rounded-lg bg-red-500/10 border border-red-500/25 text-red-500 hover:bg-red-500/20 hover:text-red-500 transition-all cursor-pointer"
+                                          title="Eliminar"
+                                        >
+                                          <Trash2 className="h-4 w-4" />
+                                        </button>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
                             </tbody>
                           </table>
                         </div>

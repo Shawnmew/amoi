@@ -89,7 +89,16 @@ function OChamado() {
     });
 
     return order
-      .map(dept => ({ dept, servants: groups[dept] || [] }))
+      .map(dept => {
+        const deptList = groups[dept] || [];
+        const sortedDeptList = [...deptList].sort((a, b) => {
+          const orderA = a.order !== undefined ? a.order : 999;
+          const orderB = b.order !== undefined ? b.order : 999;
+          if (orderA !== orderB) return orderA - orderB;
+          return a.name.localeCompare(b.name);
+        });
+        return { dept, servants: sortedDeptList };
+      })
       .filter(g => g.servants.length > 0);
   }, [servants, query, cat]);
 
