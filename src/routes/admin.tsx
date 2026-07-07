@@ -66,7 +66,8 @@ import {
   Send,
   Loader2,
   Video,
-  Film
+  Film,
+  Youtube
 } from "lucide-react";
 import { toast } from "sonner";
 
