@@ -58,24 +58,7 @@ export const DEFAULT_SLIDES: CarouselSlide[] = [
   { id: "5", src: baptism, title: "Vidas Renovadas", subtitle: "Celebramos novas conversões e batismos", order: 5 },
 ];
 
-export const DEFAULT_ANNOUNCEMENTS: Announcement[] = [
-  {
-    id: "ann-1",
-    title: "Grande Campanha de Oração e Milagres",
-    category: "Evento",
-    content: "Junte-se a nós nesta semana especial onde clamaremos ao Senhor por curas, milagres e libertação. Teremos a participação de pastores convidados e momentos profundos de clamor.",
-    date: "2026-07-12",
-    author: "Pastor Nelson Nunes",
-  },
-  {
-    id: "ann-2",
-    title: "Abertura das Inscrições para o Encontro de Jovens",
-    category: "Notícia",
-    content: "Já estão abertas as inscrições para o Encontro de Jovens 'Arde 2026'. Vagas limitadas. Entre em contacto com a liderança de jovens para garantir o seu lugar.",
-    date: "2026-07-08",
-    author: "Líder de Jovens",
-  }
-];
+export const DEFAULT_ANNOUNCEMENTS: Announcement[] = [];
 
 export const DEFAULT_INFO: ChurchInfo = {
   welcomeTitle: "Uma casa de oração para todos os povos.",
