@@ -50,9 +50,8 @@ function Cultos() {
   const [cat, setCat] = useState<(typeof CATEGORIES)[number]>("Todos");
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  // Shorts Modal states
-  const [shortsModalOpen, setShortsModalOpen] = useState(false);
-  const [selectedShort, setSelectedShort] = useState<ChurchVideo | null>(null);
+  // Short Video playing state
+  const [playingShortId, setPlayingShortId] = useState<string | null>(null);
 
   const longVideos = useMemo(() => {
     return cultosList.filter((v) => v.type === "youtube" || !v.type);
@@ -101,17 +100,6 @@ function Cultos() {
             <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/15 border border-primary/40 text-primary text-xs uppercase tracking-[0.25em] font-semibold">
               <Youtube className="h-3.5 w-3.5" /> Cultos Gravados
             </span>
-            <Button
-              onClick={() => {
-                setShortsModalOpen(true);
-                if (shortVideos.length > 0 && !selectedShort) {
-                  setSelectedShort(shortVideos[0]);
-                }
-              }}
-              className="bg-gradient-fire text-secondary-foreground shadow-ember text-xs font-semibold h-[34px] rounded-full uppercase tracking-wider px-4 shrink-0 cursor-pointer"
-            >
-              <Smartphone className="h-3.5 w-3.5 mr-1.5" /> Clipes / Curtos (TikTok / Reels)
-            </Button>
           </div>
           <h1 className="mt-5 text-4xl md:text-6xl font-bold">
             Reviva a presença de <span className="text-gradient-gold">Deus</span>
@@ -159,6 +147,102 @@ function Cultos() {
             <Video className="h-12 w-12 text-muted-foreground/60 mx-auto mb-4" />
             <p className="text-muted-foreground font-medium">Nenhum culto longo disponível.</p>
             <p className="text-xs text-muted-foreground/80 mt-1">Adicione vídeos no painel administrativo.</p>
+          </div>
+        </section>
+      )}
+
+      {/* Short Videos Subsection */}
+      {shortVideos.length > 0 && (
+        <section className="py-12 border-t border-b border-border/40 bg-card/15 shadow-inner">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <span className="text-xs uppercase tracking-[0.25em] text-primary font-semibold flex items-center gap-1.5">
+                  <Smartphone className="h-4 w-4" /> Vídeos Verticais
+                </span>
+                <h2 className="mt-2 text-2xl md:text-3xl font-bold font-display">Clipes, Shorts & Reels</h2>
+              </div>
+              <span className="text-xs text-muted-foreground hidden sm:inline-block">
+                Deslize para o lado para ver mais →
+              </span>
+            </div>
+
+            <div className="flex gap-6 overflow-x-auto pb-6 scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-transparent">
+              {shortVideos.map((s) => {
+                const parsed = getShortEmbedUrl(s.shortUrl || "");
+                const platform = parsed ? parsed.platform : "youtube";
+                const isPlaying = playingShortId === s.id;
+                
+                let ytShortId = "";
+                if (platform === "youtube" && s.shortUrl) {
+                  ytShortId = getCleanYoutubeId(s.shortUrl);
+                }
+
+                return (
+                  <div
+                    key={s.id}
+                    className="w-[240px] shrink-0 group flex flex-col gap-3"
+                  >
+                    <div className="relative aspect-[9/16] w-full rounded-2xl overflow-hidden border border-primary/20 bg-black/60 shadow-elevated transition-all group-hover:border-primary/45">
+                      {isPlaying && parsed ? (
+                        <iframe
+                          className="absolute inset-0 w-full h-full"
+                          src={`${parsed.embedUrl}?autoplay=1`}
+                          title={s.title}
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                        />
+                      ) : (
+                        <button
+                          onClick={() => setPlayingShortId(s.id)}
+                          className="absolute inset-0 w-full h-full flex flex-col justify-between p-4 text-left cursor-pointer"
+                        >
+                          {/* Top Platform Tag */}
+                          <div className="self-end px-2.5 py-1 rounded-full bg-background/80 backdrop-blur border border-primary/30 text-[10px] uppercase font-bold tracking-wider text-primary">
+                            {platform}
+                          </div>
+
+                          {/* Cover Thumbnail or Platform Background */}
+                          {platform === "youtube" && ytShortId ? (
+                            <img
+                              src={`https://img.youtube.com/vi/${ytShortId}/hqdefault.jpg`}
+                              alt={s.title}
+                              className="absolute inset-0 w-full h-full object-cover -z-10 brightness-[0.4] transition-transform duration-500 group-hover:scale-105"
+                            />
+                          ) : (
+                            <div className="absolute inset-0 bg-gradient-to-br from-card to-background -z-10 flex items-center justify-center">
+                              {platform === "tiktok" ? (
+                                <Film className="h-12 w-12 text-primary/30 animate-pulse" />
+                              ) : (
+                                <Film className="h-12 w-12 text-pink-500/30 animate-pulse" />
+                              )}
+                            </div>
+                          )}
+
+                          {/* Play Button Overlay */}
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="h-12 w-12 rounded-full bg-primary/95 text-primary-foreground flex items-center justify-center shadow-gold transition-transform group-hover:scale-110">
+                              <Play className="h-5 w-5 ml-0.5" fill="currentColor" />
+                            </div>
+                          </div>
+
+                          {/* Gradient Bottom Overlay */}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/25 to-transparent -z-5" />
+
+                          {/* Title & Author Info */}
+                          <div className="mt-auto relative z-10">
+                            <p className="text-[11px] font-semibold text-primary/90">{s.speaker}</p>
+                            <h3 className="text-xs font-bold text-white line-clamp-2 mt-0.5 leading-snug">
+                              {s.title}
+                            </h3>
+                          </div>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </section>
       )}
@@ -247,103 +331,6 @@ function Cultos() {
               * Os vídeos são geridos e atualizados dinamicamente pela liderança da AMOI.
             </p>
           )}
-
-          {/* Modal / Dialog for clips/shorts */}
-          <Dialog open={shortsModalOpen} onOpenChange={setShortsModalOpen}>
-            <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh] md:max-h-[85vh] bg-card/95 border border-primary/20 backdrop-blur-md p-6 rounded-3xl overflow-hidden flex flex-col md:flex-row gap-6 shadow-elevated select-none">
-              {/* Left Column: Clips list */}
-              <div className="flex-1 overflow-y-auto max-h-[40vh] md:max-h-[75vh] pr-2">
-                <DialogHeader className="mb-4">
-                  <DialogTitle className="font-display text-xl font-bold text-primary flex items-center gap-2">
-                    <Smartphone className="h-5 w-5" /> Clipes & Vídeos Curtos
-                  </DialogTitle>
-                  <DialogDescription className="text-xs text-muted-foreground">
-                    Assista a vídeos curtos da AMOI postados no TikTok, Shorts e Reels.
-                  </DialogDescription>
-                </DialogHeader>
-
-                {shortVideos.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-10">Nenhum vídeo curto disponível no momento.</p>
-                ) : (
-                  <div className="grid sm:grid-cols-2 gap-3 mt-4">
-                    {shortVideos.map((s) => {
-                      const parsed = getShortEmbedUrl(s.shortUrl || "");
-                      const platformName = parsed ? parsed.platform.toUpperCase() : "VÍDEO";
-                      const isCurrent = selectedShort?.id === s.id;
-                      return (
-                        <button
-                          key={s.id}
-                          onClick={() => setSelectedShort(s)}
-                          className={`p-4 rounded-2xl border text-left transition-all flex flex-col justify-between h-28 hover:border-primary/45 cursor-pointer ${
-                            isCurrent
-                              ? "border-primary bg-primary/5 text-primary shadow-gold font-bold"
-                              : "border-border/60 bg-card/50 text-muted-foreground"
-                          }`}
-                        >
-                          <span className="font-semibold text-foreground text-sm line-clamp-2 leading-tight">
-                            {s.title}
-                          </span>
-                          <div className="flex items-center justify-between mt-2 w-full text-[10px] uppercase tracking-wider font-semibold">
-                            <span className="flex items-center gap-1 text-muted-foreground/80">
-                              <User className="h-3 w-3 text-primary" /> {s.speaker}
-                            </span>
-                            <span className="px-2 py-0.5 rounded-full bg-secondary text-primary border border-secondary/30">
-                              {platformName}
-                            </span>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-
-              {/* Right Column: Vertical Player */}
-              <div className="w-full md:w-[320px] shrink-0 flex flex-col justify-center items-center bg-black/40 rounded-2xl border border-border/40 p-4 min-h-[380px] md:min-h-0">
-                {selectedShort ? (
-                  (() => {
-                    const parsed = getShortEmbedUrl(selectedShort.shortUrl || "");
-                    return parsed ? (
-                      <div className="w-full h-full flex flex-col justify-between items-center gap-3">
-                        <div className="relative aspect-[9/16] w-full max-w-[240px] bg-black rounded-2xl overflow-hidden border border-primary/20 shadow-elevated">
-                          <iframe
-                            key={selectedShort.id}
-                            className="w-full h-full absolute inset-0"
-                            src={parsed.embedUrl}
-                            title={selectedShort.title}
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            allowFullScreen
-                          />
-                        </div>
-                        <div className="text-center">
-                          <span className="text-[10px] uppercase font-bold tracking-widest text-primary flex items-center justify-center gap-1">
-                            <Film className="h-3 w-3" /> Plataforma: {parsed.platform}
-                          </span>
-                          <p className="text-xs text-foreground font-semibold mt-1 truncate max-w-[200px]" title={selectedShort.title}>
-                            {selectedShort.title}
-                          </p>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="text-center text-xs text-muted-foreground p-4">
-                        <p>Link inválido ou não suportado para incorporação.</p>
-                        <Button asChild size="sm" variant="outline" className="mt-4 w-full text-xs">
-                          <a href={selectedShort.shortUrl} target="_blank" rel="noopener noreferrer">
-                            Assistir no Navegador
-                          </a>
-                        </Button>
-                      </div>
-                    );
-                  })()
-                ) : (
-                  <div className="text-center text-muted-foreground p-6 flex flex-col items-center gap-3">
-                    <Smartphone className="h-8 w-8 text-primary/40 animate-pulse" />
-                    <span className="text-xs">Selecione um clip ao lado para assistir</span>
-                  </div>
-                )}
-              </div>
-            </DialogContent>
-          </Dialog>
         </div>
       </section>
     </SiteLayout>
