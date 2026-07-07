@@ -1,110 +1,29 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
 import { SiteLayout } from "@/components/SiteLayout";
-import { Play, Search, Youtube } from "lucide-react";
+import { Play, Search, Youtube, Smartphone, Video, Tag, Calendar, User, Film } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-
-type Culto = {
-  id: string;
-  title: string;
-  speaker: string;
-  date: string;
-  category: "Pregação" | "Louvor" | "Vigília" | "Especial";
-  youtubeId: string;
-};
-
-// Decodificador simples de entidades XML/HTML
-function decodeEntities(str: string): string {
-  return str
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&apos;/g, "'");
-}
-
-// Busca e parseia os vídeos do feed RSS do YouTube.
-// Funciona durante o prerender (SSR build). No lado do cliente (GitHub Pages estático),
-// o CORS bloqueia o fetch e o catch devolve [] — usam-se então os dados do CULTOS estático.
-async function getVideos(): Promise<Culto[]> {
-  try {
-    const channelId = "UCp2wLGoGyAL5NQiAHHFn9uw";
-    const response = await fetch(
-      `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`
-    );
-    if (!response.ok) {
-      throw new Error(`Failed to fetch YouTube feed: ${response.statusText}`);
-    }
-    const xml = await response.text();
-    
-    const entries: Culto[] = [];
-    const entryRegex = /<entry>([\s\S]*?)<\/entry>/g;
-    let match;
-    let count = 0;
-    
-    while ((match = entryRegex.exec(xml)) !== null && count < 15) {
-      const entryContent = match[1];
-      
-      const idMatch = entryContent.match(/<yt:videoId>(.*?)<\/yt:videoId>/);
-      const titleMatch = entryContent.match(/<title>(.*?)<\/title>/);
-      const publishedMatch = entryContent.match(/<published>(.*?)<\/published>/);
-      
-      if (idMatch && titleMatch) {
-        const videoId = idMatch[1].trim();
-        const rawTitle = titleMatch[1].replace(/<!\[CDATA\[(.*?)\]\]>/, "$1").trim();
-        const title = decodeEntities(rawTitle);
-        const dateStr = publishedMatch ? publishedMatch[1].split("T")[0] : new Date().toISOString().split("T")[0];
-        
-        // Determinar o pregador/orador baseado no título
-        let speaker = "Pastor Nelson Nunes";
-        if (title.toLowerCase().includes("profeta") || title.toLowerCase().includes("edgar")) {
-          speaker = "Profeta Edgar";
-        } else if (title.toLowerCase().includes("profetiza") || title.toLowerCase().includes("maria")) {
-          speaker = "Profetiza Maria";
-        } else if (title.toLowerCase().includes("ancia") || title.toLowerCase().includes("isabel")) {
-          speaker = "Anciã Isabel Nunes";
-        } else if (title.toLowerCase().includes("louvor") || title.toLowerCase().includes("ministério")) {
-          speaker = "Ministério de Louvor";
-        }
-        
-        // Determinar a categoria baseada no título
-        let category: Culto["category"] = "Pregação";
-        if (title.toLowerCase().includes("louvor") || title.toLowerCase().includes("adoração")) {
-          category = "Louvor";
-        } else if (title.toLowerCase().includes("vigília") || title.toLowerCase().includes("oração")) {
-          category = "Vigília";
-        } else if (title.toLowerCase().includes("especial") || title.toLowerCase().includes("festa")) {
-          category = "Especial";
-        }
-
-        entries.push({
-          id: videoId,
-          title,
-          speaker,
-          date: dateStr,
-          category,
-          youtubeId: videoId
-        });
-        count++;
-      }
-    }
-    
-    return entries;
-  } catch (e) {
-    console.error("Error fetching YouTube videos:", e);
-    return [];
-  }
-}
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import {
+  ChurchVideo,
+  getDynamicVideos,
+  getShortEmbedUrl
+} from "../lib/dynamicContent";
 
 export const Route = createFileRoute("/cultos")({
   loader: async () => {
     try {
-      const videos = await getVideos();
+      const videos = await getDynamicVideos();
       return { videos: videos || [] };
     } catch (e) {
-      console.warn("Could not load real-time videos via server function (Static host environment):", e);
+      console.warn("Could not load dynamic videos:", e);
       return { videos: [] };
     }
   },
@@ -119,47 +38,46 @@ export const Route = createFileRoute("/cultos")({
   component: Cultos,
 });
 
-// Fallback de cultos em caso de falha de rede
-const CULTOS: Culto[] = [
-  { id: "1", title: "O Poder da Oração Persistente", speaker: "Pastor Nelson Nunes", date: "2026-06-15", category: "Pregação", youtubeId: "9K_BRUFp8qg" },
-  { id: "2", title: "Vigília — Quebrando Barreiras", speaker: "Equipa de Intercessão", date: "2026-06-13", category: "Vigília", youtubeId: "dQw4w9WgXcQ" },
-  { id: "3", title: "Louvor ao Trono — Ao Vivo", speaker: "Ministério de Louvor", date: "2026-06-08", category: "Louvor", youtubeId: "dQw4w9WgXcQ" },
-  { id: "4", title: "A Fé que Move Montanhas", speaker: "Pastor Nelson Nunes", date: "2026-06-01", category: "Pregação", youtubeId: "dQw4w9WgXcQ" },
-  { id: "5", title: "Culto de Acção de Graças", speaker: "Anciã Isabel Nunes", date: "2026-05-25", category: "Especial", youtubeId: "dQw4w9WgXcQ" },
-  { id: "6", title: "Bravos Guerreiros da Fé", speaker: "Pastor Nelson Nunes", date: "2026-05-18", category: "Pregação", youtubeId: "dQw4w9WgXcQ" },
-  { id: "7", title: "Encontro de Jovens — Arde", speaker: "Líder de Jovens", date: "2026-05-11", category: "Especial", youtubeId: "dQw4w9WgXcQ" },
-  { id: "8", title: "Adoração Profética", speaker: "Ministério de Louvor", date: "2026-05-04", category: "Louvor", youtubeId: "dQw4w9WgXcQ" },
-  { id: "9", title: "A Palavra que Cura", speaker: "Pastor Nelson Nunes", date: "2026-04-27", category: "Pregação", youtubeId: "dQw4w9WgXcQ" },
-];
-
 const CATEGORIES = ["Todos", "Pregação", "Louvor", "Vigília", "Especial"] as const;
 
 function Cultos() {
   const { videos } = Route.useLoaderData();
   const cultosList = useMemo(() => {
-    return videos && videos.length > 0 ? videos : CULTOS;
+    return videos || [];
   }, [videos]);
 
   const [query, setQuery] = useState("");
   const [cat, setCat] = useState<(typeof CATEGORIES)[number]>("Todos");
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
+  // Shorts Modal states
+  const [shortsModalOpen, setShortsModalOpen] = useState(false);
+  const [selectedShort, setSelectedShort] = useState<ChurchVideo | null>(null);
+
+  const longVideos = useMemo(() => {
+    return cultosList.filter((v) => v.type === "youtube" || !v.type);
+  }, [cultosList]);
+
+  const shortVideos = useMemo(() => {
+    return cultosList.filter((v) => v.type === "short");
+  }, [cultosList]);
+
   const filtered = useMemo(() => {
-    return cultosList.filter((c) => {
+    return longVideos.filter((c) => {
       const matchesCat = cat === "Todos" || c.category === cat;
       const matchesQuery = c.title.toLowerCase().includes(query.toLowerCase()) ||
         c.speaker.toLowerCase().includes(query.toLowerCase());
       return matchesCat && matchesQuery;
     });
-  }, [cultosList, query, cat]);
+  }, [longVideos, query, cat]);
 
   const selected = useMemo(() => {
     if (selectedId) {
-      const found = cultosList.find((c) => c.id === selectedId);
+      const found = longVideos.find((c) => c.id === selectedId);
       if (found) return found;
     }
-    return filtered[0] || cultosList[0] || CULTOS[0];
-  }, [selectedId, filtered, cultosList]);
+    return filtered[0] || longVideos[0] || null;
+  }, [selectedId, filtered, longVideos]);
 
   const fmtDate = (d: string) => {
     try {
@@ -174,9 +92,22 @@ function Cultos() {
       {/* Header */}
       <section className="pt-20 pb-10">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center">
-          <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/15 border border-primary/40 text-primary text-xs uppercase tracking-[0.25em] font-semibold">
-            <Youtube className="h-3.5 w-3.5" /> Cultos Gravados
-          </span>
+          <div className="flex flex-wrap justify-center gap-3">
+            <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/15 border border-primary/40 text-primary text-xs uppercase tracking-[0.25em] font-semibold">
+              <Youtube className="h-3.5 w-3.5" /> Cultos Gravados
+            </span>
+            <Button
+              onClick={() => {
+                setShortsModalOpen(true);
+                if (shortVideos.length > 0 && !selectedShort) {
+                  setSelectedShort(shortVideos[0]);
+                }
+              }}
+              className="bg-gradient-fire text-secondary-foreground shadow-ember text-xs font-semibold h-[34px] rounded-full uppercase tracking-wider px-4 shrink-0 cursor-pointer"
+            >
+              <Smartphone className="h-3.5 w-3.5 mr-1.5" /> Clipes / Curtos (TikTok / Reels)
+            </Button>
+          </div>
           <h1 className="mt-5 text-4xl md:text-6xl font-bold">
             Reviva a presença de <span className="text-gradient-gold">Deus</span>
           </h1>
@@ -188,34 +119,44 @@ function Cultos() {
       </section>
 
       {/* Featured player */}
-      <section className="py-10">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="relative rounded-2xl overflow-hidden border border-primary/30 shadow-elevated bg-card">
-            <div className="aspect-video w-full">
-              <iframe
-                key={selected.id}
-                className="h-full w-full"
-                src={`https://www.youtube.com/embed/${selected.youtubeId}`}
-                title={selected.title}
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              />
-            </div>
-            <div className="p-6 md:p-8 flex flex-col md:flex-row md:items-center gap-4 justify-between">
-              <div>
-                <span className="text-xs uppercase tracking-[0.25em] text-primary font-semibold">{selected.category}</span>
-                <h2 className="mt-1 text-2xl md:text-3xl font-display font-bold">{selected.title}</h2>
-                <p className="text-sm text-muted-foreground mt-1">{selected.speaker} · {fmtDate(selected.date)}</p>
+      {selected ? (
+        <section className="py-10">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="relative rounded-2xl overflow-hidden border border-primary/30 shadow-elevated bg-card">
+              <div className="aspect-video w-full">
+                <iframe
+                  key={selected.id}
+                  className="h-full w-full"
+                  src={`https://www.youtube.com/embed/${selected.youtubeId}`}
+                  title={selected.title}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
               </div>
-              <Button asChild variant="outline" className="border-primary/40 text-primary hover:bg-primary/10 self-start md:self-auto">
-                <a href={`https://www.youtube.com/watch?v=${selected.youtubeId}`} target="_blank" rel="noopener noreferrer">
-                  <Youtube className="mr-2 h-4 w-4" /> Ver no YouTube
-                </a>
-              </Button>
+              <div className="p-6 md:p-8 flex flex-col md:flex-row md:items-center gap-4 justify-between">
+                <div>
+                  <span className="text-xs uppercase tracking-[0.25em] text-primary font-semibold">{selected.category}</span>
+                  <h2 className="mt-1 text-2xl md:text-3xl font-display font-bold">{selected.title}</h2>
+                  <p className="text-sm text-muted-foreground mt-1">{selected.speaker} · {fmtDate(selected.date)}</p>
+                </div>
+                <Button asChild variant="outline" className="border-primary/40 text-primary hover:bg-primary/10 self-start md:self-auto">
+                  <a href={`https://www.youtube.com/watch?v=${selected.youtubeId}`} target="_blank" rel="noopener noreferrer">
+                    <Youtube className="mr-2 h-4 w-4" /> Ver no YouTube
+                  </a>
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      ) : (
+        <section className="py-16 text-center max-w-xl mx-auto">
+          <div className="p-8 bg-card/30 rounded-3xl border border-border/60 shadow-elevated">
+            <Video className="h-12 w-12 text-muted-foreground/60 mx-auto mb-4" />
+            <p className="text-muted-foreground font-medium">Nenhum culto longo disponível.</p>
+            <p className="text-xs text-muted-foreground/80 mt-1">Adicione vídeos no painel administrativo.</p>
+          </div>
+        </section>
+      )}
 
       {/* Filters */}
       <section className="py-8">
@@ -234,7 +175,7 @@ function Cultos() {
               <button
                 key={c}
                 onClick={() => setCat(c)}
-                className={`px-4 py-2 rounded-full text-xs uppercase tracking-widest font-semibold transition-all ${
+                className={`px-4 py-2 rounded-full text-xs uppercase tracking-widest font-semibold transition-all cursor-pointer ${
                   cat === c
                     ? "bg-gradient-gold text-primary-foreground shadow-gold"
                     : "bg-card border border-border/60 text-muted-foreground hover:text-primary hover:border-primary/40"
@@ -251,11 +192,11 @@ function Cultos() {
       <section className="pb-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           {filtered.length === 0 ? (
-            <p className="text-center text-muted-foreground py-12">Nenhum culto encontrado.</p>
+            longVideos.length > 0 && <p className="text-center text-muted-foreground py-12">Nenhum culto encontrado para os filtros selecionados.</p>
           ) : (
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {filtered.map((c) => {
-                const isActive = c.id === selected.id;
+                const isActive = selected && c.id === selected.id;
                 return (
                   <button
                     key={c.id}
@@ -263,7 +204,7 @@ function Cultos() {
                       setSelectedId(c.id);
                       window.scrollTo({ top: 0, behavior: "smooth" });
                     }}
-                    className={`group text-left rounded-2xl overflow-hidden bg-card border transition-all hover:-translate-y-1 ${
+                    className={`group text-left rounded-2xl overflow-hidden bg-card border transition-all hover:-translate-y-1 cursor-pointer ${
                       isActive ? "border-primary shadow-gold" : "border-border/60 hover:border-primary/40"
                     }`}
                   >
@@ -296,9 +237,108 @@ function Cultos() {
             </div>
           )}
 
-          <p className="text-center text-xs text-muted-foreground mt-10 italic">
-            * Os vídeos são carregados em tempo real diretamente do canal oficial @ministerioamoi.
-          </p>
+          {longVideos.length > 0 && (
+            <p className="text-center text-xs text-muted-foreground mt-10 italic">
+              * Os vídeos são geridos e atualizados dinamicamente pela liderança da AMOI.
+            </p>
+          )}
+
+          {/* Modal / Dialog for clips/shorts */}
+          <Dialog open={shortsModalOpen} onOpenChange={setShortsModalOpen}>
+            <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh] md:max-h-[85vh] bg-card/95 border border-primary/20 backdrop-blur-md p-6 rounded-3xl overflow-hidden flex flex-col md:flex-row gap-6 shadow-elevated select-none">
+              {/* Left Column: Clips list */}
+              <div className="flex-1 overflow-y-auto max-h-[40vh] md:max-h-[75vh] pr-2">
+                <DialogHeader className="mb-4">
+                  <DialogTitle className="font-display text-xl font-bold text-primary flex items-center gap-2">
+                    <Smartphone className="h-5 w-5" /> Clipes & Vídeos Curtos
+                  </DialogTitle>
+                  <DialogDescription className="text-xs text-muted-foreground">
+                    Assista a vídeos curtos da AMOI postados no TikTok, Shorts e Reels.
+                  </DialogDescription>
+                </DialogHeader>
+
+                {shortVideos.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-10">Nenhum vídeo curto disponível no momento.</p>
+                ) : (
+                  <div className="grid sm:grid-cols-2 gap-3 mt-4">
+                    {shortVideos.map((s) => {
+                      const parsed = getShortEmbedUrl(s.shortUrl || "");
+                      const platformName = parsed ? parsed.platform.toUpperCase() : "VÍDEO";
+                      const isCurrent = selectedShort?.id === s.id;
+                      return (
+                        <button
+                          key={s.id}
+                          onClick={() => setSelectedShort(s)}
+                          className={`p-4 rounded-2xl border text-left transition-all flex flex-col justify-between h-28 hover:border-primary/45 cursor-pointer ${
+                            isCurrent
+                              ? "border-primary bg-primary/5 text-primary shadow-gold font-bold"
+                              : "border-border/60 bg-card/50 text-muted-foreground"
+                          }`}
+                        >
+                          <span className="font-semibold text-foreground text-sm line-clamp-2 leading-tight">
+                            {s.title}
+                          </span>
+                          <div className="flex items-center justify-between mt-2 w-full text-[10px] uppercase tracking-wider font-semibold">
+                            <span className="flex items-center gap-1 text-muted-foreground/80">
+                              <User className="h-3 w-3 text-primary" /> {s.speaker}
+                            </span>
+                            <span className="px-2 py-0.5 rounded-full bg-secondary text-primary border border-secondary/30">
+                              {platformName}
+                            </span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Right Column: Vertical Player */}
+              <div className="w-full md:w-[320px] shrink-0 flex flex-col justify-center items-center bg-black/40 rounded-2xl border border-border/40 p-4 min-h-[380px] md:min-h-0">
+                {selectedShort ? (
+                  (() => {
+                    const parsed = getShortEmbedUrl(selectedShort.shortUrl || "");
+                    return parsed ? (
+                      <div className="w-full h-full flex flex-col justify-between items-center gap-3">
+                        <div className="relative aspect-[9/16] w-full max-w-[240px] bg-black rounded-2xl overflow-hidden border border-primary/20 shadow-elevated">
+                          <iframe
+                            key={selectedShort.id}
+                            className="w-full h-full absolute inset-0"
+                            src={parsed.embedUrl}
+                            title={selectedShort.title}
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                          />
+                        </div>
+                        <div className="text-center">
+                          <span className="text-[10px] uppercase font-bold tracking-widest text-primary flex items-center justify-center gap-1">
+                            <Film className="h-3 w-3" /> Plataforma: {parsed.platform}
+                          </span>
+                          <p className="text-xs text-foreground font-semibold mt-1 truncate max-w-[200px]" title={selectedShort.title}>
+                            {selectedShort.title}
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-center text-xs text-muted-foreground p-4">
+                        <p>Link inválido ou não suportado para incorporação.</p>
+                        <Button asChild size="sm" variant="outline" className="mt-4 w-full text-xs">
+                          <a href={selectedShort.shortUrl} target="_blank" rel="noopener noreferrer">
+                            Assistir no Navegador
+                          </a>
+                        </Button>
+                      </div>
+                    );
+                  })()
+                ) : (
+                  <div className="text-center text-muted-foreground p-6 flex flex-col items-center gap-3">
+                    <Smartphone className="h-8 w-8 text-primary/40 animate-pulse" />
+                    <span className="text-xs">Selecione um clip ao lado para assistir</span>
+                  </div>
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       </section>
     </SiteLayout>

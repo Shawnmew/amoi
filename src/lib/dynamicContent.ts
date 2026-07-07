@@ -469,5 +469,166 @@ export async function saveWhatsAppSettings(settings: WhatsAppSettings): Promise<
   }
 }
 
+// ============ VIDEOS & CULTOS MANAGEMENT ============
+
+export interface ChurchVideo {
+  id: string;
+  title: string;
+  speaker: string;
+  date: string;
+  category: "Pregação" | "Louvor" | "Vigília" | "Especial";
+  type: "youtube" | "short";
+  youtubeId?: string;
+  shortUrl?: string;
+}
+
+export async function getDynamicVideos(): Promise<ChurchVideo[]> {
+  try {
+    if (db) {
+      const snap = await getDocs(collection(db, "videos"));
+      const list: ChurchVideo[] = [];
+      snap.forEach((doc) => {
+        list.push({ id: doc.id, ...doc.data() } as ChurchVideo);
+      });
+      list.sort((a, b) => b.date.localeCompare(a.date));
+      if (list.length > 0) return list;
+    }
+  } catch (e) {
+    console.error("Error loading videos from Firestore:", e);
+  }
+
+  // LocalStorage fallback for Mock Mode
+  if (typeof window !== "undefined") {
+    const local = localStorage.getItem("amoi_mock_videos_db");
+    if (local) {
+      try {
+        const parsed = JSON.parse(local) as ChurchVideo[];
+        parsed.sort((a, b) => b.date.localeCompare(a.date));
+        return parsed;
+      } catch {}
+    } else {
+      const defaultVideos: ChurchVideo[] = [
+        { id: "v1", title: "O Poder da Oração Persistente", speaker: "Pastor Nelson Nunes", date: "2026-06-15", category: "Pregação", type: "youtube", youtubeId: "9K_BRUFp8qg" },
+        { id: "v2", title: "Vigília — Quebrando Barreiras", speaker: "Equipa de Intercessão", date: "2026-06-13", category: "Vigília", type: "youtube", youtubeId: "dQw4w9WgXcQ" },
+        { id: "v3", title: "Louvor ao Trono — Ao Vivo", speaker: "Ministério de Louvor", date: "2026-06-08", category: "Louvor", type: "youtube", youtubeId: "dQw4w9WgXcQ" },
+        { id: "v4", title: "Clips - Louvor Ungido", speaker: "Ministério de Louvor", date: "2026-06-05", category: "Louvor", type: "short", shortUrl: "https://www.youtube.com/shorts/9K_BRUFp8qg" }
+      ];
+      localStorage.setItem("amoi_mock_videos_db", JSON.stringify(defaultVideos));
+      return defaultVideos;
+    }
+  }
+  return [];
+}
+
+export async function saveDynamicVideo(video: ChurchVideo): Promise<void> {
+  // LocalStorage Mock
+  if (typeof window !== "undefined") {
+    const local = localStorage.getItem("amoi_mock_videos_db");
+    let list: ChurchVideo[] = [];
+    if (local) {
+      try {
+        list = JSON.parse(local);
+      } catch {}
+    }
+    const idx = list.findIndex((v) => v.id === video.id);
+    if (idx >= 0) {
+      list[idx] = video;
+    } else {
+      list.push(video);
+    }
+    localStorage.setItem("amoi_mock_videos_db", JSON.stringify(list));
+  }
+
+  // Firestore
+  try {
+    if (db) {
+      await setDoc(doc(db, "videos", video.id), video, { merge: true });
+    }
+  } catch (e) {
+    console.error("Error saving video to Firestore:", e);
+    throw e;
+  }
+}
+
+export async function deleteDynamicVideo(id: string): Promise<void> {
+  // LocalStorage Mock
+  if (typeof window !== "undefined") {
+    const local = localStorage.getItem("amoi_mock_videos_db");
+    if (local) {
+      try {
+        const list = JSON.parse(local) as ChurchVideo[];
+        const updated = list.filter((v) => v.id !== id);
+        localStorage.setItem("amoi_mock_videos_db", JSON.stringify(updated));
+      } catch {}
+    }
+  }
+
+  // Firestore
+  try {
+    if (db) {
+      await deleteDoc(doc(db, "videos", id));
+    }
+  } catch (e) {
+    console.error("Error deleting video from Firestore:", e);
+    throw e;
+  }
+}
+
+export function getShortEmbedUrl(url: string): { embedUrl: string; platform: "youtube" | "tiktok" | "instagram" } | null {
+  if (!url) return null;
+  const urlTrimmed = url.trim();
+  const urlLower = urlTrimmed.toLowerCase();
+
+  if (urlLower.includes("youtube.com/shorts/") || urlLower.includes("youtu.be/")) {
+    let videoId = "";
+    if (urlTrimmed.includes("/shorts/")) {
+      videoId = urlTrimmed.split("/shorts/")[1].split("?")[0].split("/")[0];
+    } else if (urlLower.includes("youtu.be/")) {
+      videoId = urlTrimmed.split("youtu.be/")[1].split("?")[0].split("/")[0];
+    }
+    if (videoId) {
+      return {
+        embedUrl: `https://www.youtube.com/embed/${videoId}`,
+        platform: "youtube"
+      };
+    }
+  }
+
+  if (urlLower.includes("tiktok.com/")) {
+    let videoId = "";
+    if (urlTrimmed.includes("/video/")) {
+      videoId = urlTrimmed.split("/video/")[1].split("?")[0].split("/")[0];
+    }
+    if (videoId) {
+      return {
+        embedUrl: `https://www.tiktok.com/embed/v2/${videoId}`,
+        platform: "tiktok"
+      };
+    }
+    return {
+      embedUrl: urlTrimmed,
+      platform: "tiktok"
+    };
+  }
+
+  if (urlLower.includes("instagram.com/reel/") || urlLower.includes("instagram.com/reels/")) {
+    let reelId = "";
+    if (urlTrimmed.includes("/reel/")) {
+      reelId = urlTrimmed.split("/reel/")[1].split("?")[0].split("/")[0];
+    } else if (urlTrimmed.includes("/reels/")) {
+      reelId = urlTrimmed.split("/reels/")[1].split("?")[0].split("/")[0];
+    }
+    if (reelId) {
+      return {
+        embedUrl: `https://www.instagram.com/reel/${reelId}/embed/`,
+        platform: "instagram"
+      };
+    }
+  }
+
+  return null;
+}
+
+
 
 

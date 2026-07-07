@@ -35,7 +35,11 @@ import {
   queueNewsletterEmail,
   WhatsAppSettings,
   getWhatsAppSettings,
-  saveWhatsAppSettings
+  saveWhatsAppSettings,
+  ChurchVideo,
+  getDynamicVideos,
+  saveDynamicVideo,
+  deleteDynamicVideo
 } from "../lib/dynamicContent";
 import {
   LayoutDashboard,
@@ -60,7 +64,9 @@ import {
   X,
   MessageSquare,
   Send,
-  Loader2
+  Loader2,
+  Video,
+  Film
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -74,7 +80,7 @@ export const Route = createFileRoute("/admin")({
   component: AdminDashboard,
 });
 
-type TabType = "carousel" | "announcements" | "info" | "users" | "whatsapp";
+type TabType = "carousel" | "announcements" | "info" | "users" | "whatsapp" | "videos";
 
 function AdminDashboard() {
   const { user, loading } = useAuth();
@@ -85,6 +91,18 @@ function AdminDashboard() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [info, setInfo] = useState<ChurchInfo | null>(null);
   const [usersList, setUsersList] = useState<ChurchUser[]>([]);
+  const [videos, setVideos] = useState<ChurchVideo[]>([]);
+
+  // Video Form State
+  const [videoTitle, setVideoTitle] = useState("");
+  const [videoSpeaker, setVideoSpeaker] = useState("");
+  const [videoDate, setVideoDate] = useState(new Date().toISOString().split("T")[0]);
+  const [videoCategory, setVideoCategory] = useState<ChurchVideo["category"]>("Pregação");
+  const [videoType, setVideoType] = useState<ChurchVideo["type"]>("youtube");
+  const [videoYoutubeId, setVideoYoutubeId] = useState("");
+  const [videoShortUrl, setVideoShortUrl] = useState("");
+  const [editingVideoId, setEditingVideoId] = useState<string | null>(null);
+  const [savingVideo, setSavingVideo] = useState(false);
 
   // Carousel form state
   const [newSlideSrc, setNewSlideSrc] = useState("");
@@ -146,10 +164,12 @@ function AdminDashboard() {
       const fetchedSlides = await getDynamicSlides();
       const fetchedAnns = await getDynamicAnnouncements();
       const fetchedInfo = await getDynamicInfo();
+      const fetchedVideos = await getDynamicVideos();
       
       setSlides(fetchedSlides);
       setAnnouncements(fetchedAnns);
       setInfo(fetchedInfo);
+      setVideos(fetchedVideos);
 
       // Apenas Servos de Deus podem ver utilizadores
       if (user?.role === "Servo de Deus") {
@@ -413,6 +433,89 @@ function AdminDashboard() {
     } catch (error) {
       console.error(error);
       toast.error("Erro ao atualizar o utilizador.");
+    }
+  };
+
+  // Video CRUD Handlers
+  const handleSaveVideo = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!videoTitle.trim() || !videoSpeaker.trim() || !videoDate) {
+      toast.warning("Título, pregador/orador e data são obrigatórios.");
+      return;
+    }
+
+    if (videoType === "youtube" && !videoYoutubeId.trim()) {
+      toast.warning("O ID do vídeo no YouTube é obrigatório para vídeos longos.");
+      return;
+    }
+
+    if (videoType === "short" && !videoShortUrl.trim()) {
+      toast.warning("O URL do vídeo curto (Short, TikTok ou Reel) é obrigatório.");
+      return;
+    }
+
+    setSavingVideo(true);
+    try {
+      const videoData: ChurchVideo = {
+        id: editingVideoId || `video-${Date.now()}`,
+        title: videoTitle.trim(),
+        speaker: videoSpeaker.trim(),
+        date: videoDate,
+        category: videoCategory,
+        type: videoType,
+        youtubeId: videoType === "youtube" ? videoYoutubeId.trim() : undefined,
+        shortUrl: videoType === "short" ? videoShortUrl.trim() : undefined
+      };
+
+      await saveDynamicVideo(videoData);
+      toast.success(editingVideoId ? "Vídeo atualizado com sucesso!" : "Vídeo adicionado com sucesso!");
+      
+      // Reset form
+      setVideoTitle("");
+      setVideoSpeaker("");
+      setVideoDate(new Date().toISOString().split("T")[0]);
+      setVideoCategory("Pregação");
+      setVideoType("youtube");
+      setVideoYoutubeId("");
+      setVideoShortUrl("");
+      setEditingVideoId(null);
+      
+      const fetched = await getDynamicVideos();
+      setVideos(fetched);
+    } catch (err) {
+      console.error(err);
+      toast.error("Erro ao guardar o vídeo.");
+    } finally {
+      setSavingVideo(false);
+    }
+  };
+
+  const handleStartEditVideo = (video: ChurchVideo) => {
+    setEditingVideoId(video.id);
+    setVideoTitle(video.title);
+    setVideoSpeaker(video.speaker);
+    setVideoDate(video.date);
+    setVideoCategory(video.category);
+    setVideoType(video.type);
+    setVideoYoutubeId(video.youtubeId || "");
+    setVideoShortUrl(video.shortUrl || "");
+    
+    const formEl = document.getElementById("video-form-section");
+    if (formEl) {
+      formEl.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
+  const handleDeleteVideo = async (id: string) => {
+    if (!window.confirm("Tem a certeza que deseja eliminar este vídeo?")) return;
+    try {
+      await deleteDynamicVideo(id);
+      toast.success("Vídeo eliminado com sucesso!");
+      const fetched = await getDynamicVideos();
+      setVideos(fetched);
+    } catch (err) {
+      console.error(err);
+      toast.error("Erro ao eliminar o vídeo.");
     }
   };
 
@@ -805,6 +908,18 @@ function AdminDashboard() {
               >
                 <Settings className="h-4 w-4" />
                 Textos & Horários
+              </button>
+
+              <button
+                onClick={() => setActiveTab("videos")}
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all border ${
+                  activeTab === "videos"
+                    ? "bg-gradient-gold text-primary-foreground border-transparent shadow-gold"
+                    : "bg-card border-border/60 text-muted-foreground hover:text-primary hover:border-primary/30"
+                }`}
+              >
+                <Video className="h-4 w-4" />
+                Cultos & Vídeos
               </button>
 
               {user.role === "Servo de Deus" && (
@@ -1763,6 +1878,210 @@ function AdminDashboard() {
                           </tbody>
                         </table>
                       </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* 6. VIDEOS TAB */}
+                {activeTab === "videos" && (
+                  <div>
+                    <h2 className="text-2xl font-bold font-display text-primary flex items-center gap-2 mb-6">
+                      <Video className="h-5 w-5" /> Gestão de Cultos & Vídeos (YouTube & Curtos)
+                    </h2>
+
+                    {/* Formulário de Adicionar / Editar */}
+                    <div id="video-form-section" className="bg-background/40 border border-primary/20 rounded-2xl p-5 mb-8">
+                      <div className="font-semibold text-sm text-primary flex items-center gap-2 mb-4">
+                        {editingVideoId ? <Pencil className="h-4 w-4" /> : <PlusCircle className="h-4 w-4" />}
+                        {editingVideoId ? "Editar Vídeo / Clip" : "Adicionar Novo Vídeo ou Clip"}
+                      </div>
+                      
+                      <form onSubmit={handleSaveVideo} className="space-y-4">
+                        <div className="grid sm:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label className="text-xs uppercase tracking-wider text-muted-foreground">Título do Vídeo</Label>
+                            <Input
+                              placeholder="Ex: O Poder da Fé ou Louvor de Domingo"
+                              value={videoTitle}
+                              onChange={(e) => setVideoTitle(e.target.value)}
+                              className="bg-card border-border/60"
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label className="text-xs uppercase tracking-wider text-muted-foreground">Pregador / Orador / Grupo</Label>
+                            <Input
+                              placeholder="Ex: Pastor Nelson Nunes ou Ministério de Louvor"
+                              value={videoSpeaker}
+                              onChange={(e) => setVideoSpeaker(e.target.value)}
+                              className="bg-card border-border/60"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid sm:grid-cols-3 gap-4">
+                          <div className="space-y-2">
+                            <Label className="text-xs uppercase tracking-wider text-muted-foreground">Data de Publicação</Label>
+                            <Input
+                              type="date"
+                              value={videoDate}
+                              onChange={(e) => setVideoDate(e.target.value)}
+                              className="bg-card border-border/60"
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label className="text-xs uppercase tracking-wider text-muted-foreground">Categoria</Label>
+                            <select
+                              value={videoCategory}
+                              onChange={(e) => setVideoCategory(e.target.value as ChurchVideo["category"])}
+                              className="w-full rounded-md border border-border/60 bg-card px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                            >
+                              <option value="Pregação">Pregação</option>
+                              <option value="Louvor">Louvor</option>
+                              <option value="Vigília">Vigília</option>
+                              <option value="Especial">Especial</option>
+                            </select>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label className="text-xs uppercase tracking-wider text-muted-foreground">Tipo de Vídeo</Label>
+                            <select
+                              value={videoType}
+                              onChange={(e) => setVideoType(e.target.value as ChurchVideo["type"])}
+                              className="w-full rounded-md border border-border/60 bg-card px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                            >
+                              <option value="youtube">Vídeo do YouTube (Longo)</option>
+                              <option value="short">Clip Vertical (Short / TikTok / Reel)</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        {videoType === "youtube" ? (
+                          <div className="space-y-2">
+                            <Label className="text-xs uppercase tracking-wider text-muted-foreground">ID do Vídeo no YouTube</Label>
+                            <Input
+                              placeholder="Ex: dQw4w9WgXcQ (Apenas o código no final do URL do vídeo)"
+                              value={videoYoutubeId}
+                              onChange={(e) => setVideoYoutubeId(e.target.value)}
+                              className="bg-card border-border/60"
+                            />
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            <Label className="text-xs uppercase tracking-wider text-muted-foreground">URL do Vídeo Curto (TikTok, Short ou Reel)</Label>
+                            <Input
+                              placeholder="Cole o link completo. Ex: https://www.tiktok.com/@ministerioamoi/video/72589..."
+                              value={videoShortUrl}
+                              onChange={(e) => setVideoShortUrl(e.target.value)}
+                              className="bg-card border-border/60"
+                            />
+                            <p className="text-[10px] text-muted-foreground font-semibold">
+                              * Suporta links do YouTube Shorts, TikTok e Instagram Reels. O sistema converterá automaticamente para embed.
+                            </p>
+                          </div>
+                        )}
+
+                        <div className="flex justify-end gap-2 pt-2">
+                          {editingVideoId && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => {
+                                setEditingVideoId(null);
+                                setVideoTitle("");
+                                setVideoSpeaker("");
+                                setVideoDate(new Date().toISOString().split("T")[0]);
+                                setVideoCategory("Pregação");
+                                setVideoType("youtube");
+                                setVideoYoutubeId("");
+                                setVideoShortUrl("");
+                              }}
+                              className="border-border/60 text-muted-foreground cursor-pointer"
+                            >
+                              Cancelar
+                            </Button>
+                          )}
+                          <Button
+                            type="submit"
+                            disabled={savingVideo}
+                            className="bg-gradient-gold text-primary-foreground font-semibold shadow-gold cursor-pointer"
+                          >
+                            {savingVideo ? "A Guardar..." : editingVideoId ? "Atualizar Vídeo" : "Adicionar Vídeo"}
+                          </Button>
+                        </div>
+                      </form>
+                    </div>
+
+                    {/* Tabela de Vídeos Existentes */}
+                    <div className="bg-background/40 border border-primary/20 rounded-2xl p-5">
+                      <div className="font-semibold text-sm text-primary mb-4 flex items-center gap-2">
+                        <Video className="h-4 w-4" /> Lista de Vídeos e Clipes ({videos.length})
+                      </div>
+
+                      {videos.length === 0 ? (
+                        <p className="text-sm text-muted-foreground text-center py-8">Nenhum vídeo registado.</p>
+                      ) : (
+                        <div className="overflow-x-auto rounded-xl border border-border/60">
+                          <table className="w-full text-left border-collapse text-sm">
+                            <thead>
+                              <tr className="bg-muted/40 border-b border-border/60">
+                                <th className="p-4 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Título</th>
+                                <th className="p-4 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Pregador</th>
+                                <th className="p-4 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Data</th>
+                                <th className="p-4 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Categoria</th>
+                                <th className="p-4 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Tipo</th>
+                                <th className="p-4 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Identificador</th>
+                                <th className="p-4 text-right font-semibold text-xs uppercase tracking-wider text-muted-foreground">Ações</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {videos.map((vid) => (
+                                <tr key={vid.id} className="border-b border-border/40 hover:bg-card/25 transition-colors">
+                                  <td className="p-4 font-medium text-foreground max-w-xs truncate" title={vid.title}>
+                                    {vid.title}
+                                  </td>
+                                  <td className="p-4 text-muted-foreground">{vid.speaker}</td>
+                                  <td className="p-4 text-muted-foreground text-xs">{vid.date}</td>
+                                  <td className="p-4 text-xs font-semibold text-primary">{vid.category}</td>
+                                  <td className="p-4">
+                                    {vid.type === "short" ? (
+                                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-secondary text-primary border border-secondary/35 text-[10px] font-bold">
+                                        <Smartphone className="h-3 w-3" /> Clip Vertical
+                                      </span>
+                                    ) : (
+                                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-red-500/10 text-red-500 border border-red-500/25 text-[10px] font-bold">
+                                        <Youtube className="h-3 w-3" /> YouTube Longo
+                                      </span>
+                                    )}
+                                  </td>
+                                  <td className="p-4 text-xs text-muted-foreground font-mono truncate max-w-[120px]" title={vid.type === "youtube" ? vid.youtubeId : vid.shortUrl}>
+                                    {vid.type === "youtube" ? vid.youtubeId : vid.shortUrl}
+                                  </td>
+                                  <td className="p-4 text-right">
+                                    <div className="flex justify-end items-center gap-2">
+                                      <button
+                                        onClick={() => handleStartEditVideo(vid)}
+                                        className="p-2 rounded-lg bg-primary/10 border border-primary/20 text-primary hover:bg-primary/20 hover:text-primary transition-all cursor-pointer"
+                                        title="Editar"
+                                      >
+                                        <Pencil className="h-4 w-4" />
+                                      </button>
+                                      <button
+                                        onClick={() => handleDeleteVideo(vid.id)}
+                                        className="p-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500/25 hover:text-red-600 transition-all cursor-pointer"
+                                        title="Eliminar"
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}

@@ -14,18 +14,28 @@ service cloud.firestore {
     // Helper checks for roles
     function isServo() {
       return isSignedIn() && (
-        getUserData().role == 'Servo de Deus' || 
-        getUserData().role == 'servo de deus'
+        request.auth.token.email == 'admin@amoi.org' || 
+        request.auth.token.email == 'admin@ministerioamoi.it.ao' ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && (
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Servo de Deus' || 
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'servo de deus'
+        ))
       );
     }
 
     // Apenas quem é Editor ou Servo de Deus (Admin)
     function isEditorOrServo() {
       return isSignedIn() && (
-        getUserData().role == 'Editor' || 
-        getUserData().role == 'editor' || 
-        getUserData().role == 'Servo de Deus' || 
-        getUserData().role == 'servo de deus'
+        request.auth.token.email == 'admin@amoi.org' || 
+        request.auth.token.email == 'admin@ministerioamoi.it.ao' ||
+        request.auth.token.email == 'editor@amoi.org' || 
+        request.auth.token.email == 'editor@ministerioamoi.it.ao' ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && (
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Editor' || 
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'editor' || 
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Servo de Deus' || 
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'servo de deus'
+        ))
       );
     }
 
@@ -81,6 +91,14 @@ service cloud.firestore {
     match /settings/{settingId} {
       // Apenas Editores ou Servos de Deus podem visualizar e configurar definições globais
       allow read, write: if isEditorOrServo();
+    }
+
+    // --- Videos (YouTube & Curtos) ---
+    match /videos/{videoId} {
+      // Público pode ver vídeos
+      allow read: if true;
+      // Apenas Editores ou Servos de Deus podem modificar
+      allow write: if isEditorOrServo();
     }
   }
 }
