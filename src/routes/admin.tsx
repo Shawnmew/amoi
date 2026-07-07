@@ -67,7 +67,8 @@ import {
   Loader2,
   Video,
   Film,
-  Youtube
+  Youtube,
+  Smartphone
 } from "lucide-react";
 import { toast } from "sonner";
 
