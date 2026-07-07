@@ -73,7 +73,8 @@ import {
   Film,
   Youtube,
   Smartphone,
-  FolderOpen
+  FolderOpen,
+  ExternalLink
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -2474,12 +2475,26 @@ function AdminDashboard() {
                 {/* 8. DRIVE MEDIA LIBRARY TAB */}
                 {activeTab === "drive" && (
                   <div>
-                    <h2 className="text-2xl font-bold font-display text-primary flex items-center gap-2 mb-2">
-                      <FolderOpen className="h-5 w-5" /> Biblioteca de Imagens (Google Drive)
-                    </h2>
-                    <p className="text-sm text-muted-foreground mb-6">
-                      Faça upload de fotos para a pasta partilhada ou obtenha os links de partilha para colar nos formulários de slides, notícias e servos.
-                    </p>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-border/40">
+                      <div>
+                        <h2 className="text-2xl font-bold font-display text-primary flex items-center gap-2 mb-1">
+                          <FolderOpen className="h-5 w-5" /> Biblioteca de Imagens (Google Drive)
+                        </h2>
+                        <p className="text-xs text-muted-foreground">
+                          Faça upload de fotos para a pasta partilhada ou obtenha os links de partilha para colar nos formulários de slides, notícias e servos.
+                        </p>
+                      </div>
+                      
+                      <a
+                        href="https://drive.google.com/drive/folders/1jj6lH-tV1R_61hCDlSlTPocYrXOlTJA8?usp=sharing"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold bg-primary/10 border border-primary/20 text-primary hover:bg-primary/20 hover:text-primary transition-all self-start sm:self-auto cursor-pointer"
+                      >
+                        <ExternalLink className="h-3.5 w-3.5" />
+                        Abrir no Google Drive (Nova Aba)
+                      </a>
+                    </div>
 
                     {/* Dicas / Como Usar */}
                     <div className="mb-6 p-4 rounded-2xl bg-card border border-primary/20 text-xs leading-relaxed text-muted-foreground">
