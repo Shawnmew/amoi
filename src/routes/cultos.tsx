@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { SiteLayout } from "@/components/SiteLayout";
 import { Play, Search, Youtube, Smartphone, Video, Tag, Calendar, User, Film } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -42,9 +42,23 @@ const CATEGORIES = ["Todos", "Pregação", "Louvor", "Vigília", "Especial"] as 
 
 function Cultos() {
   const { videos } = Route.useLoaderData();
+  const [clientVideos, setClientVideos] = useState<ChurchVideo[]>(videos || []);
+
+  useEffect(() => {
+    let active = true;
+    getDynamicVideos().then((fetched) => {
+      if (active && fetched && fetched.length > 0) {
+        setClientVideos(fetched);
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const cultosList = useMemo(() => {
-    return videos || [];
-  }, [videos]);
+    return clientVideos || [];
+  }, [clientVideos]);
 
   const [query, setQuery] = useState("");
   const [cat, setCat] = useState<(typeof CATEGORIES)[number]>("Todos");
