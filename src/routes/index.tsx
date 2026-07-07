@@ -248,13 +248,13 @@ function Home() {
                   <div className="select-text">
                     {/* Large Image Header */}
                     {selectedAnn.imageUrl && (
-                      <div className="w-full relative aspect-video max-h-[380px] overflow-hidden border-b border-border/40">
+                      <div className="w-full relative bg-black/40 flex items-center justify-center border-b border-border/40 overflow-hidden max-h-[480px]">
                         <img
                           src={convertGoogleDriveLink(selectedAnn.imageUrl)}
                           alt={selectedAnn.title}
-                          className="w-full h-full object-cover"
+                          className="max-h-[480px] w-auto h-auto object-contain mx-auto"
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent pointer-events-none" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent pointer-events-none" />
                       </div>
                     )}
 
