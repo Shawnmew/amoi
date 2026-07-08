@@ -70,6 +70,30 @@ const formatScaleDate = (dateString: string) => {
   return { month, dayOfMonth: `${dayName} - ${formattedDate}` };
 };
 
+const sortScaleSlots = (slotsList: ScaleSlot[]): ScaleSlot[] => {
+  return [...slotsList].sort((a, b) => {
+    if (a.slotDate && b.slotDate) {
+      return a.slotDate.localeCompare(b.slotDate);
+    }
+    const parseDateStr = (slot: ScaleSlot): string => {
+      if (slot.slotDate) return slot.slotDate;
+      const match = slot.dayOfMonth.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+      if (match) {
+        return `${match[3]}-${match[2]}-${match[1]}`;
+      }
+      return "";
+    };
+    const dateA = parseDateStr(a);
+    const dateB = parseDateStr(b);
+    if (dateA && dateB) {
+      return dateA.localeCompare(dateB);
+    }
+    if (dateA) return -1;
+    if (dateB) return 1;
+    return 0;
+  });
+};
+
 function ScalesDashboard() {
   const { user, loading } = useAuth();
   
@@ -241,7 +265,8 @@ function ScalesDashboard() {
       // Column 2: Intercessor do Dia / Detalhes
       // Column 3: Mês
       // Column 4: Dias do mês
-      const tableRows = scale.slots.map(s => [
+      const sorted = sortScaleSlots(scale.slots);
+      const tableRows = sorted.map(s => [
         s.activity || "",
         s.details || "",
         s.month || "",
@@ -382,12 +407,13 @@ function ScalesDashboard() {
     }
 
     try {
+      const sortedSlots = sortScaleSlots(cleanedSlots);
       const dataToSave = {
         id: editId,
         title: title.trim(),
         date,
         type,
-        slots: cleanedSlots
+        slots: sortedSlots
       };
       
       const savedId = await saveDynamicScale(dataToSave);
@@ -885,7 +911,7 @@ function ScalesDashboard() {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-border/60">
-                          {selectedScale.slots.map((s, idx) => (
+                          {sortScaleSlots(selectedScale.slots).map((s, idx) => (
                             <tr key={idx} className="hover:bg-muted/40 transition-colors">
                               <td className="p-4 font-semibold text-foreground align-top text-sm">{s.activity}</td>
                               <td className="p-4 text-foreground whitespace-pre-line leading-relaxed align-top text-xs">
