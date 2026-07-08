@@ -49,7 +49,14 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { sendScalePdfEmail } from "../lib/email";
+import emailjs from "@emailjs/browser";
+
+// Initialize EmailJS with public key
+const EMAILJS_PUBLIC_KEY = import.meta.env.VITE_EMAILJS_PUBLIC_KEY as string;
+const EMAILJS_SERVICE_ID = import.meta.env.VITE_EMAILJS_SERVICE_ID as string;
+const EMAILJS_TEMPLATE_ID = import.meta.env.VITE_EMAILJS_TEMPLATE_ID as string;
+emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
+
 export const Route = createFileRoute("/escalas")({
   head: () => ({
     meta: [
@@ -103,48 +110,6 @@ const sortScaleSlots = (slotsList: ScaleSlot[]): ScaleSlot[] => {
     return 0;
   });
 };
-
-const sendDirectSmtpJS = async (options: {
-  Host: string;
-  Username: string;
-  Password: string;
-  To: string;
-  From: string;
-  Subject: string;
-  Body: string;
-  Attachments?: Array<{ name: string; data: string }>;
-}): Promise<string> => {
-  const payload = {
-    Host: options.Host,
-    Username: options.Username,
-    Password: options.Password,
-    To: options.To,
-    From: options.From,
-    Subject: options.Subject,
-    Body: options.Body,
-    Attachments: options.Attachments,
-    Action: "Send",
-    nocache: Math.floor(1e6 * Math.random() + 1)
-  };
-
-  try {
-    await fetch("https://smtpjs.com/v3/smtpjs.aspx", {
-      method: "POST",
-      mode: "no-cors",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded"
-      },
-      body: JSON.stringify(payload)
-    });
-    
-    // In no-cors mode the response is opaque, so we assume success if it didn't throw network error.
-    return "OK";
-  } catch (err: any) {
-    console.error("Direct SMTP fetch failed:", err);
-    throw new Error(err.message || "Failed to fetch");
-  }
-};
-
 function ScalesDashboard() {
   const { user, loading } = useAuth();
   
@@ -579,10 +544,10 @@ function ScalesDashboard() {
     setShowEmailDialog(true);
   };
 
-  // Handle SMTP direct send with PDF attachment
+  // Handle EmailJS send with scale content
   const handleSendSMTP = async () => {
     if (!selectedScale) return;
-    
+
     // Parse custom emails
     const customList = customEmails
       .split(",")
@@ -590,95 +555,89 @@ function ScalesDashboard() {
       .filter(e => e.length > 0 && e.includes("@"));
 
     const allRecipients = Array.from(new Set([...selectedUserEmails, ...customList]));
-    
+
     if (allRecipients.length === 0) {
       toast.error("Por favor, selecione ou adicione pelo menos um e-mail destinatário.");
       return;
     }
 
     setSendingEmail(true);
-    const toastId = toast.loading("A gerar o PDF e a processar o envio via SMTP...");
-    
-    // 1. Generate PDF on the client first
-    let pdfBase64 = "";
-    try {
-      const doc = generatePDFDoc(selectedScale);
-      const dataUri = doc.output("datauristring");
-      pdfBase64 = dataUri.split("base64,")[1] || dataUri;
-    } catch (pdfErr) {
-      console.error(pdfErr);
-      toast.error("Falha ao gerar o documento PDF.", { id: toastId });
-      setSendingEmail(false);
-      return;
+    const toastId = toast.loading(`A enviar a escala por e-mail para ${allRecipients.length} destinatário(s)...`);
+
+    // Build rich HTML content of the scale
+    const sorted = sortScaleSlots(selectedScale.slots);
+    const slotRows = sorted.map(s => `
+      <tr style="border-bottom: 1px solid #e5e7eb;">
+        <td style="padding: 10px 14px; font-size: 13px; color: #374151; vertical-align: top;">${s.activity}</td>
+        <td style="padding: 10px 14px; font-size: 13px; color: #374151; vertical-align: top;">${s.dayOfMonth}</td>
+        <td style="padding: 10px 14px; font-size: 13px; color: #374151; white-space: pre-wrap; vertical-align: top;">${s.details}</td>
+      </tr>
+    `).join("");
+
+    const htmlMessage = `
+      <div style="font-family: Georgia, serif; max-width: 680px; margin: 0 auto; background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden;">
+        <div style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); padding: 32px 28px; text-align: center;">
+          <h1 style="color: #D4A017; font-size: 28px; margin: 0 0 6px 0; letter-spacing: 3px;">AMOI</h1>
+          <p style="color: #9ca3af; font-size: 11px; margin: 0; text-transform: uppercase; letter-spacing: 2px;">Associação Ministério de Oração e Intercessão</p>
+        </div>
+        <div style="padding: 28px;">
+          <h2 style="color: #111827; font-size: 20px; margin: 0 0 6px 0;">Cronograma de Atividades</h2>
+          <p style="color: #D4A017; font-size: 16px; font-weight: bold; margin: 0 0 20px 0;">${selectedScale.title}</p>
+          <p style="color: #6b7280; font-size: 13px; margin: 0 0 24px 0;">Olá, saudão em Cristo Jesus.<br/>Segue em anexo o cronograma oficial de atividades da AMOI.</p>
+          <table style="width: 100%; border-collapse: collapse; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
+            <thead>
+              <tr style="background: #f9fafb;">
+                <th style="padding: 10px 14px; text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #6b7280; border-bottom: 2px solid #D4A017;">Momento / Atividade</th>
+                <th style="padding: 10px 14px; text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #6b7280; border-bottom: 2px solid #D4A017;">Data</th>
+                <th style="padding: 10px 14px; text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #6b7280; border-bottom: 2px solid #D4A017;">Detalhes / Intervenientes</th>
+              </tr>
+            </thead>
+            <tbody>${slotRows}</tbody>
+          </table>
+        </div>
+        <div style="background: #f9fafb; padding: 18px 28px; border-top: 1px solid #e5e7eb; text-align: center;">
+          <p style="color: #9ca3af; font-size: 11px; margin: 0;">Este é um e-mail automático enviado pela Secretaria Geral da AMOI &middot; Luanda, Angola</p>
+        </div>
+      </div>
+    `;
+
+    const subject = `[AMOI] Cronograma de Atividades: ${selectedScale.title}`;
+
+    // Send individually to each recipient so each gets a personalised email
+    let successCount = 0;
+    const failures: string[] = [];
+
+    for (const recipient of allRecipients) {
+      try {
+        await emailjs.send(
+          EMAILJS_SERVICE_ID,
+          EMAILJS_TEMPLATE_ID,
+          {
+            to_email: recipient,
+            subject: subject,
+            message: htmlMessage,
+          }
+        );
+        successCount++;
+      } catch (err: any) {
+        console.error(`Failed to send to ${recipient}:`, err);
+        failures.push(recipient);
+      }
     }
 
-    // 2. Try Server function first (keeps Zoho credentials secure)
-    try {
-      const res = await sendScalePdfEmail({
-        data: {
-          scaleTitle: selectedScale.title,
-          pdfBase64,
-          recipients: allRecipients
-        }
-      });
-      
-      if (res.success) {
-        toast.success(`E-mail enviado com sucesso via SMTP (Servidor) para ${res.count} destinatários!`, { id: toastId });
-        setShowEmailDialog(false);
-        setSendingEmail(false);
-        return;
-      } else {
-        console.warn("Server SMTP failed, trying browser direct SMTP fallback...", res.error);
-      }
-    } catch (err: any) {
-      console.warn("Server SMTP request failed, attempting browser direct SMTP fallback...", err);
-    }
+    setSendingEmail(false);
 
-    // 3. Fallback to client-side direct dispatch via SMTP.js API POST (without loading external script)
-    try {
-      const attachmentData = pdfBase64.includes("base64,") ? pdfBase64 : `data:application/pdf;base64,${pdfBase64}`;
-      const pdfFilename = `escala_${selectedScale.title.toLowerCase().replace(/[^a-z0-9]/g, "_")}.pdf`;
-      
-      const emailPromises = allRecipients.map(async (recipient) => {
-        try {
-          const status = await sendDirectSmtpJS({
-            Host: "smtp.zoho.com",
-            Username: "no-reply@ministerioamoi.it.ao",
-            Password: "L1vin9_Chr15t",
-            To: recipient,
-            From: "no-reply@ministerioamoi.it.ao",
-            Subject: `[AMOI] Cronograma de Atividades: ${selectedScale.title}`,
-            Body: generateEmailText(selectedScale).replace(/\n/g, "<br />"),
-            Attachments: [
-              {
-                name: pdfFilename,
-                data: attachmentData
-              }
-            ]
-          });
-          return { recipient, status };
-        } catch (sendErr: any) {
-          return { recipient, status: sendErr.message || "Error" };
-        }
-      });
-
-      const results = await Promise.all(emailPromises);
-      const failures = results.filter(r => r.status !== "OK");
-
-      if (failures.length === 0) {
-        toast.success(`E-mail com PDF enviado via SMTP (Navegador) para ${allRecipients.length} destinatários!`, { id: toastId });
-        setShowEmailDialog(false);
-      } else {
-        console.error("Direct SMTP fail details:", failures);
-        toast.error(`Falha no envio direto. Resposta: ${failures[0].status}`, { id: toastId });
-      }
-    } catch (fallbackErr: any) {
-      console.error(fallbackErr);
-      toast.error("Erro crítico no envio direto pelo navegador.", { id: toastId });
-    } finally {
-      setSendingEmail(false);
+    if (failures.length === 0) {
+      toast.success(`Escala enviada com sucesso para ${successCount} destinatário(s)!`, { id: toastId });
+      setShowEmailDialog(false);
+    } else if (successCount > 0) {
+      toast.warning(`Enviado para ${successCount} destinatário(s). Falhou para: ${failures.join(", ")}`, { id: toastId });
+      setShowEmailDialog(false);
+    } else {
+      toast.error(`Falha no envio. Verifique as credenciais EmailJS e o template.`, { id: toastId });
     }
   };
+
 
   // Copy selected email addresses list to clipboard
   const handleCopyEmails = () => {
