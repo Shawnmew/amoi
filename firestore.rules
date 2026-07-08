@@ -128,5 +128,11 @@ service cloud.firestore {
       // Apenas Secretaria e Servo de Deus podem ler e modificar escalas
       allow read, write: if isSecretariaOrServo();
     }
+
+    // --- Intervenientes ---
+    match /intervenientes/{itemId} {
+      // Apenas Secretaria e Servo de Deus podem gerir a lista de participantes comuns
+      allow read, write: if isSecretariaOrServo();
+    }
   }
 }

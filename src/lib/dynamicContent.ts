@@ -844,6 +844,91 @@ export async function deleteDynamicScale(id: string): Promise<void> {
   }
 }
 
+// ==========================================
+// INTERVENIENTES COMUNS STRUCTURES & API
+// ==========================================
+
+export interface ChurchInterveniente {
+  id: string;
+  name: string;
+}
+
+export async function getDynamicIntervenientes(): Promise<ChurchInterveniente[]> {
+  try {
+    if (db) {
+      const snap = await getDocs(collection(db, "intervenientes"));
+      const list: ChurchInterveniente[] = [];
+      snap.forEach((doc) => {
+        list.push({ id: doc.id, ...doc.data() } as ChurchInterveniente);
+      });
+      list.sort((a, b) => a.name.localeCompare(b.name));
+      if (list.length > 0) {
+        if (typeof window !== "undefined") {
+          localStorage.setItem("amoi_intervenientes", JSON.stringify(list));
+        }
+        return list;
+      }
+    }
+  } catch (e) {
+    console.error("Error loading intervenientes:", e);
+  }
+
+  // Fallback
+  if (typeof window !== "undefined") {
+    const local = localStorage.getItem("amoi_intervenientes");
+    if (local) {
+      try {
+        const list = JSON.parse(local) as ChurchInterveniente[];
+        list.sort((a, b) => a.name.localeCompare(b.name));
+        return list;
+      } catch {}
+    }
+  }
+  return [];
+}
+
+export async function saveDynamicInterveniente(name: string): Promise<string> {
+  const id = doc(collection(db!, "intervenientes")).id;
+  const item: ChurchInterveniente = { id, name };
+  
+  // LocalStorage
+  if (typeof window !== "undefined") {
+    const list = await getDynamicIntervenientes();
+    list.push(item);
+    localStorage.setItem("amoi_intervenientes", JSON.stringify(list));
+  }
+
+  // Firestore
+  try {
+    if (db) {
+      await setDoc(doc(db, "intervenientes", id), item);
+    }
+    return id;
+  } catch (e) {
+    console.error("Error saving interveniente to Firestore:", e);
+    throw e;
+  }
+}
+
+export async function deleteDynamicInterveniente(id: string): Promise<void> {
+  // LocalStorage
+  if (typeof window !== "undefined") {
+    const list = await getDynamicIntervenientes();
+    const updated = list.filter(item => item.id !== id);
+    localStorage.setItem("amoi_intervenientes", JSON.stringify(updated));
+  }
+
+  // Firestore
+  try {
+    if (db) {
+      await deleteDoc(doc(db, "intervenientes", id));
+    }
+  } catch (e) {
+    console.error("Error deleting interveniente from Firestore:", e);
+    throw e;
+  }
+}
+
 
 
 

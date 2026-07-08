@@ -11,7 +11,13 @@ import {
   ScaleSlot,
   getDynamicScales,
   saveDynamicScale,
-  deleteDynamicScale
+  deleteDynamicScale,
+  ChurchInterveniente,
+  getDynamicIntervenientes,
+  saveDynamicInterveniente,
+  deleteDynamicInterveniente,
+  getDynamicServants,
+  ChurchServant
 } from "../lib/dynamicContent";
 import {
   Calendar,
@@ -54,6 +60,12 @@ function ScalesDashboard() {
   const [loadingData, setLoadingData] = useState(true);
   const [filterPeriod, setFilterPeriod] = useState<ScalePeriod>("Todas");
   
+  // Custom Participants and Servants States
+  const [servants, setServants] = useState<ChurchServant[]>([]);
+  const [intervenientes, setIntervenientes] = useState<ChurchInterveniente[]>([]);
+  const [newIntervenienteName, setNewIntervenienteName] = useState("");
+  const [addingInterveniente, setAddingInterveniente] = useState(false);
+  
   // Selection and Edit State
   const [selectedScale, setSelectedScale] = useState<ChurchScale | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -72,13 +84,23 @@ function ScalesDashboard() {
     }
   ]);
 
-  // Load Scales
+  // Load Scales, Servants, and Intervenientes
   useEffect(() => {
     let active = true;
     getDynamicScales().then((fetched) => {
       if (active) {
         setScales(fetched);
         setLoadingData(false);
+      }
+    });
+    getDynamicServants().then((fetched) => {
+      if (active) {
+        setServants(fetched);
+      }
+    });
+    getDynamicIntervenientes().then((fetched) => {
+      if (active) {
+        setIntervenientes(fetched);
       }
     });
     return () => {
@@ -383,6 +405,36 @@ function ScalesDashboard() {
     }
   };
 
+  // Add Custom Participant
+  const handleAddInterveniente = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newIntervenienteName.trim()) return;
+    setAddingInterveniente(true);
+    try {
+      const savedId = await saveDynamicInterveniente(newIntervenienteName.trim());
+      const newItem = { id: savedId, name: newIntervenienteName.trim() };
+      setIntervenientes(prev => [...prev, newItem].sort((a, b) => a.name.localeCompare(b.name)));
+      setNewIntervenienteName("");
+      toast.success("Participante registado!");
+    } catch (err) {
+      toast.error("Erro ao registar participante.");
+    } finally {
+      setAddingInterveniente(false);
+    }
+  };
+
+  // Delete Custom Participant
+  const handleDeleteInterveniente = async (id: string) => {
+    if (!window.confirm("Deseja remover este participante?")) return;
+    try {
+      await deleteDynamicInterveniente(id);
+      setIntervenientes(prev => prev.filter(item => item.id !== id));
+      toast.success("Participante removido.");
+    } catch (err) {
+      toast.error("Falha ao remover.");
+    }
+  };
+
   return (
     <SiteLayout>
       <section className="relative py-24 min-h-screen">
@@ -475,6 +527,59 @@ function ScalesDashboard() {
                         <p className="text-[11px] text-muted-foreground mt-1">
                           {scale.slots.length} cultos agendados.
                         </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Participantes Comuns list */}
+              <div className="p-6 rounded-3xl bg-card border border-border/60 shadow-elevated">
+                <h3 className="font-display font-bold text-lg mb-2 text-primary flex items-center gap-1.5">
+                  <User className="h-5 w-5" /> Participantes Comuns
+                </h3>
+                <p className="text-[11px] text-muted-foreground mb-4">
+                  Cadastre nomes frequentes para inserção rápida nos detalhes da escala.
+                </p>
+
+                {/* Form to add */}
+                <form onSubmit={handleAddInterveniente} className="flex gap-2 mb-4">
+                  <Input
+                    placeholder="Ex: Irmão Paulo"
+                    value={newIntervenienteName}
+                    onChange={(e) => setNewIntervenienteName(e.target.value)}
+                    className="h-9 text-xs bg-card/50"
+                  />
+                  <Button
+                    type="submit"
+                    disabled={addingInterveniente || !newIntervenienteName.trim()}
+                    className="h-9 px-3 bg-gradient-gold text-primary-foreground font-bold text-xs shrink-0 cursor-pointer"
+                  >
+                    Adicionar
+                  </Button>
+                </form>
+
+                {/* List of registered participants */}
+                {intervenientes.length === 0 ? (
+                  <p className="text-[11px] text-muted-foreground text-center py-2 italic">
+                    Nenhum participante customizado.
+                  </p>
+                ) : (
+                  <div className="space-y-1.5 max-h-[220px] overflow-y-auto pr-1">
+                    {intervenientes.map((item) => (
+                      <div
+                        key={item.id}
+                        className="flex items-center justify-between gap-2 p-2 rounded-xl bg-card/40 border border-border/40 hover:border-primary/20 transition-all text-xs"
+                      >
+                        <span className="font-medium text-foreground truncate">{item.name}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteInterveniente(item.id)}
+                          className="p-1 text-muted-foreground hover:text-red-500 rounded transition-colors cursor-pointer"
+                          title="Remover participante"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
                       </div>
                     ))}
                   </div>
@@ -615,8 +720,48 @@ function ScalesDashboard() {
                             </div>
                           </div>
 
-                          <div className="space-y-1">
-                            <Label className="text-[10px] uppercase text-muted-foreground">Interveniente do Dia / Detalhes da Escala</Label>
+                          <div className="space-y-2">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                              <Label className="text-[10px] uppercase text-muted-foreground">Interveniente do Dia / Detalhes da Escala</Label>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[10px] text-muted-foreground">Inserir rápido:</span>
+                                <select
+                                  value=""
+                                  onChange={(e) => {
+                                    const selectedName = e.target.value;
+                                    if (selectedName) {
+                                      const prevDetails = slot.details;
+                                      const newDetails = prevDetails.trim() 
+                                        ? prevDetails + "\n" + selectedName 
+                                        : selectedName;
+                                      handleUpdateSlotField(index, "details", newDetails);
+                                      toast.success(`Inserido: ${selectedName}`);
+                                    }
+                                  }}
+                                  className="text-[10px] bg-card border border-border/60 rounded px-2 py-0.5 focus:outline-none text-primary font-semibold"
+                                >
+                                  <option value="">— Selecione um nome —</option>
+                                  {servants.length > 0 && (
+                                    <optgroup label="Servos & Líderes (O Chamado)">
+                                      {servants.map((srv) => (
+                                        <option key={srv.id} value={srv.name}>
+                                          {srv.name}
+                                        </option>
+                                      ))}
+                                    </optgroup>
+                                  )}
+                                  {intervenientes.length > 0 && (
+                                    <optgroup label="Participantes Comuns">
+                                      {intervenientes.map((item) => (
+                                        <option key={item.id} value={item.name}>
+                                          {item.name}
+                                        </option>
+                                      ))}
+                                    </optgroup>
+                                  )}
+                                </select>
+                              </div>
+                            </div>
                             <textarea
                               placeholder="Escreva a escala (moderação, louvores, palavra, etc.) separando as linhas."
                               value={slot.details}
