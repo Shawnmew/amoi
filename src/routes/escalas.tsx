@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "../hooks/useAuth";
+import logoUrl from "@/assets/amoi-logo.png";
 import {
   ChurchScale,
   ScaleSlot,
@@ -63,7 +64,12 @@ function ScalesDashboard() {
   const [date, setDate] = useState("");
   const [type, setType] = useState<"Semanal" | "Mensal" | "Trimestral" | "Semestral" | "Anual">("Semanal");
   const [slots, setSlots] = useState<ScaleSlot[]>([
-    { time: "18:00 - 18:15", name: "Abertura e Oração", interveniente: "", topic: "" }
+    {
+      activity: "Culto de Adoração",
+      details: "Moderação: Anciã. Maria Júlia\nOração de abertura (5min)\nLouvores: Irmãos: Paulo, Igor, Maria do Céu e Katia (40min)\n➤ Boas-vindas aos Visitantes\n➤ Ofertas e Dízimos - Com louvores mexidos\n➤ Testemunhos:\n➤ Grupo Coral Central\n➤ Ensinamento da Palavra: Serva Elizabeth(1h)\n➤ Avisos",
+      month: "JUNHO",
+      dayOfMonth: "Domingo - 14/06/2026"
+    }
   ]);
 
   // Load Scales
@@ -147,64 +153,87 @@ function ScalesDashboard() {
     );
   }
 
-  // PDF Generator Function
+  // PDF Generator Function matching user's custom scale sheet model
   const handleExportPDF = (scale: ChurchScale) => {
     try {
       const doc = new jsPDF();
       
-      // Header AMOI style
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(14);
-      doc.setTextColor(170, 124, 17); // Gold #aa7c11
-      doc.text("ASSOCIAÇÃO MINISTÉRIO DE ORAÇÃO E INTERCESSÃO (AMOI)", 14, 20);
+      // Load and add AMOI logo image
+      const img = new Image();
+      img.src = logoUrl;
       
-      doc.setFont("helvetica", "normal");
+      // Draw Logo at top left
+      doc.addImage(img, "PNG", 14, 10, 22, 22);
+      
+      // Document Title/Metadata next to the Logo
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      doc.setTextColor(15, 15, 17); // Dark
+      doc.text("MINISTÉRIO DE ORAÇÃO E INTERCESSÃO", 40, 16);
+      
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(15);
+      doc.setTextColor(212, 175, 55); // Gold
+      doc.text("AMOI", 40, 22);
+      
+      doc.setFont("helvetica", "bold");
       doc.setFontSize(9);
       doc.setTextColor(120, 120, 120);
-      doc.text("Bravos Guerreiros da Fé · Secretaria Geral & Administração", 14, 25);
+      doc.text("BRAVOS GUERREIROS DA FÉ", 40, 27);
       
       doc.setDrawColor(212, 175, 55); // Gold line
       doc.setLineWidth(0.5);
-      doc.line(14, 28, 196, 28);
+      doc.line(14, 34, 196, 34);
       
-      // Title
+      // Subtitle / Page Header
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(12);
-      doc.setTextColor(30, 30, 30);
-      doc.text(scale.title, 14, 38);
+      doc.setFontSize(11);
+      doc.setTextColor(15, 15, 17);
+      doc.text(`CRONOGRAMA DE ATIVIDADES: ${scale.title.toUpperCase()}`, 14, 42);
       
       doc.setFont("helvetica", "normal");
-      doc.setFontSize(10);
-      doc.setTextColor(80, 80, 80);
-      doc.text(`Data do Cronograma: ${scale.date}    |    Período da Escala: ${scale.type}`, 14, 44);
+      doc.setFontSize(9);
+      doc.setTextColor(100, 100, 100);
+      doc.text(`Tipo da Escala: ${scale.type}    |    Data de Elaboração: ${scale.date}`, 14, 47);
       
-      // Mapping Rows
+      // Mapping Rows to exactly match user's custom columns:
+      // Column 1: Atividades da Semana
+      // Column 2: Intercessor do Dia / Detalhes
+      // Column 3: Mês
+      // Column 4: Dias do mês
       const tableRows = scale.slots.map(s => [
-        s.time,
-        s.name,
-        s.interveniente || "Não definido",
-        s.topic || "Sem detalhes"
+        s.activity || "",
+        s.details || "",
+        s.month || "",
+        s.dayOfMonth || ""
       ]);
       
       (doc as any).autoTable({
-        startY: 50,
-        head: [["Escala Horária", "Atividade / Momento", "Interveniente", "Tema / Descrição"]],
+        startY: 52,
+        head: [["Atividades da Semana", "Intercessor do Dia / Detalhes", "Mês", "Dias do mês"]],
         body: tableRows,
         headStyles: {
-          fillColor: [212, 175, 55],
-          textColor: [15, 15, 17],
-          fontStyle: "bold"
-        },
-        alternateRowStyles: {
-          fillColor: [248, 248, 250]
+          fillColor: [126, 168, 224], // Light blue header matching user template (#7ea8e0)
+          textColor: [0, 0, 0], // Black text
+          fontStyle: "bold",
+          fontSize: 9,
+          halign: "left"
         },
         styles: {
-          fontSize: 8.5,
-          cellPadding: 3.5,
-          lineColor: [230, 230, 235],
-          lineWidth: 0.1
+          fontSize: 8,
+          cellPadding: 4,
+          lineColor: [200, 200, 205],
+          lineWidth: 0.1,
+          textColor: [15, 15, 17],
+          valign: "top"
         },
-        margin: { top: 50 }
+        columnStyles: {
+          0: { width: 35 }, // Atividades
+          1: { width: 95 }, // Intercessor do Dia / Detalhes (multi-line layout)
+          2: { width: 22 }, // Mês
+          3: { width: 30 }  // Dias do mês
+        },
+        margin: { top: 52 }
       });
       
       // Page numbering footer
@@ -213,7 +242,7 @@ function ScalesDashboard() {
         doc.setPage(i);
         doc.setFontSize(7.5);
         doc.setTextColor(150, 150, 150);
-        doc.text("Gerado eletronicamente pela Secretaria da AMOI · Com amor e fé.", 14, 287);
+        doc.text("Associação Ministério de Oração e Intercessão · Secretaria Geral", 14, 287);
         doc.text(`Página ${i} de ${pageCount}`, 180, 287);
       }
       
@@ -231,7 +260,14 @@ function ScalesDashboard() {
     setTitle("");
     setDate(new Date().toISOString().split("T")[0]);
     setType("Semanal");
-    setSlots([{ time: "18:00 - 18:15", name: "Abertura e Oração", interveniente: "", topic: "" }]);
+    setSlots([
+      {
+        activity: "Culto de Adoração",
+        details: "Moderação: \nOração de abertura (5min)\nLouvores: (40min)\n➤ Boas-vindas aos Visitantes\n➤ Ofertas e Dízimos - Com louvores mexidos\n➤ Testemunhos:\n➤ Grupo Coral Central\n➤ Ensinamento da Palavra: (1h)\n➤ Avisos",
+        month: "JUNHO",
+        dayOfMonth: "Domingo - 14/06/2026"
+      }
+    ]);
     setIsEditing(true);
   };
 
@@ -247,7 +283,7 @@ function ScalesDashboard() {
 
   // Add Row
   const handleAddSlot = () => {
-    setSlots([...slots, { time: "", name: "", interveniente: "", topic: "" }]);
+    setSlots([...slots, { activity: "", details: "", month: "", dayOfMonth: "" }]);
   };
 
   // Remove Row
@@ -295,7 +331,7 @@ function ScalesDashboard() {
     }
     
     // Filter empty rows
-    const cleanedSlots = slots.filter(s => s.time.trim() || s.name.trim() || s.interveniente.trim());
+    const cleanedSlots = slots.filter(s => s.activity.trim() || s.details.trim());
     if (cleanedSlots.length === 0) {
       toast.error("A escala deve conter pelo menos uma atividade preenchida.");
       return;
@@ -363,7 +399,7 @@ function ScalesDashboard() {
               </span>
               <h1 className="text-3xl md:text-4xl font-bold font-display">Cronogramas & Escalas</h1>
               <p className="text-sm text-muted-foreground mt-1">
-                Utilize esta secção para agendar os momentos do culto, definir os intervenientes e exportar relatórios em PDF.
+                Utilize esta secção para programar os cultos da semana/mês e exportar relatórios em formato PDF idênticos ao modelo oficial.
               </p>
             </div>
             
@@ -437,7 +473,7 @@ function ScalesDashboard() {
                         </div>
                         <h4 className="font-semibold text-sm mt-2 text-foreground line-clamp-1">{scale.title}</h4>
                         <p className="text-[11px] text-muted-foreground mt-1">
-                          {scale.slots.length} atividades programadas.
+                          {scale.slots.length} cultos agendados.
                         </p>
                       </div>
                     ))}
@@ -457,10 +493,10 @@ function ScalesDashboard() {
                   
                   <div className="grid md:grid-cols-3 gap-6">
                     <div className="md:col-span-2 space-y-2">
-                      <Label htmlFor="scale-title">Título do Evento / Culto</Label>
+                      <Label htmlFor="scale-title">Título do Cronograma / Escala</Label>
                       <Input
                         id="scale-title"
-                        placeholder="Ex: Escala do Culto de Libertação"
+                        placeholder="Ex: Escala de Junho - Julho 2026"
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
                         required
@@ -473,7 +509,7 @@ function ScalesDashboard() {
                         id="scale-type"
                         value={type}
                         onChange={(e) => setType(e.target.value as any)}
-                        className="w-full h-10 px-3 bg-card border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                        className="w-full h-10 px-3 bg-card border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary font-semibold text-primary"
                       >
                         <option value="Semanal">Semanal</option>
                         <option value="Mensal">Mensal</option>
@@ -486,7 +522,7 @@ function ScalesDashboard() {
 
                   <div className="grid md:grid-cols-3 gap-6">
                     <div className="space-y-2">
-                      <Label htmlFor="scale-date">Data da Atividade</Label>
+                      <Label htmlFor="scale-date">Data de Elaboração</Label>
                       <Input
                         id="scale-date"
                         type="date"
@@ -501,7 +537,7 @@ function ScalesDashboard() {
                   {/* Slot Items */}
                   <div className="space-y-4 pt-4 border-t border-border/50">
                     <div className="flex justify-between items-center">
-                      <Label className="text-base font-semibold text-foreground">Escala de Atividades</Label>
+                      <Label className="text-base font-semibold text-foreground">Tabela de Cultos e Atividades</Label>
                       <Button
                         type="button"
                         onClick={handleAddSlot}
@@ -509,7 +545,7 @@ function ScalesDashboard() {
                         variant="outline"
                         className="border-primary/20 hover:bg-primary/10 text-primary font-bold cursor-pointer"
                       >
-                        <Plus className="h-4 w-4 mr-1" /> Adicionar Atividade
+                        <Plus className="h-4 w-4 mr-1" /> Adicionar Linha de Culto
                       </Button>
                     </div>
 
@@ -550,42 +586,43 @@ function ScalesDashboard() {
                           </div>
 
                           <div className="grid md:grid-cols-12 gap-3 pr-16">
-                            <div className="md:col-span-3 space-y-1">
-                              <Label className="text-[10px] uppercase text-muted-foreground">Escala Horária</Label>
+                            <div className="md:col-span-4 space-y-1">
+                              <Label className="text-[10px] uppercase text-muted-foreground">Atividade / Culto</Label>
                               <Input
-                                placeholder="Ex: 18:00 - 18:15"
-                                value={slot.time}
-                                onChange={(e) => handleUpdateSlotField(index, "time", e.target.value)}
+                                placeholder="Ex: Culto de Adoração"
+                                value={slot.activity}
+                                onChange={(e) => handleUpdateSlotField(index, "activity", e.target.value)}
                                 className="h-8 text-xs bg-card/50"
                               />
                             </div>
                             <div className="md:col-span-4 space-y-1">
-                              <Label className="text-[10px] uppercase text-muted-foreground">Atividade / Momento</Label>
+                              <Label className="text-[10px] uppercase text-muted-foreground">Mês</Label>
                               <Input
-                                placeholder="Ex: Cânticos Iniciais"
-                                value={slot.name}
-                                onChange={(e) => handleUpdateSlotField(index, "name", e.target.value)}
+                                placeholder="Ex: JUNHO"
+                                value={slot.month}
+                                onChange={(e) => handleUpdateSlotField(index, "month", e.target.value)}
                                 className="h-8 text-xs bg-card/50"
                               />
                             </div>
-                            <div className="md:col-span-5 space-y-1">
-                              <Label className="text-[10px] uppercase text-muted-foreground">Interveniente / Responsável</Label>
+                            <div className="md:col-span-4 space-y-1">
+                              <Label className="text-[10px] uppercase text-muted-foreground">Dias do Mês / Data</Label>
                               <Input
-                                placeholder="Ex: Diaconisa Judith"
-                                value={slot.interveniente}
-                                onChange={(e) => handleUpdateSlotField(index, "interveniente", e.target.value)}
+                                placeholder="Ex: Domingo - 14/06/2026"
+                                value={slot.dayOfMonth}
+                                onChange={(e) => handleUpdateSlotField(index, "dayOfMonth", e.target.value)}
                                 className="h-8 text-xs bg-card/50"
                               />
                             </div>
                           </div>
 
                           <div className="space-y-1">
-                            <Label className="text-[10px] uppercase text-muted-foreground">Tema / Sobre o que vai intervir</Label>
-                            <Input
-                              placeholder="Ex: Tema do clamor: Famílias sob proteção divina"
-                              value={slot.topic}
-                              onChange={(e) => handleUpdateSlotField(index, "topic", e.target.value)}
-                              className="h-8 text-xs bg-card/50"
+                            <Label className="text-[10px] uppercase text-muted-foreground">Interveniente do Dia / Detalhes da Escala</Label>
+                            <textarea
+                              placeholder="Escreva a escala (moderação, louvores, palavra, etc.) separando as linhas."
+                              value={slot.details}
+                              rows={5}
+                              onChange={(e) => handleUpdateSlotField(index, "details", e.target.value)}
+                              className="w-full p-2 text-xs bg-card/50 rounded-lg border border-border text-foreground focus:outline-none focus:ring-1 focus:ring-primary font-sans leading-relaxed"
                             />
                           </div>
                         </div>
@@ -620,7 +657,7 @@ function ScalesDashboard() {
                       </span>
                       <h2 className="text-2xl font-bold font-display text-primary mt-2">{selectedScale.title}</h2>
                       <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1.5">
-                        <Calendar className="h-3.5 w-3.5" /> Data do evento: {selectedScale.date}
+                        <Calendar className="h-3.5 w-3.5" /> Elaborado em: {selectedScale.date}
                       </p>
                     </div>
 
@@ -647,28 +684,25 @@ function ScalesDashboard() {
                     <div className="overflow-x-auto">
                       <table className="w-full text-left text-xs border-collapse">
                         <thead>
-                          <tr className="bg-muted border-b border-border/60 text-muted-foreground uppercase tracking-wider font-semibold">
-                            <th className="p-4 w-28">Horário</th>
-                            <th className="p-4 w-52">Atividade</th>
-                            <th className="p-4 w-44">Interveniente</th>
-                            <th className="p-4">Tema / Assunto</th>
+                          <tr className="bg-[#7ea8e0] text-black border-b border-border/60 uppercase tracking-wider font-bold">
+                            <th className="p-4 w-48 text-sm">Atividades da Semana</th>
+                            <th className="p-4 text-sm">Intercessor do Dia / Detalhes</th>
+                            <th className="p-4 w-28 text-sm">Mês</th>
+                            <th className="p-4 w-48 text-sm">Dias do mês</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-border/60">
                           {selectedScale.slots.map((s, idx) => (
                             <tr key={idx} className="hover:bg-muted/40 transition-colors">
-                              <td className="p-4 font-mono font-semibold flex items-center gap-1 text-primary">
-                                <Clock className="h-3 w-3 opacity-60" /> {s.time}
+                              <td className="p-4 font-semibold text-foreground align-top text-sm">{s.activity}</td>
+                              <td className="p-4 text-foreground whitespace-pre-line leading-relaxed align-top text-xs">
+                                {s.details}
                               </td>
-                              <td className="p-4 font-semibold text-foreground">{s.name}</td>
-                              <td className="p-4 text-muted-foreground flex items-center gap-1">
-                                <User className="h-3 w-3 opacity-60 text-primary" /> {s.interveniente || "—"}
+                              <td className="p-4 text-muted-foreground font-semibold align-top text-xs">
+                                {s.month}
                               </td>
-                              <td className="p-4 text-muted-foreground">
-                                <div className="flex items-center gap-1.5">
-                                  <BookOpen className="h-3 w-3 opacity-60" />
-                                  <span>{s.topic || "Sem detalhes específicos"}</span>
-                                </div>
+                              <td className="p-4 text-muted-foreground font-semibold align-top text-xs">
+                                {s.dayOfMonth}
                               </td>
                             </tr>
                           ))}
@@ -682,7 +716,7 @@ function ScalesDashboard() {
                       onClick={() => handleExportPDF(selectedScale)}
                       className="bg-gradient-gold text-primary-foreground font-bold shadow-gold px-8 py-6 rounded-2xl text-sm tracking-wide cursor-pointer"
                     >
-                      <FileDown className="h-5 w-5 mr-2 animate-bounce" /> Exportar Escala em PDF (Gratuito)
+                      <FileDown className="h-5 w-5 mr-2 animate-bounce" /> Exportar Escala em PDF (Modelo Oficial)
                     </Button>
                   </div>
                 </div>
@@ -694,7 +728,7 @@ function ScalesDashboard() {
                   </div>
                   <h3 className="font-display text-xl font-bold">Nenhuma Escala Selecionada</h3>
                   <p className="text-sm text-muted-foreground max-w-sm mt-2">
-                    Selecione uma escala na lista lateral ou crie uma nova para visualizar as atividades detalhadas ou exportar em formato PDF.
+                    Selecione uma escala na lista lateral ou crie uma nova para visualizar a escala de atividades detalhadas ou exportar em formato PDF.
                   </p>
                   <Button onClick={handleStartCreate} className="bg-gradient-gold text-primary-foreground font-semibold shadow-gold mt-6 cursor-pointer">
                     <Plus className="mr-2 h-4 w-4" /> Elaborar Nova Escala

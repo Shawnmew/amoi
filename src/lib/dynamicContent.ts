@@ -741,10 +741,10 @@ export async function deleteDynamicServant(id: string): Promise<void> {
 // ==========================================
 
 export interface ScaleSlot {
-  time: string;
-  name: string;
-  interveniente: string;
-  topic: string;
+  activity: string;
+  details: string;
+  month: string;
+  dayOfMonth: string;
 }
 
 export interface ChurchScale {
