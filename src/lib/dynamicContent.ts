@@ -250,7 +250,7 @@ export async function saveDynamicInfo(info: ChurchInfo): Promise<void> {
 
 // ============ USER MANAGEMENT ============
 
-export type UserRole = "membro" | "Editor" | "Servo de Deus";
+export type UserRole = "membro" | "Editor" | "Servo de Deus" | "Secretaria";
 
 export interface ChurchUser {
   uid: string;

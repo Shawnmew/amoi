@@ -75,7 +75,7 @@ function Perfil() {
           }
         } else {
           // Firebase mode load
-          if (db && auth.currentUser) {
+          if (db && auth && auth.currentUser) {
             const uDoc = await getDoc(doc(db, "users", auth.currentUser.uid));
             if (uDoc.exists()) {
               const data = uDoc.data();
@@ -138,7 +138,7 @@ function Perfil() {
         }
       } else {
         // Firebase update
-        if (db && auth.currentUser) {
+        if (db && auth && auth.currentUser) {
           const userDocRef = doc(db, "users", auth.currentUser.uid);
           await updateDoc(userDocRef, {
             firstname,
@@ -203,7 +203,7 @@ function Perfil() {
         }
       } else {
         // Firebase update email
-        if (auth.currentUser && db) {
+        if (auth && auth.currentUser && db) {
           await updateEmail(auth.currentUser, newEmail);
           
           const userDocRef = doc(db, "users", auth.currentUser.uid);
@@ -252,7 +252,7 @@ function Perfil() {
         }
       } else {
         // Firebase update password
-        if (auth.currentUser) {
+        if (auth && auth.currentUser) {
           await updatePassword(auth.currentUser, newPassword);
           toast.success("Palavra-passe atualizada com sucesso!");
           setNewPassword("");

@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { useAuth, UserRole } from "../hooks/useAuth";
 import { firebaseConfig, auth } from "../lib/firebase";
-import { initializeApp } from "firebase/app";
+import { initializeApp, deleteApp } from "firebase/app";
 import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
 import {
   CarouselSlide,
@@ -760,7 +760,7 @@ function AdminDashboard() {
           }
         } finally {
           // Cleanup secondary app instance from memory
-          await tempApp.delete();
+          await deleteApp(tempApp);
         }
       } else {
         // 2. Mock Mode: Add user to local storage mock database
