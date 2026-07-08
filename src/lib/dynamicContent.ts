@@ -745,6 +745,7 @@ export interface ScaleSlot {
   details: string;
   month: string;
   dayOfMonth: string;
+  slotDate?: string;
 }
 
 export interface ChurchScale {

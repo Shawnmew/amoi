@@ -52,6 +52,24 @@ export const Route = createFileRoute("/escalas")({
 
 type ScalePeriod = "Todas" | "Semanal" | "Mensal" | "Trimestral" | "Semestral" | "Anual";
 
+const formatScaleDate = (dateString: string) => {
+  if (!dateString) return { month: "", dayOfMonth: "" };
+  const [year, monthStr, dayStr] = dateString.split("-").map(Number);
+  const date = new Date(year, monthStr - 1, dayStr);
+  const months = [
+    "JANEIRO", "FEVEREIRO", "MARÇO", "ABRIL", "MAIO", "JUNHO",
+    "JULHO", "AGOSTO", "SETEMBRO", "OUTUBRO", "NOVEMBRO", "DEZEMBRO"
+  ];
+  const daysOfWeek = [
+    "Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira",
+    "Quinta-feira", "Sexta-feira", "Sábado"
+  ];
+  const month = months[date.getMonth()];
+  const formattedDate = `${dayStr.toString().padStart(2, "0")}/${monthStr.toString().padStart(2, "0")}/${year}`;
+  const dayName = daysOfWeek[date.getDay()];
+  return { month, dayOfMonth: `${dayName} - ${formattedDate}` };
+};
+
 function ScalesDashboard() {
   const { user, loading } = useAuth();
   
@@ -691,7 +709,7 @@ function ScalesDashboard() {
                           </div>
 
                           <div className="grid md:grid-cols-12 gap-3 pr-16">
-                            <div className="md:col-span-4 space-y-1">
+                            <div className="md:col-span-3 space-y-1">
                               <Label className="text-[10px] uppercase text-muted-foreground">Atividade / Culto</Label>
                               <Input
                                 placeholder="Ex: Culto de Adoração"
@@ -700,7 +718,33 @@ function ScalesDashboard() {
                                 className="h-8 text-xs bg-card/50"
                               />
                             </div>
-                            <div className="md:col-span-4 space-y-1">
+                            <div className="md:col-span-3 space-y-1">
+                              <Label className="text-[10px] uppercase text-gradient-gold font-semibold">Calendário (Dia)</Label>
+                              <Input
+                                type="date"
+                                value={slot.slotDate || ""}
+                                onChange={(e) => {
+                                  const dateVal = e.target.value;
+                                  if (dateVal) {
+                                    const formatted = formatScaleDate(dateVal);
+                                    const updated = slots.map((s, idx) => {
+                                      if (idx === index) {
+                                        return { 
+                                          ...s, 
+                                          month: formatted.month, 
+                                          dayOfMonth: formatted.dayOfMonth,
+                                          slotDate: dateVal 
+                                        };
+                                      }
+                                      return s;
+                                    });
+                                    setSlots(updated);
+                                  }
+                                }}
+                                className="h-8 text-xs bg-card/50 font-semibold text-primary cursor-pointer"
+                              />
+                            </div>
+                            <div className="md:col-span-2 space-y-1">
                               <Label className="text-[10px] uppercase text-muted-foreground">Mês</Label>
                               <Input
                                 placeholder="Ex: JUNHO"
