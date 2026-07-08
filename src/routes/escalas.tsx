@@ -128,9 +128,7 @@ const sendDirectSmtpJS = async (options: {
   };
 
   try {
-    // We use mode: "no-cors" to avoid the CORS block since we are posting simple form-urlencoded payload.
-    // The server will receive and process the request, sending the email.
-    await fetch("https://smtpjs.com/v3/smtpjsapi/send.aspx", {
+    await fetch("https://smtpjs.com/v3/smtpjs.aspx", {
       method: "POST",
       mode: "no-cors",
       headers: {
