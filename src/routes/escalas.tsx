@@ -641,7 +641,7 @@ function ScalesDashboard() {
           const status = await sendDirectSmtpJS({
             Host: "smtp.zoho.com",
             Username: "no-reply@ministerioamoi.it.ao",
-            Password: "g2qMFaj3QUbx",
+            Password: "L1vin9_Chr15t",
             To: recipient,
             From: "no-reply@ministerioamoi.it.ao",
             Subject: `[AMOI] Cronograma de Atividades: ${selectedScale.title}`,
