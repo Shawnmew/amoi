@@ -49,6 +49,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { sendScalePdfEmail } from "../lib/email";
 export const Route = createFileRoute("/escalas")({
   head: () => ({
     meta: [
@@ -117,6 +118,7 @@ function ScalesDashboard() {
   const [selectedUserEmails, setSelectedUserEmails] = useState<string[]>([]);
   const [customEmails, setCustomEmails] = useState("");
   const [emailSearch, setEmailSearch] = useState("");
+  const [sendingEmail, setSendingEmail] = useState(false);
   
   // Custom Participants and Servants States
   const [servants, setServants] = useState<ChurchServant[]>([]);
@@ -238,104 +240,106 @@ function ScalesDashboard() {
     );
   }
 
+  // Helper to generate the PDF document object
+  const generatePDFDoc = (scale: ChurchScale) => {
+    const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+    
+    // Load and add AMOI logo image
+    const img = new Image();
+    img.src = logoUrl;
+    
+    // Draw Logo at top left
+    doc.addImage(img, "PNG", 14, 10, 22, 22);
+    
+    // Document Title/Metadata next to the Logo
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.setTextColor(15, 15, 17); // Dark
+    doc.text("MINISTÉRIO DE ORAÇÃO E INTERCESSÃO", 40, 16);
+    
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(16);
+    doc.setTextColor(212, 175, 55); // Gold
+    doc.text("AMOI", 40, 22);
+    
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9.5);
+    doc.setTextColor(120, 120, 120);
+    doc.text("BRAVOS GUERREIROS DA FÉ", 40, 27);
+    
+    doc.setDrawColor(212, 175, 55); // Gold line
+    doc.setLineWidth(0.5);
+    doc.line(14, 34, 283, 34);
+    
+    // Subtitle / Page Header
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.setTextColor(15, 15, 17);
+    doc.text(`CRONOGRAMA DE ATIVIDADES: ${scale.title.toUpperCase()}`, 14, 42);
+    
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9.5);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`Tipo da Escala: ${scale.type}    |    Data de Elaboração: ${scale.date}`, 14, 47);
+    
+    // Mapping Rows to exactly match user's custom columns:
+    const sorted = sortScaleSlots(scale.slots);
+    const tableRows = sorted.map(s => [
+      s.activity || "",
+      s.details || "",
+      s.month || "",
+      s.dayOfMonth || ""
+    ]);
+    
+    autoTable(doc, {
+      startY: 52,
+      head: [["Atividades da Semana", "Intercessor do Dia / Detalhes", "Mês", "Dias do mês"]],
+      body: tableRows,
+      headStyles: {
+        fillColor: [126, 168, 224], // Light blue header matching user template (#7ea8e0)
+        textColor: [0, 0, 0], // Black text
+        font: "helvetica",
+        fontStyle: "bold",
+        fontSize: 9.5,
+        halign: "left"
+      },
+      styles: {
+        font: "helvetica",
+        fontStyle: "normal",
+        fontSize: 9,
+        cellPadding: 4,
+        lineColor: [200, 200, 205],
+        lineWidth: 0.1,
+        textColor: [15, 15, 17],
+        valign: "top"
+      },
+      columnStyles: {
+        0: { cellWidth: 55 }, // Atividades
+        1: { cellWidth: 145 }, // Intercessor do Dia / Detalhes (plenty of horizontal space)
+        2: { cellWidth: 30 }, // Mês
+        3: { cellWidth: 39 }  // Dias do mês
+      },
+      margin: { top: 52 }
+    });
+    
+    // Page numbering footer
+    const pageCount = doc.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(7.5);
+      doc.setTextColor(150, 150, 150);
+      doc.text("Associação Ministério de Oração e Intercessão · Secretaria Geral", 14, 198);
+      doc.text(`Página ${i} de ${pageCount}`, 265, 198);
+    }
+    
+    return doc;
+  };
+
   // PDF Generator Function matching user's custom scale sheet model
   const handleExportPDF = (scale: ChurchScale) => {
     try {
-      const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
-      
-      // Load and add AMOI logo image
-      const img = new Image();
-      img.src = logoUrl;
-      
-      // Draw Logo at top left
-      doc.addImage(img, "PNG", 14, 10, 22, 22);
-      
-      // Document Title/Metadata next to the Logo
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(12);
-      doc.setTextColor(15, 15, 17); // Dark
-      doc.text("MINISTÉRIO DE ORAÇÃO E INTERCESSÃO", 40, 16);
-      
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(16);
-      doc.setTextColor(212, 175, 55); // Gold
-      doc.text("AMOI", 40, 22);
-      
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(9.5);
-      doc.setTextColor(120, 120, 120);
-      doc.text("BRAVOS GUERREIROS DA FÉ", 40, 27);
-      
-      doc.setDrawColor(212, 175, 55); // Gold line
-      doc.setLineWidth(0.5);
-      doc.line(14, 34, 283, 34);
-      
-      // Subtitle / Page Header
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(12);
-      doc.setTextColor(15, 15, 17);
-      doc.text(`CRONOGRAMA DE ATIVIDADES: ${scale.title.toUpperCase()}`, 14, 42);
-      
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(9.5);
-      doc.setTextColor(100, 100, 100);
-      doc.text(`Tipo da Escala: ${scale.type}    |    Data de Elaboração: ${scale.date}`, 14, 47);
-      
-      // Mapping Rows to exactly match user's custom columns:
-      // Column 1: Atividades da Semana
-      // Column 2: Intercessor do Dia / Detalhes
-      // Column 3: Mês
-      // Column 4: Dias do mês
-      const sorted = sortScaleSlots(scale.slots);
-      const tableRows = sorted.map(s => [
-        s.activity || "",
-        s.details || "",
-        s.month || "",
-        s.dayOfMonth || ""
-      ]);
-      
-      autoTable(doc, {
-        startY: 52,
-        head: [["Atividades da Semana", "Intercessor do Dia / Detalhes", "Mês", "Dias do mês"]],
-        body: tableRows,
-        headStyles: {
-          fillColor: [126, 168, 224], // Light blue header matching user template (#7ea8e0)
-          textColor: [0, 0, 0], // Black text
-          font: "helvetica",
-          fontStyle: "bold",
-          fontSize: 9.5,
-          halign: "left"
-        },
-        styles: {
-          font: "helvetica",
-          fontStyle: "normal",
-          fontSize: 9,
-          cellPadding: 4,
-          lineColor: [200, 200, 205],
-          lineWidth: 0.1,
-          textColor: [15, 15, 17],
-          valign: "top"
-        },
-        columnStyles: {
-          0: { cellWidth: 55 }, // Atividades
-          1: { cellWidth: 145 }, // Intercessor do Dia / Detalhes (plenty of horizontal space)
-          2: { cellWidth: 30 }, // Mês
-          3: { cellWidth: 39 }  // Dias do mês
-        },
-        margin: { top: 52 }
-      });
-      
-      // Page numbering footer
-      const pageCount = doc.getNumberOfPages();
-      for (let i = 1; i <= pageCount; i++) {
-        doc.setPage(i);
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(7.5);
-        doc.setTextColor(150, 150, 150);
-        doc.text("Associação Ministério de Oração e Intercessão · Secretaria Geral", 14, 198);
-        doc.text(`Página ${i} de ${pageCount}`, 265, 198);
-      }
-      
+      const doc = generatePDFDoc(scale);
       doc.save(`escala_${scale.type.toLowerCase()}_${scale.date}.pdf`);
       toast.success("Escala exportada para PDF com sucesso!");
     } catch (error) {
@@ -533,8 +537,8 @@ function ScalesDashboard() {
     setShowEmailDialog(true);
   };
 
-  // Handle mailto send
-  const handleSendMailto = () => {
+  // Handle SMTP direct send with PDF attachment
+  const handleSendSMTP = async () => {
     if (!selectedScale) return;
     
     // Parse custom emails
@@ -550,13 +554,32 @@ function ScalesDashboard() {
       return;
     }
 
-    const subject = encodeURIComponent(`Cronograma de Atividades AMOI: ${selectedScale.title}`);
-    const body = encodeURIComponent(generateEmailText(selectedScale));
-    const recipients = allRecipients.join(",");
-    
-    window.open(`mailto:${recipients}?subject=${subject}&body=${body}`, "_blank");
-    toast.success("Cliente de e-mail aberto!");
-    setShowEmailDialog(false);
+    setSendingEmail(true);
+    const toastId = toast.loading("A gerar o PDF e a enviar e-mails via SMTP...");
+    try {
+      // 1. Generate PDF in memory on the client
+      const doc = generatePDFDoc(selectedScale);
+      const pdfBase64 = doc.output("base64");
+      
+      // 2. Call server-side function to send via Zoho SMTP
+      const res = await sendScalePdfEmail({
+        scaleTitle: selectedScale.title,
+        pdfBase64,
+        recipients: allRecipients
+      });
+      
+      if (res.success) {
+        toast.success(`E-mail com PDF enviado com sucesso para ${res.count} destinatários!`, { id: toastId });
+        setShowEmailDialog(false);
+      } else {
+        toast.error(res.error || "Falha ao enviar e-mail.", { id: toastId });
+      }
+    } catch (err: any) {
+      console.error(err);
+      toast.error("Erro ao processar ou enviar a escala por e-mail.", { id: toastId });
+    } finally {
+      setSendingEmail(false);
+    }
   };
 
   // Copy selected email addresses list to clipboard
@@ -1203,10 +1226,17 @@ function ScalesDashboard() {
               </Button>
               <Button
                 type="button"
-                onClick={handleSendMailto}
+                onClick={handleSendSMTP}
+                disabled={sendingEmail}
                 className="bg-gradient-gold text-primary-foreground font-bold shadow-gold cursor-pointer"
               >
-                <Mail className="h-4 w-4 mr-2" /> Abrir no Email (mailto)
+                {sendingEmail ? (
+                  <>A Enviar...</>
+                ) : (
+                  <>
+                    <Mail className="h-4 w-4 mr-2" /> Enviar PDF Diretamente
+                  </>
+                )}
               </Button>
             </div>
           </div>

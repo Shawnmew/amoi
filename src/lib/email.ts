@@ -187,3 +187,101 @@ export const sendResetCodeEmail = createServerFn({ method: "POST" })
       return { success: false, error: e.message || "Failed to send reset code email" };
     }
   });
+
+interface ScaleEmailPayload {
+  scaleTitle: string;
+  pdfBase64: string;
+  recipients: string[];
+}
+
+export const sendScalePdfEmail = createServerFn({ method: "POST" })
+  .validator((d: ScaleEmailPayload) => d)
+  .handler(async ({ data }) => {
+    const { scaleTitle, pdfBase64, recipients } = data;
+
+    if (recipients.length === 0) {
+      return { success: false, error: "Nenhum destinatário especificado." };
+    }
+
+    const host = process.env.SMTP_HOST?.trim();
+    const port = parseInt(process.env.SMTP_PORT?.trim() || "587");
+    const user = process.env.SMTP_USER?.trim();
+    const pass = process.env.SMTP_PASS?.trim();
+    const from = process.env.SMTP_FROM || (user ? `"AMOI" <${user}>` : `"AMOI" <no-reply@amoi.org>`);
+
+    console.log(`Sending scale PDF email for: "${scaleTitle}" to ${recipients.length} recipients.`);
+
+    if (!host || !user || !pass) {
+      console.log("\n=========================================");
+      console.log("MOCK SCALE PDF EMAIL DISPATCH (No SMTP Configured)");
+      console.log(`From: ${from}`);
+      console.log(`To: ${recipients.join(", ")}`);
+      console.log(`Subject: [AMOI] Cronograma de Atividades: ${scaleTitle}`);
+      console.log(`Attachment Name: escala_${scaleTitle.toLowerCase().replace(/\s+/g, "_")}.pdf`);
+      console.log("=========================================\n");
+      return { success: true, mock: true, count: recipients.length };
+    }
+
+    try {
+      const transporter = nodemailer.createTransport({
+        host,
+        port,
+        secure: port === 465,
+        auth: {
+          user,
+          pass,
+        },
+      });
+
+      const htmlBody = `
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 12px; background-color: #ffffff;">
+          <div style="text-align: center; border-bottom: 2px solid #D4A017; padding-bottom: 15px; margin-bottom: 20px;">
+            <h2 style="color: #D4A017; margin: 0; font-family: Georgia, serif; font-size: 26px;">AMOI</h2>
+            <p style="color: #666; margin: 5px 0 0 0; font-size: 12px; text-transform: uppercase; letter-spacing: 2px;">Associação Ministério de Oração e Intercessão</p>
+          </div>
+          
+          <h1 style="color: #111; font-size: 20px; margin: 0 0 15px 0;">Escala de Atividades / Cultos</h1>
+          
+          <p style="color: #444; font-size: 14px; line-height: 1.6; margin-bottom: 20px;">
+            Olá, saudações em Cristo Jesus.<br /><br />
+            Anexamos a este e-mail o documento oficial em formato PDF do <strong>Cronograma de Atividades: ${scaleTitle}</strong>.
+          </p>
+          
+          <p style="color: #444; font-size: 14px; line-height: 1.6; margin-bottom: 25px;">
+            Por favor, verifique o ficheiro PDF em anexo para conferir as suas datas, momentos e intervenções programadas.
+          </p>
+          
+          <div style="border-top: 1px solid #eee; padding-top: 15px; margin-top: 30px; color: #888; font-size: 11px;">
+            <p style="margin: 0;">Este é um e-mail automático enviado pela Secretaria Geral da AMOI.</p>
+            <p style="margin: 5px 0 0 0;">Associação Ministério de Oração e Intercessão · Luanda, Angola</p>
+          </div>
+        </div>
+      `;
+
+      const cleanBase64 = pdfBase64.includes("base64,")
+        ? pdfBase64.split("base64,")[1]
+        : pdfBase64;
+
+      const attachmentName = `escala_${scaleTitle.toLowerCase().replace(/[^a-z0-9]/g, "_")}.pdf`;
+
+      await transporter.sendMail({
+        from: { name: "AMOI", address: user },
+        to: user,
+        bcc: recipients,
+        subject: `[AMOI] Cronograma de Atividades: ${scaleTitle}`,
+        html: htmlBody,
+        attachments: [
+          {
+            filename: attachmentName,
+            content: Buffer.from(cleanBase64, "base64"),
+            contentType: "application/pdf"
+          }
+        ]
+      });
+
+      return { success: true, count: recipients.length };
+    } catch (e: any) {
+      console.error("Nodemailer scale PDF dispatch error:", e);
+      return { success: false, error: e.message || "Falha ao enviar e-mail com a escala." };
+    }
+  });
