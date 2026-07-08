@@ -196,7 +196,7 @@ function ScalesDashboard() {
   // PDF Generator Function matching user's custom scale sheet model
   const handleExportPDF = (scale: ChurchScale) => {
     try {
-      const doc = new jsPDF();
+      const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
       
       // Load and add AMOI logo image
       const img = new Image();
@@ -207,32 +207,32 @@ function ScalesDashboard() {
       
       // Document Title/Metadata next to the Logo
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(11);
+      doc.setFontSize(12);
       doc.setTextColor(15, 15, 17); // Dark
       doc.text("MINISTÉRIO DE ORAÇÃO E INTERCESSÃO", 40, 16);
       
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(15);
+      doc.setFontSize(16);
       doc.setTextColor(212, 175, 55); // Gold
       doc.text("AMOI", 40, 22);
       
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(9);
+      doc.setFontSize(9.5);
       doc.setTextColor(120, 120, 120);
       doc.text("BRAVOS GUERREIROS DA FÉ", 40, 27);
       
       doc.setDrawColor(212, 175, 55); // Gold line
       doc.setLineWidth(0.5);
-      doc.line(14, 34, 196, 34);
+      doc.line(14, 34, 283, 34);
       
       // Subtitle / Page Header
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(11);
+      doc.setFontSize(12);
       doc.setTextColor(15, 15, 17);
       doc.text(`CRONOGRAMA DE ATIVIDADES: ${scale.title.toUpperCase()}`, 14, 42);
       
       doc.setFont("helvetica", "normal");
-      doc.setFontSize(9);
+      doc.setFontSize(9.5);
       doc.setTextColor(100, 100, 100);
       doc.text(`Tipo da Escala: ${scale.type}    |    Data de Elaboração: ${scale.date}`, 14, 47);
       
@@ -255,12 +255,15 @@ function ScalesDashboard() {
         headStyles: {
           fillColor: [126, 168, 224], // Light blue header matching user template (#7ea8e0)
           textColor: [0, 0, 0], // Black text
+          font: "helvetica",
           fontStyle: "bold",
-          fontSize: 9,
+          fontSize: 9.5,
           halign: "left"
         },
         styles: {
-          fontSize: 8,
+          font: "helvetica",
+          fontStyle: "normal",
+          fontSize: 9,
           cellPadding: 4,
           lineColor: [200, 200, 205],
           lineWidth: 0.1,
@@ -268,10 +271,10 @@ function ScalesDashboard() {
           valign: "top"
         },
         columnStyles: {
-          0: { width: 35 }, // Atividades
-          1: { width: 95 }, // Intercessor do Dia / Detalhes (multi-line layout)
-          2: { width: 22 }, // Mês
-          3: { width: 30 }  // Dias do mês
+          0: { width: 55 }, // Atividades
+          1: { width: 145 }, // Intercessor do Dia / Detalhes (plenty of horizontal space)
+          2: { width: 30 }, // Mês
+          3: { width: 39 }  // Dias do mês
         },
         margin: { top: 52 }
       });
@@ -280,10 +283,11 @@ function ScalesDashboard() {
       const pageCount = doc.getNumberOfPages();
       for (let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
+        doc.setFont("helvetica", "normal");
         doc.setFontSize(7.5);
         doc.setTextColor(150, 150, 150);
-        doc.text("Associação Ministério de Oração e Intercessão · Secretaria Geral", 14, 287);
-        doc.text(`Página ${i} de ${pageCount}`, 180, 287);
+        doc.text("Associação Ministério de Oração e Intercessão · Secretaria Geral", 14, 198);
+        doc.text(`Página ${i} de ${pageCount}`, 265, 198);
       }
       
       doc.save(`escala_${scale.type.toLowerCase()}_${scale.date}.pdf`);
