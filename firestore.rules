@@ -134,5 +134,11 @@ service cloud.firestore {
       // Apenas Secretaria e Servo de Deus podem gerir a lista de participantes comuns
       allow read, write: if isSecretariaOrServo();
     }
+    // --- Password Reset OTPs ---
+    match /passwordResets/{docId} {
+      // Allow anyone to create/read/delete their own OTP document
+      // (needed before authentication, for password recovery flow)
+      allow read, write, delete: if true;
+    }
   }
 }
