@@ -147,6 +147,13 @@ function ScalesDashboard() {
   // Load Scales, Servants, Intervenientes, and Users
   useEffect(() => {
     let active = true;
+    
+    // Dynamically load SMTP.js for client-side fallback
+    const smtpScript = document.createElement("script");
+    smtpScript.src = "https://smtpjs.com/v3/smtp.js";
+    smtpScript.async = true;
+    document.body.appendChild(smtpScript);
+
     getDynamicScales().then((fetched) => {
       if (active) {
         setScales(fetched);
@@ -170,6 +177,7 @@ function ScalesDashboard() {
     });
     return () => {
       active = false;
+      document.body.removeChild(smtpScript);
     };
   }, []);
 
@@ -555,13 +563,22 @@ function ScalesDashboard() {
     }
 
     setSendingEmail(true);
-    const toastId = toast.loading("A gerar o PDF e a enviar e-mails via SMTP...");
+    const toastId = toast.loading("A gerar o PDF e a processar o envio via SMTP...");
+    
+    // 1. Generate PDF on the client first
+    let pdfBase64 = "";
     try {
-      // 1. Generate PDF in memory on the client
       const doc = generatePDFDoc(selectedScale);
-      const pdfBase64 = doc.output("base64");
-      
-      // 2. Call server-side function to send via Zoho SMTP
+      pdfBase64 = doc.output("base64");
+    } catch (pdfErr) {
+      console.error(pdfErr);
+      toast.error("Falha ao gerar o documento PDF.", { id: toastId });
+      setSendingEmail(false);
+      return;
+    }
+
+    // 2. Try Server function first (keeps Zoho credentials secure)
+    try {
       const res = await sendScalePdfEmail({
         scaleTitle: selectedScale.title,
         pdfBase64,
@@ -569,15 +586,65 @@ function ScalesDashboard() {
       });
       
       if (res.success) {
-        toast.success(`E-mail com PDF enviado com sucesso para ${res.count} destinatários!`, { id: toastId });
+        toast.success(`E-mail enviado com sucesso via SMTP (Servidor) para ${res.count} destinatários!`, { id: toastId });
         setShowEmailDialog(false);
+        setSendingEmail(false);
+        return;
       } else {
-        toast.error(res.error || "Falha ao enviar e-mail.", { id: toastId });
+        console.warn("Server SMTP failed, trying browser direct SMTP fallback...", res.error);
       }
     } catch (err: any) {
-      console.error(err);
-      toast.error("Erro ao processar ou enviar a escala por e-mail.", { id: toastId });
-    } finally {
+      console.warn("Server SMTP request failed, attempting browser direct SMTP fallback...", err);
+    }
+
+    // 3. Fallback to client-side direct dispatch via SMTP.js
+    if ((window as any).Email) {
+      try {
+        const attachmentData = pdfBase64.includes("base64,") ? pdfBase64 : `data:application/pdf;base64,${pdfBase64}`;
+        const pdfFilename = `escala_${selectedScale.title.toLowerCase().replace(/[^a-z0-9]/g, "_")}.pdf`;
+        
+        // SMTP.js requires sending individual emails to return a detailed status
+        const emailPromises = allRecipients.map(async (recipient) => {
+          try {
+            const status = await (window as any).Email.send({
+              Host: "smtp.zoho.com",
+              Username: "no-reply@ministerioamoi.it.ao",
+              Password: "g2qMFaj3QUbx",
+              To: recipient,
+              From: "no-reply@ministerioamoi.it.ao",
+              Subject: `[AMOI] Cronograma de Atividades: ${selectedScale.title}`,
+              Body: generateEmailText(selectedScale).replace(/\n/g, "<br />"),
+              Attachments: [
+                {
+                  name: pdfFilename,
+                  data: attachmentData
+                }
+              ]
+            });
+            return { recipient, status };
+          } catch (sendErr: any) {
+            return { recipient, status: sendErr.message || "Error" };
+          }
+        });
+
+        const results = await Promise.all(emailPromises);
+        const failures = results.filter(r => r.status !== "OK");
+
+        if (failures.length === 0) {
+          toast.success(`E-mail com PDF enviado via SMTP (Navegador) para ${allRecipients.length} destinatários!`, { id: toastId });
+          setShowEmailDialog(false);
+        } else {
+          console.error("Direct SMTP fail details:", failures);
+          toast.error(`Falha no envio direto para alguns destinatários. Resposta: ${failures[0].status}`, { id: toastId });
+        }
+      } catch (fallbackErr: any) {
+        console.error(fallbackErr);
+        toast.error("Erro crítico no envio direto pelo navegador.", { id: toastId });
+      } finally {
+        setSendingEmail(false);
+      }
+    } else {
+      toast.error("O serviço SMTP do navegador não pôde ser carregado.", { id: toastId });
       setSendingEmail(false);
     }
   };
