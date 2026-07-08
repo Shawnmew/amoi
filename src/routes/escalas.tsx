@@ -17,7 +17,9 @@ import {
   saveDynamicInterveniente,
   deleteDynamicInterveniente,
   getDynamicServants,
-  ChurchServant
+  ChurchServant,
+  ChurchUser,
+  getDynamicUsers
 } from "../lib/dynamicContent";
 import {
   Calendar,
@@ -34,12 +36,19 @@ import {
   FileDown,
   Edit,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  Mail
 } from "lucide-react";
 import { toast } from "sonner";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
-
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 export const Route = createFileRoute("/escalas")({
   head: () => ({
     meta: [
@@ -102,6 +111,13 @@ function ScalesDashboard() {
   const [loadingData, setLoadingData] = useState(true);
   const [filterPeriod, setFilterPeriod] = useState<ScalePeriod>("Todas");
   
+  // Send Email State
+  const [users, setUsers] = useState<ChurchUser[]>([]);
+  const [showEmailDialog, setShowEmailDialog] = useState(false);
+  const [selectedUserEmails, setSelectedUserEmails] = useState<string[]>([]);
+  const [customEmails, setCustomEmails] = useState("");
+  const [emailSearch, setEmailSearch] = useState("");
+  
   // Custom Participants and Servants States
   const [servants, setServants] = useState<ChurchServant[]>([]);
   const [intervenientes, setIntervenientes] = useState<ChurchInterveniente[]>([]);
@@ -126,7 +142,7 @@ function ScalesDashboard() {
     }
   ]);
 
-  // Load Scales, Servants, and Intervenientes
+  // Load Scales, Servants, Intervenientes, and Users
   useEffect(() => {
     let active = true;
     getDynamicScales().then((fetched) => {
@@ -143,6 +159,11 @@ function ScalesDashboard() {
     getDynamicIntervenientes().then((fetched) => {
       if (active) {
         setIntervenientes(fetched);
+      }
+    });
+    getDynamicUsers().then((fetched) => {
+      if (active) {
+        setUsers(fetched);
       }
     });
     return () => {
@@ -296,10 +317,10 @@ function ScalesDashboard() {
           valign: "top"
         },
         columnStyles: {
-          0: { width: 55 }, // Atividades
-          1: { width: 145 }, // Intercessor do Dia / Detalhes (plenty of horizontal space)
-          2: { width: 30 }, // Mês
-          3: { width: 39 }  // Dias do mês
+          0: { cellWidth: 55 }, // Atividades
+          1: { cellWidth: 145 }, // Intercessor do Dia / Detalhes (plenty of horizontal space)
+          2: { cellWidth: 30 }, // Mês
+          3: { cellWidth: 39 }  // Dias do mês
         },
         margin: { top: 52 }
       });
@@ -481,6 +502,85 @@ function ScalesDashboard() {
     } catch (err) {
       toast.error("Falha ao remover.");
     }
+  };
+
+  // Helper to generate text representation of scale
+  const generateEmailText = (scale: ChurchScale): string => {
+    let text = `CRONOGRAMA DE ATIVIDADES: ${scale.title.toUpperCase()}\n`;
+    text += `Tipo: ${scale.type} | Data de Elaboração: ${scale.date}\n\n`;
+    text += `==========================================\n\n`;
+    
+    const sorted = sortScaleSlots(scale.slots);
+    sorted.forEach((s) => {
+      text += `ATALHO / MOMENTO: ${s.activity.toUpperCase()}\n`;
+      text += `MÊS: ${s.month} | DATA: ${s.dayOfMonth}\n`;
+      text += `DETALHES:\n${s.details}\n`;
+      text += `==========================================\n\n`;
+    });
+    
+    text += `Gerado eletronicamente pela Secretaria da AMOI.`;
+    return text;
+  };
+
+  // Trigger modal and auto-select all newsletter users
+  const handleOpenEmailDialog = () => {
+    if (!selectedScale) return;
+    // Auto-select all users with newsletter checked
+    const defaultSelected = users.filter(u => u.newsletter).map(u => u.email);
+    setSelectedUserEmails(defaultSelected);
+    setCustomEmails("");
+    setEmailSearch("");
+    setShowEmailDialog(true);
+  };
+
+  // Handle mailto send
+  const handleSendMailto = () => {
+    if (!selectedScale) return;
+    
+    // Parse custom emails
+    const customList = customEmails
+      .split(",")
+      .map(e => e.trim())
+      .filter(e => e.length > 0 && e.includes("@"));
+
+    const allRecipients = Array.from(new Set([...selectedUserEmails, ...customList]));
+    
+    if (allRecipients.length === 0) {
+      toast.error("Por favor, selecione ou adicione pelo menos um e-mail destinatário.");
+      return;
+    }
+
+    const subject = encodeURIComponent(`Cronograma de Atividades AMOI: ${selectedScale.title}`);
+    const body = encodeURIComponent(generateEmailText(selectedScale));
+    const recipients = allRecipients.join(",");
+    
+    window.open(`mailto:${recipients}?subject=${subject}&body=${body}`, "_blank");
+    toast.success("Cliente de e-mail aberto!");
+    setShowEmailDialog(false);
+  };
+
+  // Copy selected email addresses list to clipboard
+  const handleCopyEmails = () => {
+    const customList = customEmails
+      .split(",")
+      .map(e => e.trim())
+      .filter(e => e.length > 0 && e.includes("@"));
+
+    const allRecipients = Array.from(new Set([...selectedUserEmails, ...customList]));
+    if (allRecipients.length === 0) {
+      toast.error("Nenhum destinatário selecionado.");
+      return;
+    }
+
+    navigator.clipboard.writeText(allRecipients.join(", "));
+    toast.success("Lista de e-mails copiada!");
+  };
+
+  // Copy scale text directly to clipboard
+  const handleCopyScaleText = () => {
+    if (!selectedScale) return;
+    navigator.clipboard.writeText(generateEmailText(selectedScale));
+    toast.success("Texto da escala copiado com sucesso!");
   };
 
   return (
@@ -930,12 +1030,26 @@ function ScalesDashboard() {
                     </div>
                   </div>
 
-                  <div className="pt-4 flex justify-center">
+                  <div className="pt-4 flex flex-wrap justify-center gap-3">
                     <Button
                       onClick={() => handleExportPDF(selectedScale)}
-                      className="bg-gradient-gold text-primary-foreground font-bold shadow-gold px-8 py-6 rounded-2xl text-sm tracking-wide cursor-pointer"
+                      className="bg-gradient-gold text-primary-foreground font-bold shadow-gold px-6 py-5 rounded-2xl text-xs tracking-wide cursor-pointer flex-1 sm:flex-initial"
                     >
-                      <FileDown className="h-5 w-5 mr-2 animate-bounce" /> Exportar Escala em PDF (Modelo Oficial)
+                      <FileDown className="h-4.5 w-4.5 mr-2 animate-bounce" /> Exportar em PDF
+                    </Button>
+                    <Button
+                      onClick={handleOpenEmailDialog}
+                      variant="outline"
+                      className="border-primary/30 text-primary hover:bg-primary/10 font-bold px-6 py-5 rounded-2xl text-xs tracking-wide cursor-pointer flex-1 sm:flex-initial"
+                    >
+                      <Mail className="h-4.5 w-4.5 mr-2" /> Enviar por E-mail (Massa)
+                    </Button>
+                    <Button
+                      onClick={handleCopyScaleText}
+                      variant="outline"
+                      className="border-border hover:bg-muted font-bold px-6 py-5 rounded-2xl text-xs tracking-wide cursor-pointer flex-1 sm:flex-initial"
+                    >
+                      <Save className="h-4.5 w-4.5 mr-2" /> Copiar Texto da Escala
                     </Button>
                   </div>
                 </div>
@@ -958,6 +1072,146 @@ function ScalesDashboard() {
           </div>
         </div>
       </section>
+
+      {/* EMAIL DISPATCH DIALOG */}
+      <Dialog open={showEmailDialog} onOpenChange={setShowEmailDialog}>
+        <DialogContent className="max-w-2xl bg-card border border-border/80 rounded-3xl p-6 shadow-elevated text-foreground">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold font-display text-primary flex items-center gap-2">
+              <Mail className="h-5 w-5" /> Envio em Massa (Escala via E-mail)
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground mt-1">
+              Selecione os e-mails dos membros registados na base de dados e/ou adicione e-mails externos.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 my-4">
+            {/* Filter and selection tools */}
+            <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
+              <Input
+                placeholder="Pesquisar utilizador por nome ou e-mail..."
+                value={emailSearch}
+                onChange={(e) => setEmailSearch(e.target.value)}
+                className="h-9 text-xs bg-muted/30 max-w-sm"
+              />
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const allEmails = users.map(u => u.email);
+                    setSelectedUserEmails(allEmails);
+                    toast.success("Todos os e-mails selecionados!");
+                  }}
+                  className="h-8 text-[11px] font-semibold border-border/60 hover:bg-muted"
+                >
+                  Selecionar Todos
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setSelectedUserEmails([]);
+                    toast.success("Seleção limpa!");
+                  }}
+                  className="h-8 text-[11px] font-semibold border-border/60 hover:bg-muted"
+                >
+                  Limpar Seleção
+                </Button>
+              </div>
+            </div>
+
+            {/* List with checkboxes */}
+            <div className="border border-border/60 rounded-2xl bg-muted/10 p-4 max-h-[180px] overflow-y-auto space-y-2">
+              {users.filter(u => 
+                u.displayName?.toLowerCase().includes(emailSearch.toLowerCase()) ||
+                u.email.toLowerCase().includes(emailSearch.toLowerCase())
+              ).length === 0 ? (
+                <p className="text-center text-xs text-muted-foreground py-4">Nenhum utilizador encontrado.</p>
+              ) : (
+                users.filter(u => 
+                  u.displayName?.toLowerCase().includes(emailSearch.toLowerCase()) ||
+                  u.email.toLowerCase().includes(emailSearch.toLowerCase())
+                ).map((u) => {
+                  const isChecked = selectedUserEmails.includes(u.email);
+                  return (
+                    <label
+                      key={u.uid}
+                      className="flex items-center gap-3 p-2 rounded-xl hover:bg-muted/40 transition-colors cursor-pointer text-xs"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => {
+                          if (isChecked) {
+                            setSelectedUserEmails(prev => prev.filter(e => e !== u.email));
+                          } else {
+                            setSelectedUserEmails(prev => [...prev, u.email]);
+                          }
+                        }}
+                        className="rounded border-border text-primary focus:ring-primary h-4 w-4"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-foreground truncate">{u.displayName}</p>
+                        <p className="text-[10px] text-muted-foreground font-mono truncate">{u.email}</p>
+                      </div>
+                      <span className="text-[9px] uppercase tracking-wider px-2 py-0.5 bg-muted text-muted-foreground font-bold rounded-full">
+                        {u.role}
+                      </span>
+                    </label>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Custom/External emails */}
+            <div className="space-y-2">
+              <Label className="text-xs font-semibold text-foreground">
+                Adicionar E-mails Externos (separados por vírgula)
+              </Label>
+              <Input
+                placeholder="Ex: irmao.jose@gmail.com, visitante@yahoo.com"
+                value={customEmails}
+                onChange={(e) => setCustomEmails(e.target.value)}
+                className="bg-card/50"
+              />
+              <p className="text-[10px] text-muted-foreground leading-relaxed">
+                Total de destinatários selecionados: <strong>{selectedUserEmails.length}</strong> (registados) + <strong>{customEmails.split(",").map(e => e.trim()).filter(e => e.includes("@")).length}</strong> (externos).
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row justify-between gap-3 pt-4 border-t border-border/50">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleCopyEmails}
+              className="border-border/60 hover:bg-muted font-bold cursor-pointer"
+            >
+              Copiar Destinatários
+            </Button>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowEmailDialog(false)}
+                className="border-border/60 hover:bg-muted cursor-pointer"
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="button"
+                onClick={handleSendMailto}
+                className="bg-gradient-gold text-primary-foreground font-bold shadow-gold cursor-pointer"
+              >
+                <Mail className="h-4 w-4 mr-2" /> Abrir no Email (mailto)
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </SiteLayout>
   );
 }
