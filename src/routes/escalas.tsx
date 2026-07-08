@@ -38,7 +38,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { jsPDF } from "jspdf";
-import "jspdf-autotable";
+import autoTable from "jspdf-autotable";
 
 export const Route = createFileRoute("/escalas")({
   head: () => ({
@@ -248,7 +248,7 @@ function ScalesDashboard() {
         s.dayOfMonth || ""
       ]);
       
-      (doc as any).autoTable({
+      autoTable(doc, {
         startY: 52,
         head: [["Atividades da Semana", "Intercessor do Dia / Detalhes", "Mês", "Dias do mês"]],
         body: tableRows,
