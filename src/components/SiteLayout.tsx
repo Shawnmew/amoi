@@ -47,6 +47,15 @@ export function SiteLayout({ children }: { children: ReactNode }) {
                 {item.label}
               </Link>
             ))}
+            {user && (user.role === "Servo de Deus" || user.role === "Secretaria") && (
+              <Link
+                to="/escalas"
+                className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-primary transition-colors relative"
+                activeProps={{ className: "px-4 py-2 text-sm font-semibold text-primary relative" }}
+              >
+                Escalas
+              </Link>
+            )}
           </nav>
 
           <div className="hidden md:flex items-center gap-2">
@@ -106,6 +115,15 @@ export function SiteLayout({ children }: { children: ReactNode }) {
                   {item.label}
                 </Link>
               ))}
+              {user && (user.role === "Servo de Deus" || user.role === "Secretaria") && (
+                <Link
+                  to="/escalas"
+                  onClick={() => setOpen(false)}
+                  className="px-3 py-3 rounded-md text-sm font-semibold text-primary hover:bg-muted"
+                >
+                  Escalas
+                </Link>
+              )}
               <div className="flex flex-col gap-2 pt-3 border-t border-border/60 mt-2">
                 {user ? (
                   <>
