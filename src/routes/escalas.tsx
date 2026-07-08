@@ -49,13 +49,8 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import emailjs from "@emailjs/browser";
-
-// Initialize EmailJS with public key
-const EMAILJS_PUBLIC_KEY = import.meta.env.VITE_EMAILJS_PUBLIC_KEY as string;
-const EMAILJS_SERVICE_ID = import.meta.env.VITE_EMAILJS_SERVICE_ID as string;
-const EMAILJS_TEMPLATE_ID = import.meta.env.VITE_EMAILJS_TEMPLATE_ID as string;
-emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
+// Brevo API key for browser-side email sending with PDF attachment
+const BREVO_API_KEY = import.meta.env.VITE_BREVO_API_KEY as string;
 
 export const Route = createFileRoute("/escalas")({
   head: () => ({
@@ -544,7 +539,7 @@ function ScalesDashboard() {
     setShowEmailDialog(true);
   };
 
-  // Handle EmailJS send with scale content
+  // Handle email send via Brevo API with PDF attachment
   const handleSendSMTP = async () => {
     if (!selectedScale) return;
 
@@ -562,19 +557,32 @@ function ScalesDashboard() {
     }
 
     setSendingEmail(true);
-    const toastId = toast.loading(`A enviar a escala por e-mail para ${allRecipients.length} destinatário(s)...`);
+    const toastId = toast.loading(`A gerar PDF e a enviar para ${allRecipients.length} destinatário(s)...`);
 
-    // Build rich HTML content of the scale
+    // 1. Generate PDF
+    let pdfBase64 = "";
+    try {
+      const doc = generatePDFDoc(selectedScale);
+      const raw = doc.output("datauristring");
+      pdfBase64 = raw.includes("base64,") ? raw.split("base64,")[1] : raw;
+    } catch (pdfErr) {
+      console.error("PDF generation error:", pdfErr);
+      toast.error("Falha ao gerar o documento PDF.", { id: toastId });
+      setSendingEmail(false);
+      return;
+    }
+
+    // 2. Build HTML email body
     const sorted = sortScaleSlots(selectedScale.slots);
     const slotRows = sorted.map(s => `
       <tr style="border-bottom: 1px solid #e5e7eb;">
         <td style="padding: 10px 14px; font-size: 13px; color: #374151; vertical-align: top;">${s.activity}</td>
-        <td style="padding: 10px 14px; font-size: 13px; color: #374151; vertical-align: top;">${s.dayOfMonth}</td>
+        <td style="padding: 10px 14px; font-size: 13px; color: #374151; vertical-align: top; white-space: nowrap;">${s.dayOfMonth}</td>
         <td style="padding: 10px 14px; font-size: 13px; color: #374151; white-space: pre-wrap; vertical-align: top;">${s.details}</td>
       </tr>
     `).join("");
 
-    const htmlMessage = `
+    const htmlContent = `
       <div style="font-family: Georgia, serif; max-width: 680px; margin: 0 auto; background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden;">
         <div style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); padding: 32px 28px; text-align: center;">
           <h1 style="color: #D4A017; font-size: 28px; margin: 0 0 6px 0; letter-spacing: 3px;">AMOI</h1>
@@ -583,13 +591,13 @@ function ScalesDashboard() {
         <div style="padding: 28px;">
           <h2 style="color: #111827; font-size: 20px; margin: 0 0 6px 0;">Cronograma de Atividades</h2>
           <p style="color: #D4A017; font-size: 16px; font-weight: bold; margin: 0 0 20px 0;">${selectedScale.title}</p>
-          <p style="color: #6b7280; font-size: 13px; margin: 0 0 24px 0;">Olá, saudão em Cristo Jesus.<br/>Segue em anexo o cronograma oficial de atividades da AMOI.</p>
-          <table style="width: 100%; border-collapse: collapse; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
+          <p style="color: #6b7280; font-size: 13px; margin: 0 0 24px 0;">Olá, saudação em Cristo Jesus.<br/>Em anexo encontra o cronograma oficial de atividades da AMOI em formato PDF.</p>
+          <table style="width: 100%; border-collapse: collapse; border: 1px solid #e5e7eb;">
             <thead>
               <tr style="background: #f9fafb;">
-                <th style="padding: 10px 14px; text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #6b7280; border-bottom: 2px solid #D4A017;">Momento / Atividade</th>
-                <th style="padding: 10px 14px; text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #6b7280; border-bottom: 2px solid #D4A017;">Data</th>
-                <th style="padding: 10px 14px; text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #6b7280; border-bottom: 2px solid #D4A017;">Detalhes / Intervenientes</th>
+                <th style="padding: 10px 14px; text-align: left; font-size: 12px; text-transform: uppercase; color: #6b7280; border-bottom: 2px solid #D4A017;">Momento / Atividade</th>
+                <th style="padding: 10px 14px; text-align: left; font-size: 12px; text-transform: uppercase; color: #6b7280; border-bottom: 2px solid #D4A017;">Data</th>
+                <th style="padding: 10px 14px; text-align: left; font-size: 12px; text-transform: uppercase; color: #6b7280; border-bottom: 2px solid #D4A017;">Detalhes / Intervenientes</th>
               </tr>
             </thead>
             <tbody>${slotRows}</tbody>
@@ -601,40 +609,48 @@ function ScalesDashboard() {
       </div>
     `;
 
+    const pdfFilename = `escala_${selectedScale.title.toLowerCase().replace(/[^a-z0-9]/g, "_")}.pdf`;
     const subject = `[AMOI] Cronograma de Atividades: ${selectedScale.title}`;
 
-    // Send individually to each recipient so each gets a personalised email
-    let successCount = 0;
-    const failures: string[] = [];
-
-    for (const recipient of allRecipients) {
-      try {
-        await emailjs.send(
-          EMAILJS_SERVICE_ID,
-          EMAILJS_TEMPLATE_ID,
+    // 3. Send via Brevo API (single call, BCC all recipients, PDF attached)
+    try {
+      const payload = {
+        sender: { name: "AMOI", email: "no-reply@ministerioamoi.it.ao" },
+        to: [{ email: "no-reply@ministerioamoi.it.ao", name: "AMOI" }],
+        bcc: allRecipients.map(email => ({ email })),
+        subject,
+        htmlContent,
+        attachment: [
           {
-            to_email: recipient,
-            subject: subject,
-            message: htmlMessage,
+            name: pdfFilename,
+            content: pdfBase64,
           }
-        );
-        successCount++;
-      } catch (err: any) {
-        console.error(`Failed to send to ${recipient}:`, err);
-        failures.push(recipient);
+        ]
+      };
+
+      const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+        method: "POST",
+        headers: {
+          "Accept": "application/json",
+          "Content-Type": "application/json",
+          "api-key": BREVO_API_KEY,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (response.ok) {
+        toast.success(`Escala enviada com sucesso (com PDF em anexo) para ${allRecipients.length} destinatário(s)!`, { id: toastId });
+        setShowEmailDialog(false);
+      } else {
+        const errData = await response.json().catch(() => ({}));
+        console.error("Brevo API error:", errData);
+        toast.error(`Falha no envio: ${(errData as any)?.message || response.statusText}`, { id: toastId });
       }
-    }
-
-    setSendingEmail(false);
-
-    if (failures.length === 0) {
-      toast.success(`Escala enviada com sucesso para ${successCount} destinatário(s)!`, { id: toastId });
-      setShowEmailDialog(false);
-    } else if (successCount > 0) {
-      toast.warning(`Enviado para ${successCount} destinatário(s). Falhou para: ${failures.join(", ")}`, { id: toastId });
-      setShowEmailDialog(false);
-    } else {
-      toast.error(`Falha no envio. Verifique as credenciais EmailJS e o template.`, { id: toastId });
+    } catch (err: any) {
+      console.error("Brevo fetch error:", err);
+      toast.error(`Erro de rede ao enviar via Brevo: ${err.message}`, { id: toastId });
+    } finally {
+      setSendingEmail(false);
     }
   };
 
