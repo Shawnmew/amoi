@@ -15,6 +15,7 @@ import { Route as RecuperarSenhaRouteImport } from './routes/recuperar-senha'
 import { Route as PerfilRouteImport } from './routes/perfil'
 import { Route as OChamadoRouteImport } from './routes/o-chamado'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as EscalasRouteImport } from './routes/escalas'
 import { Route as CultosRouteImport } from './routes/cultos'
 import { Route as BoasNovasRouteImport } from './routes/boas-novas'
 import { Route as AdminRouteImport } from './routes/admin'
@@ -50,6 +51,11 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EscalasRoute = EscalasRouteImport.update({
+  id: '/escalas',
+  path: '/escalas',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CultosRoute = CultosRouteImport.update({
   id: '/cultos',
   path: '/cultos',
@@ -76,6 +82,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRoute
   '/boas-novas': typeof BoasNovasRoute
   '/cultos': typeof CultosRoute
+  '/escalas': typeof EscalasRoute
   '/login': typeof LoginRoute
   '/o-chamado': typeof OChamadoRoute
   '/perfil': typeof PerfilRoute
@@ -88,6 +95,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminRoute
   '/boas-novas': typeof BoasNovasRoute
   '/cultos': typeof CultosRoute
+  '/escalas': typeof EscalasRoute
   '/login': typeof LoginRoute
   '/o-chamado': typeof OChamadoRoute
   '/perfil': typeof PerfilRoute
@@ -101,6 +109,7 @@ export interface FileRoutesById {
   '/admin': typeof AdminRoute
   '/boas-novas': typeof BoasNovasRoute
   '/cultos': typeof CultosRoute
+  '/escalas': typeof EscalasRoute
   '/login': typeof LoginRoute
   '/o-chamado': typeof OChamadoRoute
   '/perfil': typeof PerfilRoute
@@ -115,6 +124,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/boas-novas'
     | '/cultos'
+    | '/escalas'
     | '/login'
     | '/o-chamado'
     | '/perfil'
@@ -127,6 +137,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/boas-novas'
     | '/cultos'
+    | '/escalas'
     | '/login'
     | '/o-chamado'
     | '/perfil'
@@ -139,6 +150,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/boas-novas'
     | '/cultos'
+    | '/escalas'
     | '/login'
     | '/o-chamado'
     | '/perfil'
@@ -152,6 +164,7 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRoute
   BoasNovasRoute: typeof BoasNovasRoute
   CultosRoute: typeof CultosRoute
+  EscalasRoute: typeof EscalasRoute
   LoginRoute: typeof LoginRoute
   OChamadoRoute: typeof OChamadoRoute
   PerfilRoute: typeof PerfilRoute
@@ -204,6 +217,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/escalas': {
+      id: '/escalas'
+      path: '/escalas'
+      fullPath: '/escalas'
+      preLoaderRoute: typeof EscalasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/cultos': {
       id: '/cultos'
       path: '/cultos'
@@ -240,6 +260,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRoute,
   BoasNovasRoute: BoasNovasRoute,
   CultosRoute: CultosRoute,
+  EscalasRoute: EscalasRoute,
   LoginRoute: LoginRoute,
   OChamadoRoute: OChamadoRoute,
   PerfilRoute: PerfilRoute,

@@ -736,6 +736,114 @@ export async function deleteDynamicServant(id: string): Promise<void> {
   }
 }
 
+// ==========================================
+// ESCALAS (SCALES) STRUCTURES & API
+// ==========================================
+
+export interface ScaleSlot {
+  time: string;
+  name: string;
+  interveniente: string;
+  topic: string;
+}
+
+export interface ChurchScale {
+  id: string;
+  title: string;
+  date: string;
+  type: "Semanal" | "Mensal" | "Trimestral" | "Semestral" | "Anual";
+  slots: ScaleSlot[];
+  createdAt?: number;
+}
+
+export async function getDynamicScales(): Promise<ChurchScale[]> {
+  try {
+    if (db) {
+      const snap = await getDocs(collection(db, "scales"));
+      const list: ChurchScale[] = [];
+      snap.forEach((doc) => {
+        list.push({ id: doc.id, ...doc.data() } as ChurchScale);
+      });
+
+      // Sort by date (newest first or oldest first? Let's do oldest first or newest first. Let's do newest first.)
+      list.sort((a, b) => b.date.localeCompare(a.date));
+
+      if (list.length > 0) {
+        if (typeof window !== "undefined") {
+          localStorage.setItem("amoi_scales", JSON.stringify(list));
+        }
+        return list;
+      }
+    }
+  } catch (e) {
+    console.error("Error loading scales from Firestore:", e);
+  }
+
+  // LocalStorage Fallback
+  if (typeof window !== "undefined") {
+    const local = localStorage.getItem("amoi_scales");
+    if (local) {
+      try {
+        const list = JSON.parse(local) as ChurchScale[];
+        list.sort((a, b) => b.date.localeCompare(a.date));
+        return list;
+      } catch {}
+    }
+  }
+  return [];
+}
+
+export async function saveDynamicScale(scale: Omit<ChurchScale, "id"> & { id?: string }): Promise<string> {
+  const id = scale.id || doc(collection(db!, "scales")).id;
+  const newScale = {
+    ...scale,
+    id,
+    createdAt: scale.createdAt || Date.now(),
+  } as ChurchScale;
+
+  // LocalStorage
+  if (typeof window !== "undefined") {
+    const list = await getDynamicScales();
+    const idx = list.findIndex(s => s.id === id);
+    if (idx !== -1) {
+      list[idx] = newScale;
+    } else {
+      list.push(newScale);
+    }
+    localStorage.setItem("amoi_scales", JSON.stringify(list));
+  }
+
+  // Firestore
+  try {
+    if (db) {
+      await setDoc(doc(db, "scales", id), newScale);
+    }
+    return id;
+  } catch (e) {
+    console.error("Error saving scale to Firestore:", e);
+    throw e;
+  }
+}
+
+export async function deleteDynamicScale(id: string): Promise<void> {
+  // LocalStorage
+  if (typeof window !== "undefined") {
+    const list = await getDynamicScales();
+    const updated = list.filter(s => s.id !== id);
+    localStorage.setItem("amoi_scales", JSON.stringify(updated));
+  }
+
+  // Firestore
+  try {
+    if (db) {
+      await deleteDoc(doc(db, "scales", id));
+    }
+  } catch (e) {
+    console.error("Error deleting scale from Firestore:", e);
+    throw e;
+  }
+}
+
 
 
 

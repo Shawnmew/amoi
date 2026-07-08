@@ -1,0 +1,710 @@
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { SiteLayout } from "@/components/SiteLayout";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useAuth } from "../hooks/useAuth";
+import {
+  ChurchScale,
+  ScaleSlot,
+  getDynamicScales,
+  saveDynamicScale,
+  deleteDynamicScale
+} from "../lib/dynamicContent";
+import {
+  Calendar,
+  Lock,
+  Plus,
+  Trash2,
+  Save,
+  FileText,
+  Clock,
+  User,
+  BookOpen,
+  ArrowLeft,
+  Loader2,
+  FileDown,
+  Edit,
+  ArrowUp,
+  ArrowDown
+} from "lucide-react";
+import { toast } from "sonner";
+import { jsPDF } from "jspdf";
+import "jspdf-autotable";
+
+export const Route = createFileRoute("/escalas")({
+  head: () => ({
+    meta: [
+      { title: "Gestão de Escalas — AMOI" },
+      { name: "description", content: "Elaboração e exportação de escalas de atividades da AMOI." },
+    ],
+  }),
+  component: ScalesDashboard,
+});
+
+type ScalePeriod = "Todas" | "Semanal" | "Mensal" | "Trimestral" | "Semestral" | "Anual";
+
+function ScalesDashboard() {
+  const { user, loading } = useAuth();
+  
+  // States
+  const [scales, setScales] = useState<ChurchScale[]>([]);
+  const [loadingData, setLoadingData] = useState(true);
+  const [filterPeriod, setFilterPeriod] = useState<ScalePeriod>("Todas");
+  
+  // Selection and Edit State
+  const [selectedScale, setSelectedScale] = useState<ChurchScale | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editId, setEditId] = useState<string | undefined>(undefined);
+  
+  // Form Fields
+  const [title, setTitle] = useState("");
+  const [date, setDate] = useState("");
+  const [type, setType] = useState<"Semanal" | "Mensal" | "Trimestral" | "Semestral" | "Anual">("Semanal");
+  const [slots, setSlots] = useState<ScaleSlot[]>([
+    { time: "18:00 - 18:15", name: "Abertura e Oração", interveniente: "", topic: "" }
+  ]);
+
+  // Load Scales
+  useEffect(() => {
+    let active = true;
+    getDynamicScales().then((fetched) => {
+      if (active) {
+        setScales(fetched);
+        setLoadingData(false);
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  // Filtered list
+  const filteredScales = scales.filter(s => filterPeriod === "Todas" || s.type === filterPeriod);
+
+  // Authorization Check
+  if (loading) {
+    return (
+      <SiteLayout>
+        <div className="min-h-[60vh] flex items-center justify-center">
+          <Loader2 className="h-8 w-8 text-primary animate-spin" />
+        </div>
+      </SiteLayout>
+    );
+  }
+
+  if (!user) {
+    return (
+      <SiteLayout>
+        <section className="min-h-[calc(100vh-6rem)] flex items-center justify-center px-4 py-16">
+          <div className="absolute inset-0 opacity-20 pointer-events-none" style={{ background: "var(--gradient-radial-gold)" }} />
+          <div className="relative max-w-md w-full text-center bg-card/60 backdrop-blur-xl border border-primary/20 rounded-3xl p-10 shadow-elevated">
+            <div className="h-16 w-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto text-primary mb-6 border border-primary/30">
+              <Lock className="h-8 w-8" />
+            </div>
+            <h1 className="font-display text-2xl font-bold">Acesso Restrito</h1>
+            <p className="mt-3 text-muted-foreground leading-relaxed">
+              Esta página é destinada apenas aos membros da Secretaria e Administração da AMOI para elaboração de escalas.
+            </p>
+            <div className="mt-8 flex flex-col gap-3">
+              <Button asChild className="bg-gradient-gold text-primary-foreground font-semibold shadow-gold">
+                <Link to="/login">Fazer Login</Link>
+              </Button>
+              <Button asChild variant="outline" className="border-primary/30 text-primary hover:bg-primary/10">
+                <Link to="/">Voltar para o Início</Link>
+              </Button>
+            </div>
+          </div>
+        </section>
+      </SiteLayout>
+    );
+  }
+
+  const isAuthorized = user.role === "Servo de Deus" || user.role === "Secretaria";
+
+  if (!isAuthorized) {
+    return (
+      <SiteLayout>
+        <section className="min-h-[calc(100vh-6rem)] flex items-center justify-center px-4 py-16">
+          <div className="absolute inset-0 opacity-20 pointer-events-none" style={{ background: "var(--gradient-radial-gold)" }} />
+          <div className="relative max-w-md w-full text-center bg-card/60 backdrop-blur-xl border border-red-500/20 rounded-3xl p-10 shadow-elevated">
+            <div className="h-16 w-16 bg-red-500/10 rounded-2xl flex items-center justify-center mx-auto text-red-500 mb-6 border border-red-500/30">
+              <Lock className="h-8 w-8" />
+            </div>
+            <h1 className="font-display text-2xl font-bold text-red-500">Acesso Negado</h1>
+            <p className="mt-3 text-muted-foreground leading-relaxed">
+              Lamentamos, mas a sua conta atual (<strong className="text-primary">{user.displayName || user.email}</strong>) não tem permissões para aceder a esta página.
+            </p>
+            <div className="mt-8">
+              <Button asChild variant="outline" className="border-primary/30 text-primary hover:bg-primary/10">
+                <Link to="/">Voltar para o Início</Link>
+              </Button>
+            </div>
+          </div>
+        </section>
+      </SiteLayout>
+    );
+  }
+
+  // PDF Generator Function
+  const handleExportPDF = (scale: ChurchScale) => {
+    try {
+      const doc = new jsPDF();
+      
+      // Header AMOI style
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(14);
+      doc.setTextColor(170, 124, 17); // Gold #aa7c11
+      doc.text("ASSOCIAÇÃO MINISTÉRIO DE ORAÇÃO E INTERCESSÃO (AMOI)", 14, 20);
+      
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(120, 120, 120);
+      doc.text("Bravos Guerreiros da Fé · Secretaria Geral & Administração", 14, 25);
+      
+      doc.setDrawColor(212, 175, 55); // Gold line
+      doc.setLineWidth(0.5);
+      doc.line(14, 28, 196, 28);
+      
+      // Title
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(12);
+      doc.setTextColor(30, 30, 30);
+      doc.text(scale.title, 14, 38);
+      
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      doc.setTextColor(80, 80, 80);
+      doc.text(`Data do Cronograma: ${scale.date}    |    Período da Escala: ${scale.type}`, 14, 44);
+      
+      // Mapping Rows
+      const tableRows = scale.slots.map(s => [
+        s.time,
+        s.name,
+        s.interveniente || "Não definido",
+        s.topic || "Sem detalhes"
+      ]);
+      
+      (doc as any).autoTable({
+        startY: 50,
+        head: [["Escala Horária", "Atividade / Momento", "Interveniente", "Tema / Descrição"]],
+        body: tableRows,
+        headStyles: {
+          fillColor: [212, 175, 55],
+          textColor: [15, 15, 17],
+          fontStyle: "bold"
+        },
+        alternateRowStyles: {
+          fillColor: [248, 248, 250]
+        },
+        styles: {
+          fontSize: 8.5,
+          cellPadding: 3.5,
+          lineColor: [230, 230, 235],
+          lineWidth: 0.1
+        },
+        margin: { top: 50 }
+      });
+      
+      // Page numbering footer
+      const pageCount = doc.internal.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(7.5);
+        doc.setTextColor(150, 150, 150);
+        doc.text("Gerado eletronicamente pela Secretaria da AMOI · Com amor e fé.", 14, 287);
+        doc.text(`Página ${i} de ${pageCount}`, 180, 287);
+      }
+      
+      doc.save(`escala_${scale.type.toLowerCase()}_${scale.date}.pdf`);
+      toast.success("Escala exportada para PDF com sucesso!");
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      toast.error("Erro ao gerar PDF.");
+    }
+  };
+
+  // Start Form for Creating Scale
+  const handleStartCreate = () => {
+    setEditId(undefined);
+    setTitle("");
+    setDate(new Date().toISOString().split("T")[0]);
+    setType("Semanal");
+    setSlots([{ time: "18:00 - 18:15", name: "Abertura e Oração", interveniente: "", topic: "" }]);
+    setIsEditing(true);
+  };
+
+  // Start Editing Existing Scale
+  const handleStartEdit = (scale: ChurchScale) => {
+    setEditId(scale.id);
+    setTitle(scale.title);
+    setDate(scale.date);
+    setType(scale.type);
+    setSlots([...scale.slots]);
+    setIsEditing(true);
+  };
+
+  // Add Row
+  const handleAddSlot = () => {
+    setSlots([...slots, { time: "", name: "", interveniente: "", topic: "" }]);
+  };
+
+  // Remove Row
+  const handleRemoveSlot = (index: number) => {
+    setSlots(slots.filter((_, idx) => idx !== index));
+  };
+
+  // Update Input Row
+  const handleUpdateSlotField = (index: number, field: keyof ScaleSlot, val: string) => {
+    const updated = slots.map((s, idx) => {
+      if (idx === index) {
+        return { ...s, [field]: val };
+      }
+      return s;
+    });
+    setSlots(updated);
+  };
+
+  // Move Slot Up
+  const handleMoveSlotUp = (index: number) => {
+    if (index === 0) return;
+    const updated = [...slots];
+    const temp = updated[index];
+    updated[index] = updated[index - 1];
+    updated[index - 1] = temp;
+    setSlots(updated);
+  };
+
+  // Move Slot Down
+  const handleMoveSlotDown = (index: number) => {
+    if (index === slots.length - 1) return;
+    const updated = [...slots];
+    const temp = updated[index];
+    updated[index] = updated[index + 1];
+    updated[index + 1] = temp;
+    setSlots(updated);
+  };
+
+  // Save
+  const handleSaveScale = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!title.trim() || !date) {
+      toast.error("Por favor, preencha o título e a data.");
+      return;
+    }
+    
+    // Filter empty rows
+    const cleanedSlots = slots.filter(s => s.time.trim() || s.name.trim() || s.interveniente.trim());
+    if (cleanedSlots.length === 0) {
+      toast.error("A escala deve conter pelo menos uma atividade preenchida.");
+      return;
+    }
+
+    try {
+      const dataToSave = {
+        id: editId,
+        title: title.trim(),
+        date,
+        type,
+        slots: cleanedSlots
+      };
+      
+      const savedId = await saveDynamicScale(dataToSave);
+      
+      // Update local state list
+      const savedObj: ChurchScale = { ...dataToSave, id: savedId };
+      setScales(prev => {
+        const idx = prev.findIndex(s => s.id === savedId);
+        if (idx !== -1) {
+          const updated = [...prev];
+          updated[idx] = savedObj;
+          return updated;
+        }
+        return [savedObj, ...prev];
+      });
+
+      setSelectedScale(savedObj);
+      setIsEditing(false);
+      toast.success("Escala gravada com sucesso!");
+    } catch (err) {
+      toast.error("Falha ao gravar a escala.");
+    }
+  };
+
+  // Delete
+  const handleDeleteScale = async (id: string) => {
+    if (!window.confirm("Deseja realmente eliminar esta escala?")) return;
+    try {
+      await deleteDynamicScale(id);
+      setScales(prev => prev.filter(s => s.id !== id));
+      if (selectedScale?.id === id) {
+        setSelectedScale(null);
+      }
+      toast.success("Escala eliminada.");
+    } catch (err) {
+      toast.error("Falha ao apagar.");
+    }
+  };
+
+  return (
+    <SiteLayout>
+      <section className="relative py-24 min-h-screen">
+        {/* Glow decorative */}
+        <div className="absolute top-1/4 left-1/4 h-96 w-96 rounded-full bg-primary/10 blur-[120px] pointer-events-none" />
+        <div className="absolute bottom-1/4 right-1/4 h-96 w-96 rounded-full bg-primary/5 blur-[120px] pointer-events-none" />
+
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          {/* Header row */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-border/60 pb-8 mb-10">
+            <div>
+              <span className="text-xs uppercase tracking-[0.25em] text-primary font-semibold flex items-center gap-1.5 mb-2">
+                <FileText className="h-4 w-4" /> Gestão de Escalas
+              </span>
+              <h1 className="text-3xl md:text-4xl font-bold font-display">Cronogramas & Escalas</h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                Utilize esta secção para agendar os momentos do culto, definir os intervenientes e exportar relatórios em PDF.
+              </p>
+            </div>
+            
+            <div className="flex gap-3">
+              <Button asChild variant="outline" className="border-border/60 hover:bg-muted">
+                <Link to="/admin">
+                  <ArrowLeft className="mr-2 h-4 w-4" /> Painel Geral
+                </Link>
+              </Button>
+              <Button onClick={handleStartCreate} className="bg-gradient-gold text-primary-foreground font-semibold shadow-gold cursor-pointer">
+                <Plus className="mr-2 h-4 w-4" /> Nova Escala
+              </Button>
+            </div>
+          </div>
+
+          <div className="grid lg:grid-cols-12 gap-8">
+            {/* List Sidebar - 4 cols */}
+            <div className="lg:col-span-4 flex flex-col gap-6">
+              <div className="p-6 rounded-3xl bg-card border border-border/60 shadow-elevated">
+                <h3 className="font-display font-bold text-lg mb-4 text-primary">Filtrar Período</h3>
+                <div className="grid grid-cols-2 gap-2">
+                  {(["Todas", "Semanal", "Mensal", "Trimestral", "Semestral", "Anual"] as ScalePeriod[]).map((period) => (
+                    <button
+                      key={period}
+                      onClick={() => setFilterPeriod(period)}
+                      className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-all ${
+                        filterPeriod === period
+                          ? "bg-gradient-gold border-transparent text-primary-foreground shadow-gold"
+                          : "bg-card/40 border-border/40 text-muted-foreground hover:text-primary hover:border-primary/20"
+                      }`}
+                    >
+                      {period}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Scales list */}
+              <div className="p-6 rounded-3xl bg-card border border-border/60 shadow-elevated flex-1 min-h-[400px] flex flex-col">
+                <h3 className="font-display font-bold text-lg mb-4">Escalas Gravadas</h3>
+                {loadingData ? (
+                  <div className="flex-1 flex items-center justify-center">
+                    <Loader2 className="h-6 w-6 text-primary animate-spin" />
+                  </div>
+                ) : filteredScales.length === 0 ? (
+                  <div className="flex-1 flex flex-col items-center justify-center text-center p-6 text-muted-foreground">
+                    <Calendar className="h-8 w-8 mb-2 opacity-40 text-primary" />
+                    <p className="text-xs">Nenhuma escala registada para o filtro selecionado.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3 overflow-y-auto max-h-[500px] pr-1">
+                    {filteredScales.map((scale) => (
+                      <div
+                        key={scale.id}
+                        onClick={() => {
+                          if (!isEditing) {
+                            setSelectedScale(scale);
+                          }
+                        }}
+                        className={`p-4 rounded-2xl border transition-all cursor-pointer ${
+                          selectedScale?.id === scale.id && !isEditing
+                            ? "bg-primary/10 border-primary"
+                            : "bg-card/40 border-border/50 hover:border-primary/30"
+                        }`}
+                      >
+                        <div className="flex justify-between items-start gap-2">
+                          <span className="text-[9px] uppercase tracking-wider px-2 py-0.5 bg-primary/20 text-primary font-bold rounded-full">
+                            {scale.type}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground font-mono">{scale.date}</span>
+                        </div>
+                        <h4 className="font-semibold text-sm mt-2 text-foreground line-clamp-1">{scale.title}</h4>
+                        <p className="text-[11px] text-muted-foreground mt-1">
+                          {scale.slots.length} atividades programadas.
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Scale Area - 8 cols */}
+            <div className="lg:col-span-8">
+              {isEditing ? (
+                /* EDIT FORM */
+                <form onSubmit={handleSaveScale} className="p-8 rounded-3xl bg-card border border-border/60 shadow-elevated space-y-6">
+                  <h3 className="font-display font-bold text-xl text-primary flex items-center gap-2">
+                    <Plus className="h-5 w-5" /> {editId ? "Editar Escala" : "Elaborar Nova Escala"}
+                  </h3>
+                  
+                  <div className="grid md:grid-cols-3 gap-6">
+                    <div className="md:col-span-2 space-y-2">
+                      <Label htmlFor="scale-title">Título do Evento / Culto</Label>
+                      <Input
+                        id="scale-title"
+                        placeholder="Ex: Escala do Culto de Libertação"
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        required
+                        className="bg-card/50"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="scale-type">Período</Label>
+                      <select
+                        id="scale-type"
+                        value={type}
+                        onChange={(e) => setType(e.target.value as any)}
+                        className="w-full h-10 px-3 bg-card border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                      >
+                        <option value="Semanal">Semanal</option>
+                        <option value="Mensal">Mensal</option>
+                        <option value="Trimestral">Trimestral</option>
+                        <option value="Semestral">Semestral</option>
+                        <option value="Anual">Anual</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid md:grid-cols-3 gap-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="scale-date">Data da Atividade</Label>
+                      <Input
+                        id="scale-date"
+                        type="date"
+                        value={date}
+                        onChange={(e) => setDate(e.target.value)}
+                        required
+                        className="bg-card/50"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Slot Items */}
+                  <div className="space-y-4 pt-4 border-t border-border/50">
+                    <div className="flex justify-between items-center">
+                      <Label className="text-base font-semibold text-foreground">Escala de Atividades</Label>
+                      <Button
+                        type="button"
+                        onClick={handleAddSlot}
+                        size="sm"
+                        variant="outline"
+                        className="border-primary/20 hover:bg-primary/10 text-primary font-bold cursor-pointer"
+                      >
+                        <Plus className="h-4 w-4 mr-1" /> Adicionar Atividade
+                      </Button>
+                    </div>
+
+                    <div className="space-y-4">
+                      {slots.map((slot, index) => (
+                        <div
+                          key={index}
+                          className="p-4 rounded-2xl bg-card/60 border border-border/50 space-y-3 relative group"
+                        >
+                          {/* Row controls */}
+                          <div className="absolute right-3 top-3 flex items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
+                            <button
+                              type="button"
+                              onClick={() => handleMoveSlotUp(index)}
+                              disabled={index === 0}
+                              className="p-1 rounded hover:bg-muted disabled:opacity-20 text-muted-foreground cursor-pointer"
+                              title="Mover para Cima"
+                            >
+                              <ArrowUp className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleMoveSlotDown(index)}
+                              disabled={index === slots.length - 1}
+                              className="p-1 rounded hover:bg-muted disabled:opacity-20 text-muted-foreground cursor-pointer"
+                              title="Mover para Baixo"
+                            >
+                              <ArrowDown className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveSlot(index)}
+                              className="p-1 rounded hover:bg-red-500/10 text-red-500 hover:text-red-500 ml-1 cursor-pointer"
+                              title="Eliminar Linha"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+
+                          <div className="grid md:grid-cols-12 gap-3 pr-16">
+                            <div className="md:col-span-3 space-y-1">
+                              <Label className="text-[10px] uppercase text-muted-foreground">Escala Horária</Label>
+                              <Input
+                                placeholder="Ex: 18:00 - 18:15"
+                                value={slot.time}
+                                onChange={(e) => handleUpdateSlotField(index, "time", e.target.value)}
+                                className="h-8 text-xs bg-card/50"
+                              />
+                            </div>
+                            <div className="md:col-span-4 space-y-1">
+                              <Label className="text-[10px] uppercase text-muted-foreground">Atividade / Momento</Label>
+                              <Input
+                                placeholder="Ex: Cânticos Iniciais"
+                                value={slot.name}
+                                onChange={(e) => handleUpdateSlotField(index, "name", e.target.value)}
+                                className="h-8 text-xs bg-card/50"
+                              />
+                            </div>
+                            <div className="md:col-span-5 space-y-1">
+                              <Label className="text-[10px] uppercase text-muted-foreground">Interveniente / Responsável</Label>
+                              <Input
+                                placeholder="Ex: Diaconisa Judith"
+                                value={slot.interveniente}
+                                onChange={(e) => handleUpdateSlotField(index, "interveniente", e.target.value)}
+                                className="h-8 text-xs bg-card/50"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="space-y-1">
+                            <Label className="text-[10px] uppercase text-muted-foreground">Tema / Sobre o que vai intervir</Label>
+                            <Input
+                              placeholder="Ex: Tema do clamor: Famílias sob proteção divina"
+                              value={slot.topic}
+                              onChange={(e) => handleUpdateSlotField(index, "topic", e.target.value)}
+                              className="h-8 text-xs bg-card/50"
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end gap-3 pt-6 border-t border-border/50">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setIsEditing(false)}
+                      className="border-border/60 cursor-pointer"
+                    >
+                      Cancelar
+                    </Button>
+                    <Button
+                      type="submit"
+                      className="bg-gradient-gold text-primary-foreground font-semibold shadow-gold cursor-pointer"
+                    >
+                      <Save className="h-4 w-4 mr-2" /> Gravar Escala
+                    </Button>
+                  </div>
+                </form>
+              ) : selectedScale ? (
+                /* PREVIEW & ACTIONS */
+                <div className="p-8 rounded-3xl bg-card border border-border/60 shadow-elevated space-y-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border/40">
+                    <div>
+                      <span className="text-[9px] uppercase tracking-wider px-2 py-0.5 bg-primary/20 text-primary font-bold rounded-full">
+                        {selectedScale.type}
+                      </span>
+                      <h2 className="text-2xl font-bold font-display text-primary mt-2">{selectedScale.title}</h2>
+                      <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1.5">
+                        <Calendar className="h-3.5 w-3.5" /> Data do evento: {selectedScale.date}
+                      </p>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={() => handleStartEdit(selectedScale)}
+                        variant="outline"
+                        className="border-primary/20 text-primary hover:bg-primary/10 cursor-pointer"
+                      >
+                        <Edit className="h-4 w-4 mr-1.5" /> Editar
+                      </Button>
+                      <Button
+                        onClick={() => handleDeleteScale(selectedScale.id)}
+                        variant="outline"
+                        className="border-red-500/20 text-red-500 hover:bg-red-500/10 cursor-pointer"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Detail Table */}
+                  <div className="rounded-2xl overflow-hidden border border-border bg-card/40">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs border-collapse">
+                        <thead>
+                          <tr className="bg-muted border-b border-border/60 text-muted-foreground uppercase tracking-wider font-semibold">
+                            <th className="p-4 w-28">Horário</th>
+                            <th className="p-4 w-52">Atividade</th>
+                            <th className="p-4 w-44">Interveniente</th>
+                            <th className="p-4">Tema / Assunto</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border/60">
+                          {selectedScale.slots.map((s, idx) => (
+                            <tr key={idx} className="hover:bg-muted/40 transition-colors">
+                              <td className="p-4 font-mono font-semibold flex items-center gap-1 text-primary">
+                                <Clock className="h-3 w-3 opacity-60" /> {s.time}
+                              </td>
+                              <td className="p-4 font-semibold text-foreground">{s.name}</td>
+                              <td className="p-4 text-muted-foreground flex items-center gap-1">
+                                <User className="h-3 w-3 opacity-60 text-primary" /> {s.interveniente || "—"}
+                              </td>
+                              <td className="p-4 text-muted-foreground">
+                                <div className="flex items-center gap-1.5">
+                                  <BookOpen className="h-3 w-3 opacity-60" />
+                                  <span>{s.topic || "Sem detalhes específicos"}</span>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 flex justify-center">
+                    <Button
+                      onClick={() => handleExportPDF(selectedScale)}
+                      className="bg-gradient-gold text-primary-foreground font-bold shadow-gold px-8 py-6 rounded-2xl text-sm tracking-wide cursor-pointer"
+                    >
+                      <FileDown className="h-5 w-5 mr-2 animate-bounce" /> Exportar Escala em PDF (Gratuito)
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                /* EMPTY STATE */
+                <div className="p-12 rounded-3xl bg-card border border-border/60 shadow-elevated text-center flex flex-col items-center justify-center min-h-[450px]">
+                  <div className="h-16 w-16 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mb-6 border border-primary/30">
+                    <FileText className="h-8 w-8" />
+                  </div>
+                  <h3 className="font-display text-xl font-bold">Nenhuma Escala Selecionada</h3>
+                  <p className="text-sm text-muted-foreground max-w-sm mt-2">
+                    Selecione uma escala na lista lateral ou crie uma nova para visualizar as atividades detalhadas ou exportar em formato PDF.
+                  </p>
+                  <Button onClick={handleStartCreate} className="bg-gradient-gold text-primary-foreground font-semibold shadow-gold mt-6 cursor-pointer">
+                    <Plus className="mr-2 h-4 w-4" /> Elaborar Nova Escala
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
+    </SiteLayout>
+  );
+}

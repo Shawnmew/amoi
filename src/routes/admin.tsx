@@ -1124,6 +1124,16 @@ function AdminDashboard() {
                 Biblioteca de Imagens
               </button>
 
+              {(user.role === "Servo de Deus" || user.role === "Secretaria") && (
+                <Link
+                  to="/escalas"
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all border bg-card border-border/60 text-muted-foreground hover:text-primary hover:border-primary/30"
+                >
+                  <Calendar className="h-4 w-4 text-primary" />
+                  Cronogramas & Escalas
+                </Link>
+              )}
+
               {user.role === "Servo de Deus" && (
                 <button
                   onClick={() => setActiveTab("users")}
@@ -1621,6 +1631,7 @@ function AdminDashboard() {
                           >
                             <option value="membro">Membro</option>
                             <option value="Editor">Editor</option>
+                            <option value="Secretaria">Secretaria</option>
                             <option value="Servo de Deus">Servo de Deus (Admin)</option>
                           </select>
                         </div>
@@ -1711,6 +1722,7 @@ function AdminDashboard() {
                                   >
                                     <option value="membro">Membro</option>
                                     <option value="Editor">Editor</option>
+                                    <option value="Secretaria">Secretaria</option>
                                     <option value="Servo de Deus">Servo de Deus</option>
                                   </select>
                                 </td>
@@ -1801,6 +1813,7 @@ function AdminDashboard() {
                                 >
                                   <option value="membro">Membro</option>
                                   <option value="Editor">Editor</option>
+                                  <option value="Secretaria">Secretaria</option>
                                   <option value="Servo de Deus">Servo de Deus (Admin)</option>
                                 </select>
                               </div>

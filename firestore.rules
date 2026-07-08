@@ -39,6 +39,20 @@ service cloud.firestore {
       );
     }
 
+    // Apenas quem é Secretaria ou Servo de Deus (Admin)
+    function isSecretariaOrServo() {
+      return isSignedIn() && (
+        request.auth.token.email == 'admin@amoi.org' || 
+        request.auth.token.email == 'admin@ministerioamoi.it.ao' ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && (
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Secretaria' || 
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'secretaria' || 
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Servo de Deus' || 
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'servo de deus'
+        ))
+      );
+    }
+
     // --- Users Collection ---
     match /users/{userId} {
       // Qualquer pessoa autenticada pode ler perfis
@@ -107,6 +121,12 @@ service cloud.firestore {
       allow read: if true;
       // Apenas Editores ou Servos de Deus podem modificar
       allow write: if isEditorOrServo();
+    }
+
+    // --- Scales (Escalas) ---
+    match /scales/{scaleId} {
+      // Apenas Secretaria e Servo de Deus podem ler e modificar escalas
+      allow read, write: if isSecretariaOrServo();
     }
   }
 }
