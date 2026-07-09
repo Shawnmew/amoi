@@ -945,10 +945,10 @@ function ScalesDashboard() {
               </form>
             </div>
           ) : (
-            /* LIST VIEW WITH CARDS AND FILTERS */
+            /* LIST VIEW WITH SIDEBAR AND PREVIEW PANE */
             <div className="grid lg:grid-cols-12 gap-8">
-              {/* Left Column: Filters and Custom Participants (4 cols) */}
-              <div className="lg:col-span-4 flex flex-col gap-6 order-2 lg:order-1">
+              {/* Left Column - Sidebar (4 cols on desktop, full width on mobile) */}
+              <div className="lg:col-span-4 flex flex-col gap-6">
                 {/* Filtrar Período */}
                 <div className="p-6 rounded-3xl bg-card border border-border/60 shadow-elevated">
                   <h3 className="font-display font-bold text-lg mb-4 text-primary">Filtrar Período</h3>
@@ -967,6 +967,61 @@ function ScalesDashboard() {
                       </button>
                     ))}
                   </div>
+                </div>
+
+                {/* Scales list */}
+                <div className="p-6 rounded-3xl bg-card border border-border/60 shadow-elevated flex-1 min-h-[400px] flex flex-col">
+                  <h3 className="font-display font-bold text-lg mb-4">Escalas Gravadas</h3>
+                  {loadingData ? (
+                    <div className="flex-1 flex items-center justify-center">
+                      <Loader2 className="h-6 w-6 text-primary animate-spin" />
+                    </div>
+                  ) : filteredScales.length === 0 ? (
+                    <div className="flex-1 flex flex-col items-center justify-center text-center p-6 text-muted-foreground">
+                      <Calendar className="h-8 w-8 mb-2 opacity-40 text-primary" />
+                      <p className="text-xs">Nenhuma escala registada para o filtro selecionado.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3 overflow-y-auto max-h-[500px] pr-1">
+                      {filteredScales.map((scale) => (
+                        <div
+                          key={scale.id}
+                          onClick={() => {
+                            if (window.innerWidth < 640) {
+                              handleExportPDF(scale);
+                            } else {
+                              if (!isEditing) {
+                                setSelectedScale(scale);
+                              }
+                            }
+                          }}
+                          className={`p-4 rounded-2xl border transition-all cursor-pointer ${
+                            selectedScale?.id === scale.id && !isEditing
+                              ? "bg-primary/10 border-primary"
+                              : "bg-card/40 border-border/50 hover:border-primary/30"
+                          }`}
+                        >
+                          <div className="flex justify-between items-start gap-2">
+                            <span className="text-[9px] uppercase tracking-wider px-2 py-0.5 bg-primary/20 text-primary font-bold rounded-full">
+                              {scale.type}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground font-mono">{scale.date}</span>
+                          </div>
+                          <h4 className="font-semibold text-sm mt-2 text-foreground line-clamp-1">{scale.title}</h4>
+                          <p className="text-[11px] text-muted-foreground mt-1">
+                            {scale.slots.length} cultos agendados.
+                          </p>
+
+                          {/* Mobile-only Download Indicator */}
+                          <div className="flex justify-between items-center mt-3 pt-2 border-t border-border/40 sm:hidden">
+                            <span className="text-[10px] text-primary font-semibold flex items-center gap-1">
+                              <FileDown className="h-3.5 w-3.5" /> Tocar para descarregar PDF
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* Participantes Comuns list */}
@@ -1021,98 +1076,110 @@ function ScalesDashboard() {
                 </div>
               </div>
 
-              {/* Right Column: Grid of Scales (8 cols) */}
-              <div className="lg:col-span-8 flex flex-col gap-6 order-1 lg:order-2">
-                <div className="p-6 rounded-3xl bg-card border border-border/60 shadow-elevated flex-1 min-h-[400px] flex flex-col">
-                  <h3 className="font-display font-bold text-lg mb-4">Escalas Gravadas</h3>
-                  {loadingData ? (
-                    <div className="flex-1 flex items-center justify-center">
-                      <Loader2 className="h-6 w-6 text-primary animate-spin" />
-                    </div>
-                  ) : filteredScales.length === 0 ? (
-                    <div className="flex-1 flex flex-col items-center justify-center text-center p-6 text-muted-foreground">
-                      <Calendar className="h-8 w-8 mb-2 opacity-40 text-primary" />
-                      <p className="text-xs">Nenhuma escala registada para o filtro selecionado.</p>
-                    </div>
-                  ) : (
-                    <div className="grid md:grid-cols-2 gap-4">
-                      {filteredScales.map((scale) => (
-                        <div
-                          key={scale.id}
-                          className="p-5 rounded-2xl border border-border/50 bg-card/40 hover:border-primary/30 hover:bg-card/75 transition-all flex flex-col justify-between gap-4"
+              {/* Right Column - Preview & Actions (8 cols, hidden on smartphones) */}
+              <div className="lg:col-span-8 hidden sm:block">
+                {selectedScale ? (
+                  /* PREVIEW & ACTIONS */
+                  <div className="p-8 rounded-3xl bg-card border border-border/60 shadow-elevated space-y-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border/40">
+                      <div>
+                        <span className="text-[9px] uppercase tracking-wider px-2 py-0.5 bg-primary/20 text-primary font-bold rounded-full">
+                          {selectedScale.type}
+                        </span>
+                        <h2 className="text-2xl font-bold font-display text-primary mt-2">{selectedScale.title}</h2>
+                        <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1.5">
+                          <Calendar className="h-3.5 w-3.5" /> Elaborado em: {selectedScale.date}
+                        </p>
+                      </div>
+
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={() => handleStartEdit(selectedScale)}
+                          variant="outline"
+                          className="border-primary/20 text-primary hover:bg-primary/10 cursor-pointer"
                         >
-                          <div>
-                            <div className="flex justify-between items-start gap-2">
-                              <span className="text-[9px] uppercase tracking-wider px-2 py-0.5 bg-primary/20 text-primary font-bold rounded-full">
-                                {scale.type}
-                              </span>
-                              <span className="text-[10px] text-muted-foreground font-mono">{scale.date}</span>
-                            </div>
-                            <h4 className="font-semibold text-sm mt-3 text-foreground line-clamp-1">{scale.title}</h4>
-                            <p className="text-[11px] text-muted-foreground mt-1">
-                              {scale.slots.length} cultos agendados.
-                            </p>
-                          </div>
-
-                          {/* Action Buttons inside card */}
-                          <div className="flex flex-wrap items-center gap-1.5 pt-3 border-t border-border/40 mt-auto">
-                            <Button
-                              onClick={() => handleExportPDF(scale)}
-                              size="sm"
-                              className="bg-gradient-gold text-primary-foreground font-bold text-xs py-1.5 px-3 rounded-lg flex-1 shadow-gold cursor-pointer"
-                              title="Descarregar PDF"
-                            >
-                              <FileDown className="h-3.5 w-3.5 mr-1" /> PDF
-                            </Button>
-                            
-                            <Button
-                              onClick={() => {
-                                setSelectedScale(scale);
-                                setShowEmailDialog(true);
-                              }}
-                              size="sm"
-                              variant="outline"
-                              className="border-primary/20 text-primary hover:bg-primary/10 text-xs py-1.5 px-2.5 rounded-lg cursor-pointer hidden sm:inline-flex"
-                              title="Enviar por E-mail"
-                            >
-                              <Mail className="h-3.5 w-3.5" />
-                            </Button>
-
-                            <Button
-                              onClick={() => handleCopyScaleText(scale)}
-                              size="sm"
-                              variant="outline"
-                              className="border-border hover:bg-muted text-xs py-1.5 px-2.5 rounded-lg cursor-pointer text-foreground hidden sm:inline-flex"
-                              title="Copiar Texto"
-                            >
-                              <Save className="h-3.5 w-3.5" />
-                            </Button>
-
-                            <Button
-                              onClick={() => handleStartEdit(scale)}
-                              size="sm"
-                              variant="outline"
-                              className="border-border hover:bg-muted text-xs py-1.5 px-2.5 rounded-lg cursor-pointer text-foreground hidden sm:inline-flex"
-                              title="Editar Escala"
-                            >
-                              <Edit className="h-3.5 w-3.5" />
-                            </Button>
-
-                            <Button
-                              onClick={() => handleDeleteScale(scale.id)}
-                              size="sm"
-                              variant="outline"
-                              className="border-red-500/20 text-red-500 hover:bg-red-500/10 text-xs py-1.5 px-2.5 rounded-lg cursor-pointer hidden sm:inline-flex"
-                              title="Eliminar"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
+                          <Edit className="h-4 w-4 mr-1.5" /> Editar
+                        </Button>
+                        <Button
+                          onClick={() => handleDeleteScale(selectedScale.id)}
+                          variant="outline"
+                          className="border-red-500/20 text-red-500 hover:bg-red-500/10 cursor-pointer"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
-                  )}
-                </div>
+
+                    {/* Detail Table */}
+                    <div className="rounded-2xl overflow-hidden border border-border bg-card/40">
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left text-xs border-collapse">
+                          <thead>
+                            <tr className="bg-[#7ea8e0] text-black border-b border-border/60 uppercase tracking-wider font-bold">
+                              <th className="p-4 w-48 text-sm">Atividades da Semana</th>
+                              <th className="p-4 text-sm">Intercessor do Dia / Detalhes</th>
+                              <th className="p-4 w-28 text-sm">Mês</th>
+                              <th className="p-4 w-48 text-sm">Dias do mês</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-border/60">
+                            {sortScaleSlots(selectedScale.slots).map((s, idx) => (
+                              <tr key={idx} className="hover:bg-muted/40 transition-colors">
+                                <td className="p-4 font-semibold text-foreground align-top text-sm">{s.activity}</td>
+                                <td className="p-4 text-foreground whitespace-pre-line leading-relaxed align-top text-xs">
+                                  {s.details}
+                                </td>
+                                <td className="p-4 text-muted-foreground font-semibold align-top text-xs">
+                                  {s.month}
+                                </td>
+                                <td className="p-4 text-muted-foreground font-semibold align-top text-xs">
+                                  {s.dayOfMonth}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    <div className="pt-4 flex flex-wrap justify-center gap-3">
+                      <Button
+                        onClick={() => handleExportPDF(selectedScale)}
+                        className="bg-gradient-gold text-primary-foreground font-bold shadow-gold px-6 py-5 rounded-2xl text-xs tracking-wide cursor-pointer flex-1 sm:flex-initial"
+                      >
+                        <FileDown className="h-4.5 w-4.5 mr-2 animate-bounce" /> Exportar em PDF
+                      </Button>
+                      <Button
+                        onClick={handleOpenEmailDialog}
+                        variant="outline"
+                        className="border-primary/30 text-primary hover:bg-primary/10 font-bold px-6 py-5 rounded-2xl text-xs tracking-wide cursor-pointer flex-1 sm:flex-initial"
+                      >
+                        <Mail className="h-4.5 w-4.5 mr-2" /> Enviar por E-mail (Massa)
+                      </Button>
+                      <Button
+                        onClick={() => handleCopyScaleText(selectedScale)}
+                        variant="outline"
+                        className="border-border hover:bg-muted font-bold px-6 py-5 rounded-2xl text-xs tracking-wide cursor-pointer flex-1 sm:flex-initial"
+                      >
+                        <Save className="h-4.5 w-4.5 mr-2" /> Copiar Texto da Escala
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  /* EMPTY STATE */
+                  <div className="p-12 rounded-3xl bg-card border border-border/60 shadow-elevated text-center flex flex-col items-center justify-center min-h-[450px]">
+                    <div className="h-16 w-16 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mb-6 border border-primary/30">
+                      <FileText className="h-8 w-8" />
+                    </div>
+                    <h3 className="font-display text-xl font-bold">Nenhuma Escala Selecionada</h3>
+                    <p className="text-sm text-muted-foreground max-w-sm mt-2">
+                      Selecione uma escala na lista lateral ou crie uma nova para visualizar a escala de atividades detalhadas ou exportar em formato PDF.
+                    </p>
+                    <Button onClick={handleStartCreate} className="bg-gradient-gold text-primary-foreground font-semibold shadow-gold mt-6 cursor-pointer">
+                      <Plus className="mr-2 h-4 w-4" /> Elaborar Nova Escala
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
           )}
