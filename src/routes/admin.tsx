@@ -209,6 +209,13 @@ function AdminDashboard() {
     }
   }, [user]);
 
+  // Set default tab based on role - Secretaria starts on announcements
+  useEffect(() => {
+    if (user && isSecretaria(user)) {
+      setActiveTab("announcements");
+    }
+  }, [user]);
+
   const loadAllData = async () => {
     try {
       const fetchedSlides = await getDynamicSlides();
