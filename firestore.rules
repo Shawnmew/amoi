@@ -53,6 +53,17 @@ service cloud.firestore {
       );
     }
 
+    // Apenas quem é Bravo (Visualização de escalas)
+    function isBravo() {
+      return isSignedIn() && (
+        request.auth.token.email == 'bravo@amoi.org' ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && (
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Bravo' ||
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'bravo'
+        ))
+      );
+    }
+
     // --- Users Collection ---
     match /users/{userId} {
       // Qualquer pessoa autenticada pode ler perfis
@@ -125,14 +136,14 @@ service cloud.firestore {
 
     // --- Scales (Escalas) ---
     match /scales/{scaleId} {
-      // Apenas Secretaria e Servo de Deus podem ler e modificar escalas
-      allow read, write: if isSecretariaOrServo();
+      allow read: if isSecretariaOrServo() || isBravo();
+      allow write: if isSecretariaOrServo();
     }
 
     // --- Intervenientes ---
     match /intervenientes/{itemId} {
-      // Apenas Secretaria e Servo de Deus podem gerir a lista de participantes comuns
-      allow read, write: if isSecretariaOrServo();
+      allow read: if isSecretariaOrServo() || isBravo();
+      allow write: if isSecretariaOrServo();
     }
     // --- Password Reset OTPs ---
     match /passwordResets/{docId} {

@@ -3,7 +3,7 @@ import { onAuthStateChanged, signOut } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "../lib/firebase";
 
-export type UserRole = "membro" | "Editor" | "Servo de Deus" | "Secretaria";
+export type UserRole = "membro" | "Editor" | "Servo de Deus" | "Secretaria" | "Bravo";
 
 export interface AuthUser {
   uid: string;
@@ -96,12 +96,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const hasMembro = mockDbList.some((u: any) => u.email === "membro@amoi.org");
       const hasAdmin = mockDbList.some((u: any) => u.email === "admin@amoi.org");
       const hasSecretaria = mockDbList.some((u: any) => u.email === "secretaria@amoi.org");
+      const hasBravo = mockDbList.some((u: any) => u.email === "bravo@amoi.org");
 
-      if (!hasAdmin || !hasEditor || !hasMembro || !hasSecretaria) {
+      if (!hasAdmin || !hasEditor || !hasMembro || !hasSecretaria || !hasBravo) {
         const defaultUsers = [
           { uid: "mock-uid-admin", email: "admin@amoi.org", password: "admin", name: "Pastor Nelson Nunes", role: "Servo de Deus", newsletter: true, phone: "912345678" },
           { uid: "mock-uid-editor", email: "editor@amoi.org", password: "editor", name: "Diácono João", role: "Editor", newsletter: false, phone: "923456789" },
           { uid: "mock-uid-secretaria", email: "secretaria@amoi.org", password: "secretaria", name: "Secretária Júlia", role: "Secretaria", newsletter: true, phone: "945678901" },
+          { uid: "mock-uid-bravo", email: "bravo@amoi.org", password: "bravo", name: "Bravo Guerreiro", role: "Bravo", newsletter: true, phone: "956789012" },
           { uid: "mock-uid-membro", email: "membro@amoi.org", password: "membro", name: "Irmã Maria Silva", role: "membro", newsletter: true, phone: "934567890" }
         ];
 

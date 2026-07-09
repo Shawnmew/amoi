@@ -216,7 +216,8 @@ function ScalesDashboard() {
     );
   }
 
-  const isAuthorized = user.role === "Servo de Deus" || user.role === "Secretaria";
+  const isAuthorized = user.role === "Servo de Deus" || user.role === "Secretaria" || user.role === "Bravo";
+  const canEdit = user.role === "Servo de Deus" || user.role === "Secretaria";
 
   if (!isAuthorized) {
     return (
@@ -699,14 +700,18 @@ function ScalesDashboard() {
             </div>
             
             <div className="flex gap-3">
-              <Button asChild variant="outline" className="border-border/60 hover:bg-muted">
-                <Link to="/admin">
-                  <ArrowLeft className="mr-2 h-4 w-4" /> Painel Geral
-                </Link>
-              </Button>
-              <Button onClick={handleStartCreate} className="bg-gradient-gold text-primary-foreground font-semibold shadow-gold cursor-pointer hidden sm:inline-flex">
-                <Plus className="mr-2 h-4 w-4" /> Nova Escala
-              </Button>
+              {canEdit && (
+                <>
+                  <Button asChild variant="outline" className="border-border/60 hover:bg-muted">
+                    <Link to="/admin">
+                      <ArrowLeft className="mr-2 h-4 w-4" /> Painel Geral
+                    </Link>
+                  </Button>
+                  <Button onClick={handleStartCreate} className="bg-gradient-gold text-primary-foreground font-semibold shadow-gold cursor-pointer hidden sm:inline-flex">
+                    <Plus className="mr-2 h-4 w-4" /> Nova Escala
+                  </Button>
+                </>
+              )}
             </div>
           </div>
 
@@ -1033,21 +1038,23 @@ function ScalesDashboard() {
                     Cadastre nomes frequentes para inserção rápida nos detalhes da escala.
                   </p>
 
-                  <form onSubmit={handleAddInterveniente} className="flex gap-2 mb-4">
-                    <Input
-                      placeholder="Ex: Irmão Paulo"
-                      value={newIntervenienteName}
-                      onChange={(e) => setNewIntervenienteName(e.target.value)}
-                      className="h-9 text-xs bg-card/50"
-                    />
-                    <Button
-                      type="submit"
-                      disabled={addingInterveniente || !newIntervenienteName.trim()}
-                      className="h-9 px-3 bg-gradient-gold text-primary-foreground font-bold text-xs shrink-0 cursor-pointer"
-                    >
-                      Adicionar
-                    </Button>
-                  </form>
+                  {canEdit && (
+                    <form onSubmit={handleAddInterveniente} className="flex gap-2 mb-4">
+                      <Input
+                        placeholder="Ex: Irmão Paulo"
+                        value={newIntervenienteName}
+                        onChange={(e) => setNewIntervenienteName(e.target.value)}
+                        className="h-9 text-xs bg-card/50"
+                      />
+                      <Button
+                        type="submit"
+                        disabled={addingInterveniente || !newIntervenienteName.trim()}
+                        className="h-9 px-3 bg-gradient-gold text-primary-foreground font-bold text-xs shrink-0 cursor-pointer"
+                      >
+                        Adicionar
+                      </Button>
+                    </form>
+                  )}
 
                   {intervenientes.length === 0 ? (
                     <p className="text-[11px] text-muted-foreground text-center py-2 italic">
@@ -1061,14 +1068,16 @@ function ScalesDashboard() {
                           className="flex items-center justify-between gap-2 p-2 rounded-xl bg-card/40 border border-border/40 hover:border-primary/20 transition-all text-xs"
                         >
                           <span className="font-medium text-foreground truncate">{item.name}</span>
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteInterveniente(item.id)}
-                            className="p-1 text-muted-foreground hover:text-red-500 rounded transition-colors cursor-pointer"
-                            title="Remover participante"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </button>
+                          {canEdit && (
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteInterveniente(item.id)}
+                              className="p-1 text-muted-foreground hover:text-red-500 rounded transition-colors cursor-pointer"
+                              title="Remover participante"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </button>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -1092,22 +1101,24 @@ function ScalesDashboard() {
                         </p>
                       </div>
 
-                      <div className="flex gap-2">
-                        <Button
-                          onClick={() => handleStartEdit(selectedScale)}
-                          variant="outline"
-                          className="border-primary/20 text-primary hover:bg-primary/10 cursor-pointer"
-                        >
-                          <Edit className="h-4 w-4 mr-1.5" /> Editar
-                        </Button>
-                        <Button
-                          onClick={() => handleDeleteScale(selectedScale.id)}
-                          variant="outline"
-                          className="border-red-500/20 text-red-500 hover:bg-red-500/10 cursor-pointer"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+                      {canEdit && (
+                        <div className="flex gap-2">
+                          <Button
+                            onClick={() => handleStartEdit(selectedScale)}
+                            variant="outline"
+                            className="border-primary/20 text-primary hover:bg-primary/10 cursor-pointer"
+                          >
+                            <Edit className="h-4 w-4 mr-1.5" /> Editar
+                          </Button>
+                          <Button
+                            onClick={() => handleDeleteScale(selectedScale.id)}
+                            variant="outline"
+                            className="border-red-500/20 text-red-500 hover:bg-red-500/10 cursor-pointer"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      )}
                     </div>
 
                     {/* Detail Table */}
@@ -1149,13 +1160,15 @@ function ScalesDashboard() {
                       >
                         <FileDown className="h-4.5 w-4.5 mr-2 animate-bounce" /> Exportar em PDF
                       </Button>
-                      <Button
-                        onClick={handleOpenEmailDialog}
-                        variant="outline"
-                        className="border-primary/30 text-primary hover:bg-primary/10 font-bold px-6 py-5 rounded-2xl text-xs tracking-wide cursor-pointer flex-1 sm:flex-initial"
-                      >
-                        <Mail className="h-4.5 w-4.5 mr-2" /> Enviar por E-mail (Massa)
-                      </Button>
+                      {canEdit && (
+                        <Button
+                          onClick={handleOpenEmailDialog}
+                          variant="outline"
+                          className="border-primary/30 text-primary hover:bg-primary/10 font-bold px-6 py-5 rounded-2xl text-xs tracking-wide cursor-pointer flex-1 sm:flex-initial"
+                        >
+                          <Mail className="h-4.5 w-4.5 mr-2" /> Enviar por E-mail (Massa)
+                        </Button>
+                      )}
                       <Button
                         onClick={() => handleCopyScaleText(selectedScale)}
                         variant="outline"
@@ -1173,11 +1186,15 @@ function ScalesDashboard() {
                     </div>
                     <h3 className="font-display text-xl font-bold">Nenhuma Escala Selecionada</h3>
                     <p className="text-sm text-muted-foreground max-w-sm mt-2">
-                      Selecione uma escala na lista lateral ou crie uma nova para visualizar a escala de atividades detalhadas ou exportar em formato PDF.
+                      {canEdit 
+                        ? "Selecione uma escala na lista lateral ou crie uma nova para visualizar a escala de atividades detalhadas ou exportar em formato PDF."
+                        : "Selecione uma escala na lista lateral para visualizar a escala de atividades detalhadas ou exportar em formato PDF."}
                     </p>
-                    <Button onClick={handleStartCreate} className="bg-gradient-gold text-primary-foreground font-semibold shadow-gold mt-6 cursor-pointer">
-                      <Plus className="mr-2 h-4 w-4" /> Elaborar Nova Escala
-                    </Button>
+                    {canEdit && (
+                      <Button onClick={handleStartCreate} className="bg-gradient-gold text-primary-foreground font-semibold shadow-gold mt-6 cursor-pointer">
+                        <Plus className="mr-2 h-4 w-4" /> Elaborar Nova Escala
+                      </Button>
+                    )}
                   </div>
                 )}
               </div>

@@ -1047,7 +1047,7 @@ function AdminDashboard() {
     );
   }
 
-  if (user.role?.toLowerCase() === "membro") {
+  if (user.role?.toLowerCase() === "membro" || user.role?.toLowerCase() === "bravo") {
     return (
       <SiteLayout>
         <section className="min-h-[calc(100vh-6rem)] flex items-center justify-center px-4 py-16">
@@ -1058,7 +1058,7 @@ function AdminDashboard() {
             </div>
             <h1 className="font-display text-2xl font-bold text-red-500">Acesso Negado</h1>
             <p className="mt-3 text-muted-foreground leading-relaxed">
-              Lamentamos, mas a sua conta (<strong className="text-primary">{user.displayName || user.email}</strong>) está registada como <strong className="text-primary">Membro</strong>. Apenas Editores e Servos de Deus têm acesso a esta área.
+              Lamentamos, mas a sua conta (<strong className="text-primary">{user.displayName || user.email}</strong>) está registada como <strong className="text-primary">{user.role}</strong>. Apenas Editores, Secretárias e Servos de Deus têm acesso a esta área.
             </p>
             <div className="mt-8">
               <Button asChild variant="outline" className="border-primary/30 text-primary hover:bg-primary/10">
@@ -1724,6 +1724,7 @@ function AdminDashboard() {
                             className="w-full h-10 px-3 rounded-lg border border-border/60 bg-card text-sm focus:outline-none focus:border-primary font-semibold text-primary"
                           >
                             <option value="membro">Membro</option>
+                            <option value="Bravo">Bravo</option>
                             <option value="Editor">Editor</option>
                             <option value="Secretaria">Secretaria</option>
                             <option value="Servo de Deus">Servo de Deus (Admin)</option>
@@ -1906,6 +1907,7 @@ function AdminDashboard() {
                                   className="w-full h-10 px-3 rounded-lg border border-border/60 bg-card text-sm focus:outline-none focus:border-primary font-semibold text-primary font-sans"
                                 >
                                   <option value="membro">Membro</option>
+                                  <option value="Bravo">Bravo</option>
                                   <option value="Editor">Editor</option>
                                   <option value="Secretaria">Secretaria</option>
                                   <option value="Servo de Deus">Servo de Deus (Admin)</option>

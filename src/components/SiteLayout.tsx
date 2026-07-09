@@ -84,7 +84,7 @@ export function SiteLayout({ children }: { children: ReactNode }) {
                 {item.label}
               </Link>
             ))}
-            {user && (user.role === "Servo de Deus" || user.role === "Secretaria") && (
+            {user && (user.role === "Servo de Deus" || user.role === "Secretaria" || user.role === "Bravo") && (
               <Link
                 to="/escalas"
                 className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-primary transition-colors relative"
@@ -102,7 +102,7 @@ export function SiteLayout({ children }: { children: ReactNode }) {
                 <span className="text-xs text-muted-foreground mr-2 max-w-[120px] truncate" title={user.displayName || user.email || ""}>
                   Olá, {user.displayName?.split(" ")[0] || user.email}
                 </span>
-                {user.role?.toLowerCase() !== "membro" && (
+                {user.role?.toLowerCase() !== "membro" && user.role !== "Bravo" && (
                   <Button asChild variant="ghost" size="sm" className="mr-1 text-primary hover:text-primary">
                     <Link to="/admin">Painel</Link>
                   </Button>
@@ -152,7 +152,7 @@ export function SiteLayout({ children }: { children: ReactNode }) {
                   {item.label}
                 </Link>
               ))}
-              {user && (user.role === "Servo de Deus" || user.role === "Secretaria") && (
+              {user && (user.role === "Servo de Deus" || user.role === "Secretaria" || user.role === "Bravo") && (
                 <Link
                   to="/escalas"
                   onClick={() => setOpen(false)}
@@ -170,7 +170,7 @@ export function SiteLayout({ children }: { children: ReactNode }) {
                       </span>
                     </div>
                     <div className="flex gap-2">
-                      {user.role?.toLowerCase() !== "membro" && (
+                      {user.role?.toLowerCase() !== "membro" && user.role !== "Bravo" && (
                         <Button asChild size="sm" variant="ghost" className="flex-1 text-primary hover:text-primary">
                           <Link to="/admin" onClick={() => setOpen(false)}>Painel</Link>
                         </Button>
