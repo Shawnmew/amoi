@@ -673,9 +673,8 @@ function ScalesDashboard() {
   };
 
   // Copy scale text directly to clipboard
-  const handleCopyScaleText = () => {
-    if (!selectedScale) return;
-    navigator.clipboard.writeText(generateEmailText(selectedScale));
+  const handleCopyScaleText = (scale: ChurchScale) => {
+    navigator.clipboard.writeText(generateEmailText(scale));
     toast.success("Texto da escala copiado com sucesso!");
   };
 
@@ -711,464 +710,412 @@ function ScalesDashboard() {
             </div>
           </div>
 
-          <div className="grid lg:grid-cols-12 gap-8">
-            {/* List Sidebar - 4 cols */}
-            <div className="lg:col-span-4 flex flex-col gap-6 order-2 lg:order-1">
-              <div className="p-6 rounded-3xl bg-card border border-border/60 shadow-elevated">
-                <h3 className="font-display font-bold text-lg mb-4 text-primary">Filtrar Período</h3>
-                <div className="grid grid-cols-2 gap-2">
-                  {(["Todas", "Semanal", "Mensal", "Trimestral", "Semestral", "Anual"] as ScalePeriod[]).map((period) => (
-                    <button
-                      key={period}
-                      onClick={() => setFilterPeriod(period)}
-                      className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-all ${
-                        filterPeriod === period
-                          ? "bg-gradient-gold border-transparent text-primary-foreground shadow-gold"
-                          : "bg-card/40 border-border/40 text-muted-foreground hover:text-primary hover:border-primary/20"
-                      }`}
+          {isEditing ? (
+            /* EDIT FORM - full width for convenience */
+            <div className="w-full">
+              <form onSubmit={handleSaveScale} className="p-8 rounded-3xl bg-card border border-border/60 shadow-elevated space-y-6">
+                <h3 className="font-display font-bold text-xl text-primary flex items-center gap-2">
+                  <Plus className="h-5 w-5" /> {editId ? "Editar Escala" : "Elaborar Nova Escala"}
+                </h3>
+                
+                <div className="grid md:grid-cols-3 gap-6">
+                  <div className="md:col-span-2 space-y-2">
+                    <Label htmlFor="scale-title">Título do Cronograma / Escala</Label>
+                    <Input
+                      id="scale-title"
+                      placeholder="Ex: Escala de Junho - Julho 2026"
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      required
+                      className="bg-card/50"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="scale-type">Período</Label>
+                    <select
+                      id="scale-type"
+                      value={type}
+                      onChange={(e) => setType(e.target.value as any)}
+                      className="w-full h-10 px-3 bg-card border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary font-semibold text-primary"
                     >
-                      {period}
-                    </button>
-                  ))}
+                      <option value="Semanal">Semanal</option>
+                      <option value="Mensal">Mensal</option>
+                      <option value="Trimestral">Trimestral</option>
+                      <option value="Semestral">Semestral</option>
+                      <option value="Anual">Anual</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid md:grid-cols-3 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="scale-date">Data de Elaboração</Label>
+                    <Input
+                      id="scale-date"
+                      type="date"
+                      value={date}
+                      onChange={(e) => setDate(e.target.value)}
+                      required
+                      className="bg-card/50"
+                    />
+                  </div>
+                </div>
+
+                {/* Slot Items */}
+                <div className="space-y-4 pt-4 border-t border-border/50">
+                  <div className="flex justify-between items-center">
+                    <Label className="text-base font-semibold text-foreground">Tabela de Cultos e Atividades</Label>
+                    <Button
+                      type="button"
+                      onClick={handleAddSlot}
+                      size="sm"
+                      variant="outline"
+                      className="border-primary/20 hover:bg-primary/10 text-primary font-bold cursor-pointer"
+                    >
+                      <Plus className="h-4 w-4 mr-1" /> Adicionar Linha de Culto
+                    </Button>
+                  </div>
+
+                  <div className="space-y-4">
+                    {slots.map((slot, index) => (
+                      <div
+                        key={index}
+                        className="p-4 rounded-2xl bg-card/60 border border-border/50 space-y-3 group"
+                      >
+                        {/* Row controls header */}
+                        <div className="flex justify-between items-center border-b border-border/40 pb-2">
+                          <span className="text-xs font-bold text-primary">Culto / Atividade #{index + 1}</span>
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => handleMoveSlotUp(index)}
+                              disabled={index === 0}
+                              className="p-1 rounded hover:bg-muted disabled:opacity-20 text-muted-foreground cursor-pointer"
+                              title="Mover para Cima"
+                            >
+                              <ArrowUp className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleMoveSlotDown(index)}
+                              disabled={index === slots.length - 1}
+                              className="p-1 rounded hover:bg-muted disabled:opacity-20 text-muted-foreground cursor-pointer"
+                              title="Mover para Baixo"
+                            >
+                              <ArrowDown className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveSlot(index)}
+                              className="p-1 rounded hover:bg-red-500/10 text-red-500 hover:text-red-500 ml-1 cursor-pointer"
+                              title="Eliminar Linha"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="grid md:grid-cols-12 gap-3">
+                          <div className="md:col-span-3 space-y-1">
+                            <Label className="text-[10px] uppercase text-muted-foreground">Atividade / Culto</Label>
+                            <Input
+                              placeholder="Ex: Culto de Adoração"
+                              value={slot.activity}
+                              onChange={(e) => handleUpdateSlotField(index, "activity", e.target.value)}
+                              className="h-8 text-xs bg-card/50"
+                            />
+                          </div>
+                          <div className="md:col-span-3 space-y-1">
+                            <Label className="text-[10px] uppercase text-gradient-gold font-semibold">Calendário (Dia)</Label>
+                            <Input
+                              type="date"
+                              value={slot.slotDate || ""}
+                              onChange={(e) => {
+                                const dateVal = e.target.value;
+                                if (dateVal) {
+                                  const formatted = formatScaleDate(dateVal);
+                                  const updated = slots.map((s, idx) => {
+                                    if (idx === index) {
+                                      return { 
+                                        ...s, 
+                                        month: formatted.month, 
+                                        dayOfMonth: formatted.dayOfMonth,
+                                        slotDate: dateVal 
+                                      };
+                                    }
+                                    return s;
+                                  });
+                                  setSlots(updated);
+                                }
+                              }}
+                              className="h-8 text-xs bg-card/50 font-semibold text-primary cursor-pointer"
+                            />
+                          </div>
+                          <div className="md:col-span-2 space-y-1">
+                            <Label className="text-[10px] uppercase text-muted-foreground">Mês</Label>
+                            <Input
+                              placeholder="Ex: JUNHO"
+                              value={slot.month}
+                              onChange={(e) => handleUpdateSlotField(index, "month", e.target.value)}
+                              className="h-8 text-xs bg-card/50"
+                            />
+                          </div>
+                          <div className="md:col-span-4 space-y-1">
+                            <Label className="text-[10px] uppercase text-muted-foreground">Dias do Mês / Data</Label>
+                            <Input
+                              placeholder="Ex: Domingo - 14/06/2026"
+                              value={slot.dayOfMonth}
+                              onChange={(e) => handleUpdateSlotField(index, "dayOfMonth", e.target.value)}
+                              className="h-8 text-xs bg-card/50"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                            <Label className="text-[10px] uppercase text-muted-foreground">Interveniente do Dia / Detalhes da Escala</Label>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[10px] text-muted-foreground">Inserir rápido:</span>
+                              <select
+                                value=""
+                                onChange={(e) => {
+                                  const selectedName = e.target.value;
+                                  if (selectedName) {
+                                    const prevDetails = slot.details;
+                                    const newDetails = prevDetails.trim() 
+                                      ? prevDetails + "\n" + selectedName 
+                                      : selectedName;
+                                    handleUpdateSlotField(index, "details", newDetails);
+                                    toast.success(`Inserido: ${selectedName}`);
+                                  }
+                                }}
+                                className="text-[10px] bg-card border border-border/60 rounded px-2 py-0.5 focus:outline-none text-primary font-semibold"
+                              >
+                                <option value="">— Selecione um nome —</option>
+                                {servants.length > 0 && (
+                                  <optgroup label="Servos & Líderes (O Chamado)">
+                                    {servants.map((srv) => (
+                                      <option key={srv.id} value={srv.name}>
+                                        {srv.name}
+                                      </option>
+                                    ))}
+                                  </optgroup>
+                                )}
+                                {intervenientes.length > 0 && (
+                                  <optgroup label="Participantes Comuns">
+                                    {intervenientes.map((item) => (
+                                      <option key={item.id} value={item.name}>
+                                        {item.name}
+                                      </option>
+                                    ))}
+                                  </optgroup>
+                                )}
+                              </select>
+                            </div>
+                          </div>
+                          <textarea
+                            placeholder="Escreva a escala (moderação, louvores, palavra, etc.) separando as linhas."
+                            value={slot.details}
+                            rows={5}
+                            onChange={(e) => handleUpdateSlotField(index, "details", e.target.value)}
+                            className="w-full p-2 text-xs bg-card/50 rounded-lg border border-border text-foreground focus:outline-none focus:ring-1 focus:ring-primary font-sans leading-relaxed"
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-3 pt-6 border-t border-border/50">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsEditing(false)}
+                    className="border-border/60 cursor-pointer"
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="bg-gradient-gold text-primary-foreground font-semibold shadow-gold cursor-pointer"
+                  >
+                    <Save className="h-4 w-4 mr-2" /> Gravar Escala
+                  </Button>
+                </div>
+              </form>
+            </div>
+          ) : (
+            /* LIST VIEW WITH CARDS AND FILTERS */
+            <div className="grid lg:grid-cols-12 gap-8">
+              {/* Left Column: Filters and Custom Participants (4 cols) */}
+              <div className="lg:col-span-4 flex flex-col gap-6">
+                {/* Filtrar Período */}
+                <div className="p-6 rounded-3xl bg-card border border-border/60 shadow-elevated">
+                  <h3 className="font-display font-bold text-lg mb-4 text-primary">Filtrar Período</h3>
+                  <div className="grid grid-cols-2 gap-2">
+                    {(["Todas", "Semanal", "Mensal", "Trimestral", "Semestral", "Anual"] as ScalePeriod[]).map((period) => (
+                      <button
+                        key={period}
+                        onClick={() => setFilterPeriod(period)}
+                        className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-all ${
+                          filterPeriod === period
+                            ? "bg-gradient-gold border-transparent text-primary-foreground shadow-gold"
+                            : "bg-card/40 border-border/40 text-muted-foreground hover:text-primary hover:border-primary/20"
+                        }`}
+                      >
+                        {period}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Participantes Comuns list */}
+                <div className="p-6 rounded-3xl bg-card border border-border/60 shadow-elevated">
+                  <h3 className="font-display font-bold text-lg mb-2 text-primary flex items-center gap-1.5">
+                    <User className="h-5 w-5" /> Participantes Comuns
+                  </h3>
+                  <p className="text-[11px] text-muted-foreground mb-4">
+                    Cadastre nomes frequentes para inserção rápida nos detalhes da escala.
+                  </p>
+
+                  <form onSubmit={handleAddInterveniente} className="flex gap-2 mb-4">
+                    <Input
+                      placeholder="Ex: Irmão Paulo"
+                      value={newIntervenienteName}
+                      onChange={(e) => setNewIntervenienteName(e.target.value)}
+                      className="h-9 text-xs bg-card/50"
+                    />
+                    <Button
+                      type="submit"
+                      disabled={addingInterveniente || !newIntervenienteName.trim()}
+                      className="h-9 px-3 bg-gradient-gold text-primary-foreground font-bold text-xs shrink-0 cursor-pointer"
+                    >
+                      Adicionar
+                    </Button>
+                  </form>
+
+                  {intervenientes.length === 0 ? (
+                    <p className="text-[11px] text-muted-foreground text-center py-2 italic">
+                      Nenhum participante customizado.
+                    </p>
+                  ) : (
+                    <div className="space-y-1.5 max-h-[220px] overflow-y-auto pr-1">
+                      {intervenientes.map((item) => (
+                        <div
+                          key={item.id}
+                          className="flex items-center justify-between gap-2 p-2 rounded-xl bg-card/40 border border-border/40 hover:border-primary/20 transition-all text-xs"
+                        >
+                          <span className="font-medium text-foreground truncate">{item.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteInterveniente(item.id)}
+                            className="p-1 text-muted-foreground hover:text-red-500 rounded transition-colors cursor-pointer"
+                            title="Remover participante"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {/* Scales list */}
-              <div className="p-6 rounded-3xl bg-card border border-border/60 shadow-elevated flex-1 min-h-[400px] flex flex-col">
-                <h3 className="font-display font-bold text-lg mb-4">Escalas Gravadas</h3>
-                {loadingData ? (
-                  <div className="flex-1 flex items-center justify-center">
-                    <Loader2 className="h-6 w-6 text-primary animate-spin" />
-                  </div>
-                ) : filteredScales.length === 0 ? (
-                  <div className="flex-1 flex flex-col items-center justify-center text-center p-6 text-muted-foreground">
-                    <Calendar className="h-8 w-8 mb-2 opacity-40 text-primary" />
-                    <p className="text-xs">Nenhuma escala registada para o filtro selecionado.</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3 overflow-y-auto max-h-[500px] pr-1">
-                    {filteredScales.map((scale) => (
-                      <div
-                        key={scale.id}
-                        onClick={() => {
-                          if (!isEditing) {
-                            setSelectedScale(scale);
-                          }
-                        }}
-                        className={`p-4 rounded-2xl border transition-all cursor-pointer ${
-                          selectedScale?.id === scale.id && !isEditing
-                            ? "bg-primary/10 border-primary"
-                            : "bg-card/40 border-border/50 hover:border-primary/30"
-                        }`}
-                      >
-                        <div className="flex justify-between items-start gap-2">
-                          <span className="text-[9px] uppercase tracking-wider px-2 py-0.5 bg-primary/20 text-primary font-bold rounded-full">
-                            {scale.type}
-                          </span>
-                          <span className="text-[10px] text-muted-foreground font-mono">{scale.date}</span>
-                        </div>
-                        <h4 className="font-semibold text-sm mt-2 text-foreground line-clamp-1">{scale.title}</h4>
-                        <p className="text-[11px] text-muted-foreground mt-1">
-                          {scale.slots.length} cultos agendados.
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Participantes Comuns list */}
-              <div className="p-6 rounded-3xl bg-card border border-border/60 shadow-elevated">
-                <h3 className="font-display font-bold text-lg mb-2 text-primary flex items-center gap-1.5">
-                  <User className="h-5 w-5" /> Participantes Comuns
-                </h3>
-                <p className="text-[11px] text-muted-foreground mb-4">
-                  Cadastre nomes frequentes para inserção rápida nos detalhes da escala.
-                </p>
-
-                {/* Form to add */}
-                <form onSubmit={handleAddInterveniente} className="flex gap-2 mb-4">
-                  <Input
-                    placeholder="Ex: Irmão Paulo"
-                    value={newIntervenienteName}
-                    onChange={(e) => setNewIntervenienteName(e.target.value)}
-                    className="h-9 text-xs bg-card/50"
-                  />
-                  <Button
-                    type="submit"
-                    disabled={addingInterveniente || !newIntervenienteName.trim()}
-                    className="h-9 px-3 bg-gradient-gold text-primary-foreground font-bold text-xs shrink-0 cursor-pointer"
-                  >
-                    Adicionar
-                  </Button>
-                </form>
-
-                {/* List of registered participants */}
-                {intervenientes.length === 0 ? (
-                  <p className="text-[11px] text-muted-foreground text-center py-2 italic">
-                    Nenhum participante customizado.
-                  </p>
-                ) : (
-                  <div className="space-y-1.5 max-h-[220px] overflow-y-auto pr-1">
-                    {intervenientes.map((item) => (
-                      <div
-                        key={item.id}
-                        className="flex items-center justify-between gap-2 p-2 rounded-xl bg-card/40 border border-border/40 hover:border-primary/20 transition-all text-xs"
-                      >
-                        <span className="font-medium text-foreground truncate">{item.name}</span>
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteInterveniente(item.id)}
-                          className="p-1 text-muted-foreground hover:text-red-500 rounded transition-colors cursor-pointer"
-                          title="Remover participante"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Scale Area - 8 cols */}
-            <div className="lg:col-span-8 order-1 lg:order-2">
-              {isEditing ? (
-                /* EDIT FORM */
-                <form onSubmit={handleSaveScale} className="p-8 rounded-3xl bg-card border border-border/60 shadow-elevated space-y-6">
-                  <h3 className="font-display font-bold text-xl text-primary flex items-center gap-2">
-                    <Plus className="h-5 w-5" /> {editId ? "Editar Escala" : "Elaborar Nova Escala"}
-                  </h3>
-                  
-                  <div className="grid md:grid-cols-3 gap-6">
-                    <div className="md:col-span-2 space-y-2">
-                      <Label htmlFor="scale-title">Título do Cronograma / Escala</Label>
-                      <Input
-                        id="scale-title"
-                        placeholder="Ex: Escala de Junho - Julho 2026"
-                        value={title}
-                        onChange={(e) => setTitle(e.target.value)}
-                        required
-                        className="bg-card/50"
-                      />
+              {/* Right Column: Grid of Scales (8 cols) */}
+              <div className="lg:col-span-8 flex flex-col gap-6">
+                <div className="p-6 rounded-3xl bg-card border border-border/60 shadow-elevated flex-1 min-h-[400px] flex flex-col">
+                  <h3 className="font-display font-bold text-lg mb-4">Escalas Gravadas</h3>
+                  {loadingData ? (
+                    <div className="flex-1 flex items-center justify-center">
+                      <Loader2 className="h-6 w-6 text-primary animate-spin" />
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="scale-type">Período</Label>
-                      <select
-                        id="scale-type"
-                        value={type}
-                        onChange={(e) => setType(e.target.value as any)}
-                        className="w-full h-10 px-3 bg-card border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary font-semibold text-primary"
-                      >
-                        <option value="Semanal">Semanal</option>
-                        <option value="Mensal">Mensal</option>
-                        <option value="Trimestral">Trimestral</option>
-                        <option value="Semestral">Semestral</option>
-                        <option value="Anual">Anual</option>
-                      </select>
+                  ) : filteredScales.length === 0 ? (
+                    <div className="flex-1 flex flex-col items-center justify-center text-center p-6 text-muted-foreground">
+                      <Calendar className="h-8 w-8 mb-2 opacity-40 text-primary" />
+                      <p className="text-xs">Nenhuma escala registada para o filtro selecionado.</p>
                     </div>
-                  </div>
-
-                  <div className="grid md:grid-cols-3 gap-6">
-                    <div className="space-y-2">
-                      <Label htmlFor="scale-date">Data de Elaboração</Label>
-                      <Input
-                        id="scale-date"
-                        type="date"
-                        value={date}
-                        onChange={(e) => setDate(e.target.value)}
-                        required
-                        className="bg-card/50"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Slot Items */}
-                  <div className="space-y-4 pt-4 border-t border-border/50">
-                    <div className="flex justify-between items-center">
-                      <Label className="text-base font-semibold text-foreground">Tabela de Cultos e Atividades</Label>
-                      <Button
-                        type="button"
-                        onClick={handleAddSlot}
-                        size="sm"
-                        variant="outline"
-                        className="border-primary/20 hover:bg-primary/10 text-primary font-bold cursor-pointer"
-                      >
-                        <Plus className="h-4 w-4 mr-1" /> Adicionar Linha de Culto
-                      </Button>
-                    </div>
-
-                    <div className="space-y-4">
-                      {slots.map((slot, index) => (
+                  ) : (
+                    <div className="grid md:grid-cols-2 gap-4">
+                      {filteredScales.map((scale) => (
                         <div
-                          key={index}
-                          className="p-4 rounded-2xl bg-card/60 border border-border/50 space-y-3 group"
+                          key={scale.id}
+                          className="p-5 rounded-2xl border border-border/50 bg-card/40 hover:border-primary/30 hover:bg-card/75 transition-all flex flex-col justify-between gap-4"
                         >
-                          {/* Row controls header */}
-                          <div className="flex justify-between items-center border-b border-border/40 pb-2">
-                            <span className="text-xs font-bold text-primary">Culto / Atividade #{index + 1}</span>
-                            <div className="flex items-center gap-1">
-                              <button
-                                type="button"
-                                onClick={() => handleMoveSlotUp(index)}
-                                disabled={index === 0}
-                                className="p-1 rounded hover:bg-muted disabled:opacity-20 text-muted-foreground cursor-pointer"
-                                title="Mover para Cima"
-                              >
-                                <ArrowUp className="h-3.5 w-3.5" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleMoveSlotDown(index)}
-                                disabled={index === slots.length - 1}
-                                className="p-1 rounded hover:bg-muted disabled:opacity-20 text-muted-foreground cursor-pointer"
-                                title="Mover para Baixo"
-                              >
-                                <ArrowDown className="h-3.5 w-3.5" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveSlot(index)}
-                                className="p-1 rounded hover:bg-red-500/10 text-red-500 hover:text-red-500 ml-1 cursor-pointer"
-                                title="Eliminar Linha"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </button>
+                          <div>
+                            <div className="flex justify-between items-start gap-2">
+                              <span className="text-[9px] uppercase tracking-wider px-2 py-0.5 bg-primary/20 text-primary font-bold rounded-full">
+                                {scale.type}
+                              </span>
+                              <span className="text-[10px] text-muted-foreground font-mono">{scale.date}</span>
                             </div>
+                            <h4 className="font-semibold text-sm mt-3 text-foreground line-clamp-1">{scale.title}</h4>
+                            <p className="text-[11px] text-muted-foreground mt-1">
+                              {scale.slots.length} cultos agendados.
+                            </p>
                           </div>
 
-                          <div className="grid md:grid-cols-12 gap-3">
-                            <div className="md:col-span-3 space-y-1">
-                              <Label className="text-[10px] uppercase text-muted-foreground">Atividade / Culto</Label>
-                              <Input
-                                placeholder="Ex: Culto de Adoração"
-                                value={slot.activity}
-                                onChange={(e) => handleUpdateSlotField(index, "activity", e.target.value)}
-                                className="h-8 text-xs bg-card/50"
-                              />
-                            </div>
-                            <div className="md:col-span-3 space-y-1">
-                              <Label className="text-[10px] uppercase text-gradient-gold font-semibold">Calendário (Dia)</Label>
-                              <Input
-                                type="date"
-                                value={slot.slotDate || ""}
-                                onChange={(e) => {
-                                  const dateVal = e.target.value;
-                                  if (dateVal) {
-                                    const formatted = formatScaleDate(dateVal);
-                                    const updated = slots.map((s, idx) => {
-                                      if (idx === index) {
-                                        return { 
-                                          ...s, 
-                                          month: formatted.month, 
-                                          dayOfMonth: formatted.dayOfMonth,
-                                          slotDate: dateVal 
-                                        };
-                                      }
-                                      return s;
-                                    });
-                                    setSlots(updated);
-                                  }
-                                }}
-                                className="h-8 text-xs bg-card/50 font-semibold text-primary cursor-pointer"
-                              />
-                            </div>
-                            <div className="md:col-span-2 space-y-1">
-                              <Label className="text-[10px] uppercase text-muted-foreground">Mês</Label>
-                              <Input
-                                placeholder="Ex: JUNHO"
-                                value={slot.month}
-                                onChange={(e) => handleUpdateSlotField(index, "month", e.target.value)}
-                                className="h-8 text-xs bg-card/50"
-                              />
-                            </div>
-                            <div className="md:col-span-4 space-y-1">
-                              <Label className="text-[10px] uppercase text-muted-foreground">Dias do Mês / Data</Label>
-                              <Input
-                                placeholder="Ex: Domingo - 14/06/2026"
-                                value={slot.dayOfMonth}
-                                onChange={(e) => handleUpdateSlotField(index, "dayOfMonth", e.target.value)}
-                                className="h-8 text-xs bg-card/50"
-                              />
-                            </div>
-                          </div>
+                          {/* Action Buttons inside card */}
+                          <div className="flex flex-wrap items-center gap-1.5 pt-3 border-t border-border/40 mt-auto">
+                            <Button
+                              onClick={() => handleExportPDF(scale)}
+                              size="sm"
+                              className="bg-gradient-gold text-primary-foreground font-bold text-xs py-1.5 px-3 rounded-lg flex-1 shadow-gold cursor-pointer"
+                              title="Descarregar PDF"
+                            >
+                              <FileDown className="h-3.5 w-3.5 mr-1" /> PDF
+                            </Button>
+                            
+                            <Button
+                              onClick={() => {
+                                setSelectedScale(scale);
+                                setShowEmailDialog(true);
+                              }}
+                              size="sm"
+                              variant="outline"
+                              className="border-primary/20 text-primary hover:bg-primary/10 text-xs py-1.5 px-2.5 rounded-lg cursor-pointer"
+                              title="Enviar por E-mail"
+                            >
+                              <Mail className="h-3.5 w-3.5" />
+                            </Button>
 
-                          <div className="space-y-2">
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                              <Label className="text-[10px] uppercase text-muted-foreground">Interveniente do Dia / Detalhes da Escala</Label>
-                              <div className="flex items-center gap-1.5">
-                                <span className="text-[10px] text-muted-foreground">Inserir rápido:</span>
-                                <select
-                                  value=""
-                                  onChange={(e) => {
-                                    const selectedName = e.target.value;
-                                    if (selectedName) {
-                                      const prevDetails = slot.details;
-                                      const newDetails = prevDetails.trim() 
-                                        ? prevDetails + "\n" + selectedName 
-                                        : selectedName;
-                                      handleUpdateSlotField(index, "details", newDetails);
-                                      toast.success(`Inserido: ${selectedName}`);
-                                    }
-                                  }}
-                                  className="text-[10px] bg-card border border-border/60 rounded px-2 py-0.5 focus:outline-none text-primary font-semibold"
-                                >
-                                  <option value="">— Selecione um nome —</option>
-                                  {servants.length > 0 && (
-                                    <optgroup label="Servos & Líderes (O Chamado)">
-                                      {servants.map((srv) => (
-                                        <option key={srv.id} value={srv.name}>
-                                          {srv.name}
-                                        </option>
-                                      ))}
-                                    </optgroup>
-                                  )}
-                                  {intervenientes.length > 0 && (
-                                    <optgroup label="Participantes Comuns">
-                                      {intervenientes.map((item) => (
-                                        <option key={item.id} value={item.name}>
-                                          {item.name}
-                                        </option>
-                                      ))}
-                                    </optgroup>
-                                  )}
-                                </select>
-                              </div>
-                            </div>
-                            <textarea
-                              placeholder="Escreva a escala (moderação, louvores, palavra, etc.) separando as linhas."
-                              value={slot.details}
-                              rows={5}
-                              onChange={(e) => handleUpdateSlotField(index, "details", e.target.value)}
-                              className="w-full p-2 text-xs bg-card/50 rounded-lg border border-border text-foreground focus:outline-none focus:ring-1 focus:ring-primary font-sans leading-relaxed"
-                            />
+                            <Button
+                              onClick={() => handleCopyScaleText(scale)}
+                              size="sm"
+                              variant="outline"
+                              className="border-border hover:bg-muted text-xs py-1.5 px-2.5 rounded-lg cursor-pointer text-foreground"
+                              title="Copiar Texto"
+                            >
+                              <Save className="h-3.5 w-3.5" />
+                            </Button>
+
+                            <Button
+                              onClick={() => handleStartEdit(scale)}
+                              size="sm"
+                              variant="outline"
+                              className="border-border hover:bg-muted text-xs py-1.5 px-2.5 rounded-lg cursor-pointer text-foreground"
+                              title="Editar Escala"
+                            >
+                              <Edit className="h-3.5 w-3.5" />
+                            </Button>
+
+                            <Button
+                              onClick={() => handleDeleteScale(scale.id)}
+                              size="sm"
+                              variant="outline"
+                              className="border-red-500/20 text-red-500 hover:bg-red-500/10 text-xs py-1.5 px-2.5 rounded-lg cursor-pointer"
+                              title="Eliminar"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
                           </div>
                         </div>
                       ))}
                     </div>
-                  </div>
-
-                  <div className="flex justify-end gap-3 pt-6 border-t border-border/50">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setIsEditing(false)}
-                      className="border-border/60 cursor-pointer"
-                    >
-                      Cancelar
-                    </Button>
-                    <Button
-                      type="submit"
-                      className="bg-gradient-gold text-primary-foreground font-semibold shadow-gold cursor-pointer"
-                    >
-                      <Save className="h-4 w-4 mr-2" /> Gravar Escala
-                    </Button>
-                  </div>
-                </form>
-              ) : selectedScale ? (
-                /* PREVIEW & ACTIONS */
-                <div className="p-8 rounded-3xl bg-card border border-border/60 shadow-elevated space-y-6">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border/40">
-                    <div>
-                      <span className="text-[9px] uppercase tracking-wider px-2 py-0.5 bg-primary/20 text-primary font-bold rounded-full">
-                        {selectedScale.type}
-                      </span>
-                      <h2 className="text-2xl font-bold font-display text-primary mt-2">{selectedScale.title}</h2>
-                      <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1.5">
-                        <Calendar className="h-3.5 w-3.5" /> Elaborado em: {selectedScale.date}
-                      </p>
-                    </div>
-
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={() => handleStartEdit(selectedScale)}
-                        variant="outline"
-                        className="border-primary/20 text-primary hover:bg-primary/10 cursor-pointer"
-                      >
-                        <Edit className="h-4 w-4 mr-1.5" /> Editar
-                      </Button>
-                      <Button
-                        onClick={() => handleDeleteScale(selectedScale.id)}
-                        variant="outline"
-                        className="border-red-500/20 text-red-500 hover:bg-red-500/10 cursor-pointer"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Detail Table */}
-                  <div className="rounded-2xl overflow-hidden border border-border bg-card/40">
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left text-xs border-collapse">
-                        <thead>
-                          <tr className="bg-[#7ea8e0] text-black border-b border-border/60 uppercase tracking-wider font-bold">
-                            <th className="p-4 w-48 text-sm">Atividades da Semana</th>
-                            <th className="p-4 text-sm">Intercessor do Dia / Detalhes</th>
-                            <th className="p-4 w-28 text-sm">Mês</th>
-                            <th className="p-4 w-48 text-sm">Dias do mês</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border/60">
-                          {sortScaleSlots(selectedScale.slots).map((s, idx) => (
-                            <tr key={idx} className="hover:bg-muted/40 transition-colors">
-                              <td className="p-4 font-semibold text-foreground align-top text-sm">{s.activity}</td>
-                              <td className="p-4 text-foreground whitespace-pre-line leading-relaxed align-top text-xs">
-                                {s.details}
-                              </td>
-                              <td className="p-4 text-muted-foreground font-semibold align-top text-xs">
-                                {s.month}
-                              </td>
-                              <td className="p-4 text-muted-foreground font-semibold align-top text-xs">
-                                {s.dayOfMonth}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-
-                  <div className="pt-4 flex flex-wrap justify-center gap-3">
-                    <Button
-                      onClick={() => handleExportPDF(selectedScale)}
-                      className="bg-gradient-gold text-primary-foreground font-bold shadow-gold px-6 py-5 rounded-2xl text-xs tracking-wide cursor-pointer flex-1 sm:flex-initial"
-                    >
-                      <FileDown className="h-4.5 w-4.5 mr-2 animate-bounce" /> Exportar em PDF
-                    </Button>
-                    <Button
-                      onClick={handleOpenEmailDialog}
-                      variant="outline"
-                      className="border-primary/30 text-primary hover:bg-primary/10 font-bold px-6 py-5 rounded-2xl text-xs tracking-wide cursor-pointer flex-1 sm:flex-initial"
-                    >
-                      <Mail className="h-4.5 w-4.5 mr-2" /> Enviar por E-mail (Massa)
-                    </Button>
-                    <Button
-                      onClick={handleCopyScaleText}
-                      variant="outline"
-                      className="border-border hover:bg-muted font-bold px-6 py-5 rounded-2xl text-xs tracking-wide cursor-pointer flex-1 sm:flex-initial"
-                    >
-                      <Save className="h-4.5 w-4.5 mr-2" /> Copiar Texto da Escala
-                    </Button>
-                  </div>
+                  )}
                 </div>
-              ) : (
-                /* EMPTY STATE */
-                <div className="p-12 rounded-3xl bg-card border border-border/60 shadow-elevated text-center flex flex-col items-center justify-center min-h-[450px]">
-                  <div className="h-16 w-16 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mb-6 border border-primary/30">
-                    <FileText className="h-8 w-8" />
-                  </div>
-                  <h3 className="font-display text-xl font-bold">Nenhuma Escala Selecionada</h3>
-                  <p className="text-sm text-muted-foreground max-w-sm mt-2">
-                    Selecione uma escala na lista lateral ou crie uma nova para visualizar a escala de atividades detalhadas ou exportar em formato PDF.
-                  </p>
-                  <Button onClick={handleStartCreate} className="bg-gradient-gold text-primary-foreground font-semibold shadow-gold mt-6 cursor-pointer">
-                    <Plus className="mr-2 h-4 w-4" /> Elaborar Nova Escala
-                  </Button>
-                </div>
-              )}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </section>
 

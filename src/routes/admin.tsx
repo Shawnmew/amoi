@@ -1030,7 +1030,27 @@ function AdminDashboard() {
 
   return (
     <SiteLayout>
-      <section className="py-12">
+      {/* Mobile/Tablet Block Message */}
+      <section className="block lg:hidden min-h-[calc(100vh-6rem)] flex items-center justify-center px-4 py-16">
+        <div className="absolute inset-0 opacity-20 pointer-events-none" style={{ background: "var(--gradient-radial-gold)" }} />
+        <div className="relative max-w-md w-full text-center bg-card/60 backdrop-blur-xl border border-primary/20 rounded-3xl p-10 shadow-elevated">
+          <div className="h-16 w-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto text-primary mb-6 border border-primary/30">
+            <Smartphone className="h-8 w-8" />
+          </div>
+          <h1 className="font-display text-2xl font-bold text-gradient-gold">Acesso Limitado</h1>
+          <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
+            Por razões de segurança e usabilidade de dados complexos, o <strong>Painel Administrativo da AMOI</strong> está disponível exclusivamente em computadores (desktops).
+          </p>
+          <div className="mt-8">
+            <Button asChild variant="outline" className="border-primary/30 text-primary hover:bg-primary/10">
+              <Link to="/">Voltar para o Início</Link>
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      {/* Desktop Dashboard */}
+      <section className="hidden lg:block py-12">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           
           {/* Header */}
