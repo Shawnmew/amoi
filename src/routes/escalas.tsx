@@ -713,7 +713,7 @@ function ScalesDashboard() {
 
           <div className="grid lg:grid-cols-12 gap-8">
             {/* List Sidebar - 4 cols */}
-            <div className="lg:col-span-4 flex flex-col gap-6">
+            <div className="lg:col-span-4 flex flex-col gap-6 order-2 lg:order-1">
               <div className="p-6 rounded-3xl bg-card border border-border/60 shadow-elevated">
                 <h3 className="font-display font-bold text-lg mb-4 text-primary">Filtrar Período</h3>
                 <div className="grid grid-cols-2 gap-2">
@@ -832,7 +832,7 @@ function ScalesDashboard() {
             </div>
 
             {/* Scale Area - 8 cols */}
-            <div className="lg:col-span-8">
+            <div className="lg:col-span-8 order-1 lg:order-2">
               {isEditing ? (
                 /* EDIT FORM */
                 <form onSubmit={handleSaveScale} className="p-8 rounded-3xl bg-card border border-border/60 shadow-elevated space-y-6">
@@ -902,39 +902,42 @@ function ScalesDashboard() {
                       {slots.map((slot, index) => (
                         <div
                           key={index}
-                          className="p-4 rounded-2xl bg-card/60 border border-border/50 space-y-3 relative group"
+                          className="p-4 rounded-2xl bg-card/60 border border-border/50 space-y-3 group"
                         >
-                          {/* Row controls */}
-                          <div className="absolute right-3 top-3 flex items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
-                            <button
-                              type="button"
-                              onClick={() => handleMoveSlotUp(index)}
-                              disabled={index === 0}
-                              className="p-1 rounded hover:bg-muted disabled:opacity-20 text-muted-foreground cursor-pointer"
-                              title="Mover para Cima"
-                            >
-                              <ArrowUp className="h-3.5 w-3.5" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleMoveSlotDown(index)}
-                              disabled={index === slots.length - 1}
-                              className="p-1 rounded hover:bg-muted disabled:opacity-20 text-muted-foreground cursor-pointer"
-                              title="Mover para Baixo"
-                            >
-                              <ArrowDown className="h-3.5 w-3.5" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveSlot(index)}
-                              className="p-1 rounded hover:bg-red-500/10 text-red-500 hover:text-red-500 ml-1 cursor-pointer"
-                              title="Eliminar Linha"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
+                          {/* Row controls header */}
+                          <div className="flex justify-between items-center border-b border-border/40 pb-2">
+                            <span className="text-xs font-bold text-primary">Culto / Atividade #{index + 1}</span>
+                            <div className="flex items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() => handleMoveSlotUp(index)}
+                                disabled={index === 0}
+                                className="p-1 rounded hover:bg-muted disabled:opacity-20 text-muted-foreground cursor-pointer"
+                                title="Mover para Cima"
+                              >
+                                <ArrowUp className="h-3.5 w-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleMoveSlotDown(index)}
+                                disabled={index === slots.length - 1}
+                                className="p-1 rounded hover:bg-muted disabled:opacity-20 text-muted-foreground cursor-pointer"
+                                title="Mover para Baixo"
+                              >
+                                <ArrowDown className="h-3.5 w-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveSlot(index)}
+                                className="p-1 rounded hover:bg-red-500/10 text-red-500 hover:text-red-500 ml-1 cursor-pointer"
+                                title="Eliminar Linha"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
                           </div>
 
-                          <div className="grid md:grid-cols-12 gap-3 pr-16">
+                          <div className="grid md:grid-cols-12 gap-3">
                             <div className="md:col-span-3 space-y-1">
                               <Label className="text-[10px] uppercase text-muted-foreground">Atividade / Culto</Label>
                               <Input

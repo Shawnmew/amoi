@@ -206,7 +206,7 @@ function OChamado() {
                   </div>
 
                   {/* Servants Grid */}
-                  <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
                     {group.servants.map((s) => {
                       const servantImg = getServantImage(s);
                       const isBroken = brokenImages[s.id];
@@ -229,21 +229,21 @@ function OChamado() {
                               />
                             ) : (
                               <div className="h-full w-full bg-gradient-to-br from-card via-secondary/40 to-primary/20 flex items-center justify-center border border-primary/20 transition-transform duration-500 group-hover:scale-105">
-                                <span className="font-display text-3xl font-bold text-gradient-gold tracking-widest">
+                                <span className="font-display text-2xl sm:text-3xl font-bold text-gradient-gold tracking-widest">
                                   {initials(s.name)}
                                 </span>
                               </div>
                             )}
                           </div>
-                          <div className="absolute inset-x-0 bottom-0 p-5 bg-gradient-to-t from-card via-card/95 to-transparent pt-16">
-                            <h3 className="font-display text-xl text-foreground leading-snug">{s.name}</h3>
-                            <div className="text-[10px] uppercase tracking-widest text-primary mt-1 font-bold">
+                          <div className="absolute inset-x-0 bottom-0 p-3 sm:p-5 bg-gradient-to-t from-card via-card/95 to-transparent pt-12 sm:pt-16">
+                            <h3 className="font-display text-sm sm:text-lg text-foreground leading-snug line-clamp-1 sm:line-clamp-2">{s.name}</h3>
+                            <div className="text-[9px] sm:text-[10px] uppercase tracking-widest text-primary mt-0.5 sm:mt-1 font-bold truncate">
                               {s.role}
                             </div>
-                            <div className="text-[9px] uppercase tracking-widest text-muted-foreground mt-0.5">
+                            <div className="text-[8px] sm:text-[9px] uppercase tracking-widest text-muted-foreground mt-0.5 truncate">
                               {s.dept}
                             </div>
-                            <p className="mt-2 text-xs text-muted-foreground leading-relaxed line-clamp-3">
+                            <p className="mt-1 sm:mt-2 text-[10px] sm:text-xs text-muted-foreground leading-relaxed line-clamp-2 sm:line-clamp-3">
                               {s.bio}
                             </p>
                           </div>
