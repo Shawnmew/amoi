@@ -34,7 +34,7 @@ export function SiteLayout({ children }: { children: ReactNode }) {
     if (!db) return;
     const fetchFooter = async () => {
       try {
-        const docRef = doc(db, "siteConfig", "footer");
+        const docRef = doc(db!, "siteConfig", "footer");
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
           const data = docSnap.data();

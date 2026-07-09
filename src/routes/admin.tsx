@@ -92,7 +92,7 @@ export const Route = createFileRoute("/admin")({
   component: AdminDashboard,
 });
 
-type TabType = "carousel" | "announcements" | "info" | "users" | "whatsapp" | "videos" | "servants" | "drive";
+type TabType = "carousel" | "announcements" | "info" | "users" | "whatsapp" | "videos" | "servants" | "drive" | "siteConfig";
 
 const SERVANT_DEPARTMENTS = [
   "Os Bravos Guerreiros da Fé",
