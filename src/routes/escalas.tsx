@@ -948,7 +948,7 @@ function ScalesDashboard() {
             /* LIST VIEW WITH CARDS AND FILTERS */
             <div className="grid lg:grid-cols-12 gap-8">
               {/* Left Column: Filters and Custom Participants (4 cols) */}
-              <div className="lg:col-span-4 flex flex-col gap-6">
+              <div className="lg:col-span-4 flex flex-col gap-6 order-2 lg:order-1">
                 {/* Filtrar Período */}
                 <div className="p-6 rounded-3xl bg-card border border-border/60 shadow-elevated">
                   <h3 className="font-display font-bold text-lg mb-4 text-primary">Filtrar Período</h3>
@@ -970,7 +970,7 @@ function ScalesDashboard() {
                 </div>
 
                 {/* Participantes Comuns list */}
-                <div className="p-6 rounded-3xl bg-card border border-border/60 shadow-elevated">
+                <div className="p-6 rounded-3xl bg-card border border-border/60 shadow-elevated hidden sm:block">
                   <h3 className="font-display font-bold text-lg mb-2 text-primary flex items-center gap-1.5">
                     <User className="h-5 w-5" /> Participantes Comuns
                   </h3>
@@ -1022,7 +1022,7 @@ function ScalesDashboard() {
               </div>
 
               {/* Right Column: Grid of Scales (8 cols) */}
-              <div className="lg:col-span-8 flex flex-col gap-6">
+              <div className="lg:col-span-8 flex flex-col gap-6 order-1 lg:order-2">
                 <div className="p-6 rounded-3xl bg-card border border-border/60 shadow-elevated flex-1 min-h-[400px] flex flex-col">
                   <h3 className="font-display font-bold text-lg mb-4">Escalas Gravadas</h3>
                   {loadingData ? (
