@@ -37,7 +37,8 @@ import {
   Edit,
   ArrowUp,
   ArrowDown,
-  Mail
+  Mail,
+  Eye
 } from "lucide-react";
 import { toast } from "sonner";
 import { jsPDF } from "jspdf";
@@ -231,6 +232,7 @@ function ScalesDashboard() {
   
   // Selection and Edit State
   const [selectedScale, setSelectedScale] = useState<ChurchScale | null>(null);
+  const [mobilePreviewOpen, setMobilePreviewOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editId, setEditId] = useState<string | undefined>(undefined);
   
@@ -1316,11 +1318,10 @@ function ScalesDashboard() {
                         <div
                           key={scale.id}
                           onClick={() => {
-                            if (window.innerWidth < 640) {
-                              handleExportPDF(scale);
-                            } else {
-                              if (!isEditing) {
-                                setSelectedScale(scale);
+                            if (!isEditing) {
+                              setSelectedScale(scale);
+                              if (window.innerWidth < 640) {
+                                setMobilePreviewOpen(true);
                               }
                             }
                           }}
@@ -1341,10 +1342,10 @@ function ScalesDashboard() {
                             {scale.slots.length} cultos agendados.
                           </p>
 
-                          {/* Mobile-only Download Indicator */}
+                          {/* Mobile-only Preview Indicator */}
                           <div className="flex justify-between items-center mt-3 pt-2 border-t border-border/40 sm:hidden">
                             <span className="text-[10px] text-primary font-semibold flex items-center gap-1">
-                              <FileDown className="h-3.5 w-3.5" /> Tocar para descarregar PDF
+                              <Eye className="h-3.5 w-3.5" /> Tocar para visualizar escala
                             </span>
                           </div>
                         </div>
@@ -1672,6 +1673,110 @@ function ScalesDashboard() {
                 )}
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* MOBILE PREVIEW DIALOG */}
+      <Dialog open={mobilePreviewOpen} onOpenChange={setMobilePreviewOpen}>
+        <DialogContent className="max-w-md w-[95%] bg-card border border-border/80 rounded-3xl p-6 shadow-elevated text-foreground max-h-[85vh] overflow-y-auto">
+          <DialogHeader className="pb-3 border-b border-border/40">
+            <DialogTitle className="text-lg font-bold font-display text-primary flex items-center gap-2">
+              <Calendar className="h-5 w-5" /> Visualizar Escala
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              {selectedScale?.title} ({selectedScale?.type})
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedScale && (
+            <div className="space-y-4 py-3">
+              {/* Quick Actions inside mobile preview */}
+              <div className="flex gap-2 justify-center pb-2">
+                <Button
+                  onClick={() => {
+                    handleExportPDF(selectedScale);
+                    toast.success("Descarregamento do PDF iniciado!");
+                  }}
+                  size="sm"
+                  className="bg-gradient-gold text-primary-foreground font-bold shadow-gold text-[10px] py-3.5 px-3 flex-1 cursor-pointer"
+                >
+                  <FileDown className="h-3.5 w-3.5 mr-1" /> Descarregar PDF
+                </Button>
+                <Button
+                  onClick={() => {
+                    handleCopyScaleText(selectedScale);
+                  }}
+                  variant="outline"
+                  size="sm"
+                  className="border-border text-foreground text-[10px] py-3.5 px-3 flex-1 font-semibold cursor-pointer"
+                >
+                  <Save className="h-3.5 w-3.5 mr-1" /> Copiar Texto
+                </Button>
+              </div>
+
+              {/* Slots List for Mobile */}
+              <div className="space-y-3.5">
+                {sortScaleSlots(selectedScale.slots)
+                  .filter((s) => !filterOnlyMine || isUserEscaladoInSlot(s, user))
+                  .map((slot, idx) => {
+                    const getIntervenienteName = (type?: "user" | "manual", value?: string) => {
+                      if (!value) return "—";
+                      if (type === "user") {
+                        const u = users.find(x => x.uid === value);
+                        return u ? (u.displayName || u.email) : value;
+                      }
+                      return value;
+                    };
+
+                    return (
+                      <div key={idx} className="p-4 rounded-2xl bg-card border border-border/80 space-y-2.5">
+                        <div className="flex justify-between items-center border-b border-border/40 pb-1.5">
+                          <span className="text-xs font-bold text-primary">{slot.activity || "Atividade"}</span>
+                          <span className="text-[9px] text-muted-foreground font-mono bg-muted px-2 py-0.5 rounded-full">{slot.dayOfMonth}</span>
+                        </div>
+                        <div className="grid grid-cols-1 gap-1.5 text-[11px]">
+                          <div className="flex justify-between items-center bg-card/40 p-2 rounded-xl border border-border/30">
+                            <span className="text-muted-foreground">🎤 Moderação:</span>
+                            <span className="font-semibold text-foreground">{getIntervenienteName(slot.moderatorType, slot.moderatorValue)}</span>
+                          </div>
+                          <div className="flex justify-between items-center bg-card/40 p-2 rounded-xl border border-border/30">
+                            <span className="text-muted-foreground">🎶 Louvores:</span>
+                            <span className="font-semibold text-foreground">{getIntervenienteName(slot.worshipType, slot.worshipValue)}</span>
+                          </div>
+                          <div className="flex justify-between items-center bg-card/40 p-2 rounded-xl border border-border/30">
+                            <span className="text-muted-foreground">📖 Pregação:</span>
+                            <span className="font-semibold text-foreground">{getIntervenienteName(slot.preacherType, slot.preacherValue)}</span>
+                          </div>
+                        </div>
+                        {slot.details && (
+                          <details className="text-[10px] text-muted-foreground pt-1 border-t border-border/30">
+                            <summary className="cursor-pointer font-semibold hover:text-primary transition-colors py-0.5 outline-none select-none">
+                              Roteiro detalhado
+                            </summary>
+                            <p className="mt-1.5 whitespace-pre-line bg-muted/30 p-2 rounded-lg leading-relaxed">{slot.details}</p>
+                          </details>
+                        )}
+                      </div>
+                    );
+                  })}
+                {sortScaleSlots(selectedScale.slots).filter((s) => !filterOnlyMine || isUserEscaladoInSlot(s, user)).length === 0 && (
+                  <p className="text-xs text-muted-foreground text-center py-4 italic">
+                    Não está escalado(a) em nenhum dia desta escala.
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
+          <div className="flex justify-end pt-3 border-t border-border/40">
+            <Button
+              type="button"
+              onClick={() => setMobilePreviewOpen(false)}
+              className="w-full bg-muted text-foreground hover:bg-muted/80 font-bold cursor-pointer"
+            >
+              Fechar
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
