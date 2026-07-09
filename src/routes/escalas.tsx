@@ -704,7 +704,7 @@ function ScalesDashboard() {
                   <ArrowLeft className="mr-2 h-4 w-4" /> Painel Geral
                 </Link>
               </Button>
-              <Button onClick={handleStartCreate} className="bg-gradient-gold text-primary-foreground font-semibold shadow-gold cursor-pointer">
+              <Button onClick={handleStartCreate} className="bg-gradient-gold text-primary-foreground font-semibold shadow-gold cursor-pointer hidden sm:inline-flex">
                 <Plus className="mr-2 h-4 w-4" /> Nova Escala
               </Button>
             </div>
@@ -1072,7 +1072,7 @@ function ScalesDashboard() {
                               }}
                               size="sm"
                               variant="outline"
-                              className="border-primary/20 text-primary hover:bg-primary/10 text-xs py-1.5 px-2.5 rounded-lg cursor-pointer"
+                              className="border-primary/20 text-primary hover:bg-primary/10 text-xs py-1.5 px-2.5 rounded-lg cursor-pointer hidden sm:inline-flex"
                               title="Enviar por E-mail"
                             >
                               <Mail className="h-3.5 w-3.5" />
@@ -1082,7 +1082,7 @@ function ScalesDashboard() {
                               onClick={() => handleCopyScaleText(scale)}
                               size="sm"
                               variant="outline"
-                              className="border-border hover:bg-muted text-xs py-1.5 px-2.5 rounded-lg cursor-pointer text-foreground"
+                              className="border-border hover:bg-muted text-xs py-1.5 px-2.5 rounded-lg cursor-pointer text-foreground hidden sm:inline-flex"
                               title="Copiar Texto"
                             >
                               <Save className="h-3.5 w-3.5" />
@@ -1092,7 +1092,7 @@ function ScalesDashboard() {
                               onClick={() => handleStartEdit(scale)}
                               size="sm"
                               variant="outline"
-                              className="border-border hover:bg-muted text-xs py-1.5 px-2.5 rounded-lg cursor-pointer text-foreground"
+                              className="border-border hover:bg-muted text-xs py-1.5 px-2.5 rounded-lg cursor-pointer text-foreground hidden sm:inline-flex"
                               title="Editar Escala"
                             >
                               <Edit className="h-3.5 w-3.5" />
@@ -1102,7 +1102,7 @@ function ScalesDashboard() {
                               onClick={() => handleDeleteScale(scale.id)}
                               size="sm"
                               variant="outline"
-                              className="border-red-500/20 text-red-500 hover:bg-red-500/10 text-xs py-1.5 px-2.5 rounded-lg cursor-pointer"
+                              className="border-red-500/20 text-red-500 hover:bg-red-500/10 text-xs py-1.5 px-2.5 rounded-lg cursor-pointer hidden sm:inline-flex"
                               title="Eliminar"
                             >
                               <Trash2 className="h-3.5 w-3.5" />
