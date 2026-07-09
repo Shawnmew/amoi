@@ -1,10 +1,12 @@
 import { Link } from "@tanstack/react-router";
-import { useState, type ReactNode } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import { Menu, X, Facebook, Instagram, Youtube, Mail, MapPin, Phone } from "lucide-react";
 import logoUrl from "@/assets/amoi-logo.png";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAuth } from "../hooks/useAuth";
+import { db } from "../lib/firebase";
+import { doc, getDoc } from "firebase/firestore";
 
 
 const NAV = [
@@ -18,6 +20,41 @@ const NAV = [
 export function SiteLayout({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
   const { user, logout } = useAuth();
+  const [footerConfig, setFooterConfig] = useState({
+    address: "Bairro Mandume B, Quarteirão 3, Rua Projectada, Zango 1, Paragem da Praça, Entrada dos Motoqueiros, Bengo, Angola (XCX3+WH9)",
+    phone: "+244 930 565 382",
+    email: "secretaria.amoi@ministerioamoi.it.ao",
+    facebook: "https://facebook.com/ministerioamoi",
+    instagram: "https://instagram.com/ministerioamoi",
+    youtube: "https://youtube.com/@ministerioamoi",
+    tiktok: "https://tiktok.com/@ministerioamoi",
+  });
+
+  useEffect(() => {
+    if (!db) return;
+    const fetchFooter = async () => {
+      try {
+        const docRef = doc(db, "siteConfig", "footer");
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          setFooterConfig((prev) => ({
+            ...prev,
+            address: data.address || prev.address,
+            phone: data.phone || prev.phone,
+            email: data.email || prev.email,
+            facebook: data.facebook ?? prev.facebook,
+            instagram: data.instagram ?? prev.instagram,
+            youtube: data.youtube ?? prev.youtube,
+            tiktok: data.tiktok ?? prev.tiktok,
+          }));
+        }
+      } catch (err) {
+        console.error("Error fetching footer configuration:", err);
+      }
+    };
+    fetchFooter();
+  }, []);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -179,12 +216,12 @@ export function SiteLayout({ children }: { children: ReactNode }) {
             </p>
             <div className="flex gap-3 mt-6">
               {[
-                { href: "https://facebook.com/ministerioamoi", Icon: Facebook },
-                { href: "https://instagram.com/ministerioamoi", Icon: Instagram },
-                { href: "https://youtube.com/@ministerioamoi", Icon: Youtube },
-              ].map(({ href, Icon }) => (
+                { href: footerConfig.facebook, Icon: Facebook },
+                { href: footerConfig.instagram, Icon: Instagram },
+                { href: footerConfig.youtube, Icon: Youtube },
+              ].map(({ href, Icon }, index) => href ? (
                 <a
-                  key={href}
+                  key={index}
                   href={href}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -192,15 +229,17 @@ export function SiteLayout({ children }: { children: ReactNode }) {
                 >
                   <Icon className="h-4 w-4" />
                 </a>
-              ))}
-              <a
-                href="https://tiktok.com/@ministerioamoi"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="h-10 w-10 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary transition-all text-xs font-bold"
-              >
-                TT
-              </a>
+              ) : null)}
+              {footerConfig.tiktok && (
+                <a
+                  href={footerConfig.tiktok}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="h-10 w-10 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary transition-all text-xs font-bold"
+                >
+                  TT
+                </a>
+              )}
             </div>
           </div>
 
@@ -219,9 +258,9 @@ export function SiteLayout({ children }: { children: ReactNode }) {
           <div>
             <h4 className="font-display text-sm uppercase tracking-widest text-primary mb-4">Contacto</h4>
             <ul className="space-y-3 text-sm text-muted-foreground">
-              <li className="flex items-start gap-2"><MapPin className="h-4 w-4 mt-0.5 text-primary shrink-0" /> Bairro Mandume B, Quarteirão 3, Rua Projectada, Zango 1, Paragem da Praça, Entrada dos Motoqueiros, Bengo, Angola (XCX3+WH9)</li>
-              <li className="flex items-center gap-2"><Phone className="h-4 w-4 text-primary shrink-0" /> +244 930 565 382</li>
-              <li className="flex items-center gap-2"><Mail className="h-4 w-4 text-primary shrink-0" /> secretaria.amoi@ministerioamoi.it.ao</li>
+              <li className="flex items-start gap-2"><MapPin className="h-4 w-4 mt-0.5 text-primary shrink-0" /> {footerConfig.address}</li>
+              <li className="flex items-center gap-2"><Phone className="h-4 w-4 text-primary shrink-0" /> {footerConfig.phone}</li>
+              <li className="flex items-center gap-2"><Mail className="h-4 w-4 text-primary shrink-0" /> {footerConfig.email}</li>
             </ul>
           </div>
         </div>

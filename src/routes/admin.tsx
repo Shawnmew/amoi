@@ -43,7 +43,10 @@ import {
   ChurchServant,
   getDynamicServants,
   saveDynamicServant,
-  deleteDynamicServant
+  deleteDynamicServant,
+  FooterConfig,
+  getFooterConfig,
+  saveFooterConfig
 } from "../lib/dynamicContent";
 import {
   LayoutDashboard,
@@ -74,7 +77,8 @@ import {
   Youtube,
   Smartphone,
   FolderOpen,
-  ExternalLink
+  ExternalLink,
+  MapPin
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -174,6 +178,18 @@ function AdminDashboard() {
   const [waSending, setWaSending] = useState(false);
   const [waSelectedUsers, setWaSelectedUsers] = useState<Record<string, boolean>>({});
 
+  // Site Configuration / Footer state
+  const [footerConfig, setFooterConfig] = useState<FooterConfig>({
+    address: "",
+    phone: "",
+    email: "",
+    facebook: "",
+    instagram: "",
+    youtube: "",
+    tiktok: "",
+  });
+  const [savingFooter, setSavingFooter] = useState(false);
+
   const handleAnnImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -224,9 +240,28 @@ function AdminDashboard() {
       // Carregar configurações de WhatsApp
       const fetchedWaSettings = await getWhatsAppSettings();
       setWaSettings(fetchedWaSettings);
+
+      // Carregar configurações de rodapé
+      const fetchedFooter = await getFooterConfig();
+      setFooterConfig(fetchedFooter);
     } catch (e) {
       console.error(e);
       toast.error("Erro ao carregar os dados.");
+    }
+  };
+
+  // Footer actions
+  const handleSaveFooter = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingFooter(true);
+    try {
+      await saveFooterConfig(footerConfig);
+      toast.success("Informações do rodapé atualizadas com sucesso!");
+    } catch (err) {
+      console.error(err);
+      toast.error("Falha ao salvar as informações do rodapé.");
+    } finally {
+      setSavingFooter(false);
     }
   };
 
@@ -1142,6 +1177,18 @@ function AdminDashboard() {
               >
                 <FolderOpen className="h-4 w-4" />
                 Biblioteca de Imagens
+              </button>
+
+              <button
+                onClick={() => setActiveTab("siteConfig")}
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all border shrink-0 ${
+                  activeTab === "siteConfig"
+                    ? "bg-gradient-gold text-primary-foreground border-transparent shadow-gold"
+                    : "bg-card border-border/60 text-muted-foreground hover:text-primary hover:border-primary/30"
+                }`}
+              >
+                <MapPin className="h-4 w-4" />
+                Rodapé & Contactos
               </button>
 
               {(user.role === "Servo de Deus" || user.role === "Secretaria") && (
@@ -2553,6 +2600,135 @@ function AdminDashboard() {
                       />
                     </div>
                   </div>
+                )}
+
+                {/* 9. SITE CONFIGURATION (FOOTER & CONTACTS) TAB */}
+                {activeTab === "siteConfig" && (
+                  <form onSubmit={handleSaveFooter} className="space-y-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-border/40">
+                      <div>
+                        <h2 className="text-2xl font-bold font-display text-primary flex items-center gap-2 mb-1">
+                          <MapPin className="h-5 w-5" /> Configurações de Contacto & Rodapé
+                        </h2>
+                        <p className="text-xs text-muted-foreground">
+                          Atualize as informações de contacto, morada e links de redes sociais exibidos no rodapé do portal.
+                        </p>
+                      </div>
+                      <Button
+                        type="submit"
+                        disabled={savingFooter}
+                        className="bg-gradient-gold text-primary-foreground font-semibold shadow-gold cursor-pointer shrink-0 self-start sm:self-auto"
+                      >
+                        {savingFooter ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> A gravar...
+                          </>
+                        ) : (
+                          <>
+                            <Save className="mr-2 h-4 w-4" /> Gravar Alterações
+                          </>
+                        )}
+                      </Button>
+                    </div>
+
+                    <div className="grid md:grid-cols-2 gap-6">
+                      {/* Left Column - Contact Details */}
+                      <div className="space-y-6 p-6 rounded-2xl bg-card border border-border/60">
+                        <h3 className="font-semibold font-display text-lg text-primary">Informações de Contacto</h3>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="footer-address">Endereço / Morada Oficial</Label>
+                          <Textarea
+                            id="footer-address"
+                            rows={3}
+                            placeholder="Endereço da igreja..."
+                            value={footerConfig.address}
+                            onChange={(e) => setFooterConfig({ ...footerConfig, address: e.target.value })}
+                            required
+                            className="bg-card/50 animate-fade-in"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="footer-phone">Telefone</Label>
+                          <Input
+                            id="footer-phone"
+                            placeholder="Ex: +244 930 565 382"
+                            value={footerConfig.phone}
+                            onChange={(e) => setFooterConfig({ ...footerConfig, phone: e.target.value })}
+                            required
+                            className="bg-card/50"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="footer-email">E-mail de Contacto</Label>
+                          <Input
+                            id="footer-email"
+                            type="email"
+                            placeholder="Ex: secretaria.amoi@ministerioamoi.it.ao"
+                            value={footerConfig.email}
+                            onChange={(e) => setFooterConfig({ ...footerConfig, email: e.target.value })}
+                            required
+                            className="bg-card/50"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Right Column - Social Media */}
+                      <div className="space-y-6 p-6 rounded-2xl bg-card border border-border/60">
+                        <h3 className="font-semibold font-display text-lg text-primary">Redes Sociais</h3>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="footer-facebook">Facebook (URL)</Label>
+                          <Input
+                            id="footer-facebook"
+                            type="url"
+                            placeholder="Ex: https://facebook.com/ministerioamoi"
+                            value={footerConfig.facebook}
+                            onChange={(e) => setFooterConfig({ ...footerConfig, facebook: e.target.value })}
+                            className="bg-card/50"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="footer-instagram">Instagram (URL)</Label>
+                          <Input
+                            id="footer-instagram"
+                            type="url"
+                            placeholder="Ex: https://instagram.com/ministerioamoi"
+                            value={footerConfig.instagram}
+                            onChange={(e) => setFooterConfig({ ...footerConfig, instagram: e.target.value })}
+                            className="bg-card/50"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="footer-youtube">YouTube (URL)</Label>
+                          <Input
+                            id="footer-youtube"
+                            type="url"
+                            placeholder="Ex: https://youtube.com/@ministerioamoi"
+                            value={footerConfig.youtube}
+                            onChange={(e) => setFooterConfig({ ...footerConfig, youtube: e.target.value })}
+                            className="bg-card/50"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="footer-tiktok">TikTok (URL)</Label>
+                          <Input
+                            id="footer-tiktok"
+                            type="url"
+                            placeholder="Ex: https://tiktok.com/@ministerioamoi"
+                            value={footerConfig.tiktok}
+                            onChange={(e) => setFooterConfig({ ...footerConfig, tiktok: e.target.value })}
+                            className="bg-card/50"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </form>
                 )}
               </div>
             </div>

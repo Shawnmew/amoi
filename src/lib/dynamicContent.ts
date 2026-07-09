@@ -930,6 +930,72 @@ export async function deleteDynamicInterveniente(id: string): Promise<void> {
   }
 }
 
+export interface FooterConfig {
+  address: string;
+  phone: string;
+  email: string;
+  facebook: string;
+  instagram: string;
+  youtube: string;
+  tiktok: string;
+}
+
+export const DEFAULT_FOOTER: FooterConfig = {
+  address: "Bairro Mandume B, Quarteirão 3, Rua Projectada, Zango 1, Paragem da Praça, Entrada dos Motoqueiros, Bengo, Angola (XCX3+WH9)",
+  phone: "+244 930 565 382",
+  email: "secretaria.amoi@ministerioamoi.it.ao",
+  facebook: "https://facebook.com/ministerioamoi",
+  instagram: "https://instagram.com/ministerioamoi",
+  youtube: "https://youtube.com/@ministerioamoi",
+  tiktok: "https://tiktok.com/@ministerioamoi",
+};
+
+export async function getFooterConfig(): Promise<FooterConfig> {
+  try {
+    if (db) {
+      const snap = await getDoc(doc(db, "siteConfig", "footer"));
+      if (snap.exists()) {
+        const data = snap.data() as FooterConfig;
+        if (typeof window !== "undefined") {
+          localStorage.setItem("amoi_footer_config", JSON.stringify(data));
+        }
+        return data;
+      }
+    }
+  } catch (e) {
+    console.error("Error loading footer config from Firestore:", e);
+  }
+
+  // LocalStorage Fallback
+  if (typeof window !== "undefined") {
+    const local = localStorage.getItem("amoi_footer_config");
+    if (local) {
+      try {
+        return JSON.parse(local);
+      } catch (err) {}
+    }
+  }
+
+  return DEFAULT_FOOTER;
+}
+
+export async function saveFooterConfig(config: FooterConfig): Promise<void> {
+  // LocalStorage
+  if (typeof window !== "undefined") {
+    localStorage.setItem("amoi_footer_config", JSON.stringify(config));
+  }
+
+  // Firestore
+  try {
+    if (db) {
+      await setDoc(doc(db, "siteConfig", "footer"), config);
+    }
+  } catch (e) {
+    console.error("Error saving footer config to Firestore:", e);
+    throw e;
+  }
+}
+
 
 
 

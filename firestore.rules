@@ -140,5 +140,11 @@ service cloud.firestore {
       // (needed before authentication, for password recovery flow)
       allow read, write, delete: if true;
     }
+
+    // --- Site Configuration (Footer Contacts, etc.) ---
+    match /siteConfig/{configId} {
+      allow read: if true;
+      allow write: if isEditorOrServo();
+    }
   }
 }
