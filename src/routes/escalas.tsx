@@ -4,7 +4,7 @@ import { SiteLayout } from "@/components/SiteLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useAuth } from "../hooks/useAuth";
+import { useAuth, AuthUser } from "../hooks/useAuth";
 import logoUrl from "@/assets/amoi-logo.png";
 import {
   ChurchScale,
@@ -105,6 +105,107 @@ const sortScaleSlots = (slotsList: ScaleSlot[]): ScaleSlot[] => {
     return 0;
   });
 };
+const isUserEscaladoInSlot = (slot: ScaleSlot, currentUser: AuthUser | null) => {
+  if (!currentUser) return false;
+  
+  const checkMatch = (type?: "user" | "manual", val?: string) => {
+    if (!val) return false;
+    if (type === "user") {
+      return val === currentUser.uid;
+    }
+    const normVal = val.toLowerCase().trim();
+    const normName = currentUser.displayName?.toLowerCase().trim() || "";
+    const normEmail = currentUser.email?.toLowerCase().trim() || "";
+    return normVal === normName || normVal === normEmail;
+  };
+
+  return (
+    checkMatch(slot.moderatorType, slot.moderatorValue) ||
+    checkMatch(slot.worshipType, slot.worshipValue) ||
+    checkMatch(slot.preacherType, slot.preacherValue)
+  );
+};
+
+const parseIntervenientesFromDetails = (details: string, usersList: ChurchUser[]) => {
+  let moderatorType: "user" | "manual" = "manual";
+  let moderatorValue = "";
+  let worshipType: "user" | "manual" = "manual";
+  let worshipValue = "";
+  let preacherType: "user" | "manual" = "manual";
+  let preacherValue = "";
+
+  if (!details) {
+    return {
+      moderatorType,
+      moderatorValue,
+      worshipType,
+      worshipValue,
+      preacherType,
+      preacherValue
+    };
+  }
+
+  // Parse Moderação: [Name]
+  const modMatch = details.match(/Moderação:\s*([^\n]+)/i);
+  if (modMatch) {
+    const val = modMatch[1].trim();
+    const foundUser = usersList.find(u => u.displayName?.toLowerCase().trim() === val.toLowerCase().trim() || u.email?.toLowerCase().trim() === val.toLowerCase().trim());
+    if (foundUser) {
+      moderatorType = "user";
+      moderatorValue = foundUser.uid;
+    } else {
+      moderatorValue = val;
+    }
+  }
+
+  // Parse Louvores: [Name]
+  const worMatch = details.match(/Louvores:\s*(?:\(40min\))?\s*([^\n]+)/i) || details.match(/Louvores:\s*([^\n]+)/i);
+  if (worMatch) {
+    let val = worMatch[1].trim();
+    val = val.replace(/\(40min\)/gi, "").trim();
+    const foundUser = usersList.find(u => u.displayName?.toLowerCase().trim() === val.toLowerCase().trim() || u.email?.toLowerCase().trim() === val.toLowerCase().trim());
+    if (foundUser) {
+      worshipType = "user";
+      worshipValue = foundUser.uid;
+    } else {
+      worshipValue = val;
+    }
+  }
+
+  // Parse Ensinamento da Palavra: [Name]
+  const preMatch = details.match(/Ensinamento da Palavra:\s*(?:\(1h\))?\s*([^\n]+)/i) || details.match(/Ensinamento da Palavra:\s*([^\n]+)/i);
+  if (preMatch) {
+    let val = preMatch[1].trim();
+    val = val.replace(/\(1h\)/gi, "").trim();
+    const foundUser = usersList.find(u => u.displayName?.toLowerCase().trim() === val.toLowerCase().trim() || u.email?.toLowerCase().trim() === val.toLowerCase().trim());
+    if (foundUser) {
+      preacherType = "user";
+      preacherValue = foundUser.uid;
+    } else {
+      preacherValue = val;
+    }
+  }
+
+  return {
+    moderatorType,
+    moderatorValue,
+    worshipType,
+    worshipValue,
+    preacherType,
+    preacherValue
+  };
+};
+
+const updateDetailsField = (prevDetails: string, keyWord: string, newText: string) => {
+  const lines = prevDetails.split("\n");
+  const lineIdx = lines.findIndex(l => l.toLowerCase().includes(keyWord.toLowerCase()));
+  if (lineIdx !== -1) {
+    lines[lineIdx] = newText;
+    return lines.join("\n");
+  }
+  return prevDetails;
+};
+
 function ScalesDashboard() {
   const { user, loading } = useAuth();
   
@@ -112,6 +213,7 @@ function ScalesDashboard() {
   const [scales, setScales] = useState<ChurchScale[]>([]);
   const [loadingData, setLoadingData] = useState(true);
   const [filterPeriod, setFilterPeriod] = useState<ScalePeriod>("Todas");
+  const [filterOnlyMine, setFilterOnlyMine] = useState(false);
   
   // Send Email State
   const [users, setUsers] = useState<ChurchUser[]>([]);
@@ -149,34 +251,59 @@ function ScalesDashboard() {
   useEffect(() => {
     let active = true;
 
-    getDynamicScales().then((fetched) => {
-      if (active) {
-        setScales(fetched);
-        setLoadingData(false);
+    const loadData = async () => {
+      try {
+        const fetchedUsers = await getDynamicUsers();
+        if (active) setUsers(fetchedUsers);
+
+        const fetchedScales = await getDynamicScales();
+        if (active) {
+          const enriched = fetchedScales.map(scale => ({
+            ...scale,
+            slots: scale.slots.map(slot => {
+              const parsed = parseIntervenientesFromDetails(slot.details, fetchedUsers);
+              return {
+                moderatorType: slot.moderatorType || parsed.moderatorType,
+                moderatorValue: slot.moderatorValue || parsed.moderatorValue,
+                worshipType: slot.worshipType || parsed.worshipType,
+                worshipValue: slot.worshipValue || parsed.worshipValue,
+                preacherType: slot.preacherType || parsed.preacherType,
+                preacherValue: slot.preacherValue || parsed.preacherValue,
+                ...slot
+              };
+            })
+          }));
+          setScales(enriched);
+          setLoadingData(false);
+        }
+
+        const fetchedServants = await getDynamicServants();
+        if (active) setServants(fetchedServants);
+
+        const fetchedIntervenientes = await getDynamicIntervenientes();
+        if (active) setIntervenientes(fetchedIntervenientes);
+      } catch (e) {
+        console.error("Error loading scales dashboard data:", e);
       }
-    });
-    getDynamicServants().then((fetched) => {
-      if (active) {
-        setServants(fetched);
-      }
-    });
-    getDynamicIntervenientes().then((fetched) => {
-      if (active) {
-        setIntervenientes(fetched);
-      }
-    });
-    getDynamicUsers().then((fetched) => {
-      if (active) {
-        setUsers(fetched);
-      }
-    });
+    };
+
+    loadData();
+
     return () => {
       active = false;
     };
   }, []);
 
   // Filtered list
-  const filteredScales = scales.filter(s => filterPeriod === "Todas" || s.type === filterPeriod);
+  const filteredScales = scales.filter(s => {
+    const matchesPeriod = filterPeriod === "Todas" || s.type === filterPeriod;
+    if (!matchesPeriod) return false;
+    
+    if (filterOnlyMine && user) {
+      return s.slots.some(slot => isUserEscaladoInSlot(slot, user));
+    }
+    return true;
+  });
 
   // Authorization Check
   if (loading) {
@@ -357,12 +484,19 @@ function ScalesDashboard() {
     setTitle("");
     setDate(new Date().toISOString().split("T")[0]);
     setType("Semanal");
+    const defaultDetails = `Moderação: \nOração de abertura (5min)\nLouvores: (40min) \n➤ Boas-vindas aos Visitantes\n➤ Ofertas e Dízimos - Com louvores mexidos\n➤ Testemunhos:\n➤ Grupo Coral Central\n➤ Ensinamento da Palavra: (1h) \n➤ Avisos`;
     setSlots([
       {
         activity: "Culto de Adoração",
-        details: "Moderação: \nOração de abertura (5min)\nLouvores: (40min)\n➤ Boas-vindas aos Visitantes\n➤ Ofertas e Dízimos - Com louvores mexidos\n➤ Testemunhos:\n➤ Grupo Coral Central\n➤ Ensinamento da Palavra: (1h)\n➤ Avisos",
+        details: defaultDetails,
         month: "JUNHO",
-        dayOfMonth: "Domingo - 14/06/2026"
+        dayOfMonth: "Domingo - 14/06/2026",
+        moderatorType: "manual",
+        moderatorValue: "",
+        worshipType: "manual",
+        worshipValue: "",
+        preacherType: "manual",
+        preacherValue: ""
       }
     ]);
     setIsEditing(true);
@@ -374,13 +508,39 @@ function ScalesDashboard() {
     setTitle(scale.title);
     setDate(scale.date);
     setType(scale.type);
-    setSlots([...scale.slots]);
+    
+    // Enrich slots with parsed intervenientes if they are missing
+    const enrichedSlots = scale.slots.map(slot => {
+      const parsed = parseIntervenientesFromDetails(slot.details, users);
+      return {
+        moderatorType: slot.moderatorType || parsed.moderatorType,
+        moderatorValue: slot.moderatorValue || parsed.moderatorValue,
+        worshipType: slot.worshipType || parsed.worshipType,
+        worshipValue: slot.worshipValue || parsed.worshipValue,
+        preacherType: slot.preacherType || parsed.preacherType,
+        preacherValue: slot.preacherValue || parsed.preacherValue,
+        ...slot
+      };
+    });
+    setSlots(enrichedSlots);
     setIsEditing(true);
   };
 
   // Add Row
   const handleAddSlot = () => {
-    setSlots([...slots, { activity: "", details: "", month: "", dayOfMonth: "" }]);
+    const defaultDetails = `Moderação: \nOração de abertura (5min)\nLouvores: (40min) \n➤ Boas-vindas aos Visitantes\n➤ Ofertas e Dízimos - Com louvores mexidos\n➤ Testemunhos:\n➤ Grupo Coral Central\n➤ Ensinamento da Palavra: (1h) \n➤ Avisos`;
+    setSlots([...slots, { 
+      activity: "", 
+      details: defaultDetails, 
+      month: "", 
+      dayOfMonth: "",
+      moderatorType: "manual",
+      moderatorValue: "",
+      worshipType: "manual",
+      worshipValue: "",
+      preacherType: "manual",
+      preacherValue: ""
+    }]);
   };
 
   // Remove Row
@@ -393,6 +553,39 @@ function ScalesDashboard() {
     const updated = slots.map((s, idx) => {
       if (idx === index) {
         return { ...s, [field]: val };
+      }
+      return s;
+    });
+    setSlots(updated);
+  };
+
+  // Update Interveniente Fields and Automatically Update Details Text
+  const handleUpdateSlotInterveniente = (
+    index: number,
+    role: "moderator" | "worship" | "preacher",
+    type: "user" | "manual",
+    value: string
+  ) => {
+    const updated = slots.map((s, idx) => {
+      if (idx === index) {
+        const newSlot = { ...s };
+        if (role === "moderator") {
+          newSlot.moderatorType = type;
+          newSlot.moderatorValue = value;
+          const name = type === "user" ? (users.find(u => u.uid === value)?.displayName || value) : value;
+          newSlot.details = updateDetailsField(newSlot.details, "Moderação", "Moderação: " + (name || ""));
+        } else if (role === "worship") {
+          newSlot.worshipType = type;
+          newSlot.worshipValue = value;
+          const name = type === "user" ? (users.find(u => u.uid === value)?.displayName || value) : value;
+          newSlot.details = updateDetailsField(newSlot.details, "Louvores", "Louvores: (40min) " + (name || ""));
+        } else if (role === "preacher") {
+          newSlot.preacherType = type;
+          newSlot.preacherValue = value;
+          const name = type === "user" ? (users.find(u => u.uid === value)?.displayName || value) : value;
+          newSlot.details = updateDetailsField(newSlot.details, "Ensinamento", "Ensinamento da Palavra: (1h) " + (name || ""));
+        }
+        return newSlot;
       }
       return s;
     });
@@ -876,6 +1069,117 @@ function ScalesDashboard() {
                           </div>
                         </div>
 
+                        {/* MOMENTOS INTERVENIENTES ALLOCATION PANEL */}
+                        <div className="p-4 rounded-xl bg-card/40 border border-border/40 space-y-3">
+                          <h4 className="text-[11px] font-bold text-primary flex items-center gap-1.5 uppercase tracking-wider">
+                            📌 Alocação de Intervenientes por Momento
+                          </h4>
+                          
+                          <div className="grid md:grid-cols-3 gap-4">
+                            {/* 1. Moderação */}
+                            <div className="space-y-1">
+                              <Label className="text-[9px] uppercase text-muted-foreground font-semibold">Moderação</Label>
+                              <div className="flex gap-1.5">
+                                <select
+                                  value={slot.moderatorType || "manual"}
+                                  onChange={(e) => handleUpdateSlotInterveniente(index, "moderator", e.target.value as "user" | "manual", "")}
+                                  className="text-[10px] bg-card border border-border/60 rounded px-1 py-1.5 focus:outline-none text-primary font-bold w-[75px] shrink-0"
+                                >
+                                  <option value="user">Conta</option>
+                                  <option value="manual">Manual</option>
+                                </select>
+                                {slot.moderatorType === "user" ? (
+                                  <select
+                                    value={slot.moderatorValue || ""}
+                                    onChange={(e) => handleUpdateSlotInterveniente(index, "moderator", "user", e.target.value)}
+                                    className="flex-1 text-[11px] bg-card border border-border/60 rounded px-2 py-1 focus:outline-none font-semibold text-foreground"
+                                  >
+                                    <option value="">— Selecione —</option>
+                                    {users.map(u => (
+                                      <option key={u.uid} value={u.uid}>{u.displayName || u.email}</option>
+                                    ))}
+                                  </select>
+                                ) : (
+                                  <Input
+                                    placeholder="Nome do moderador"
+                                    value={slot.moderatorValue || ""}
+                                    onChange={(e) => handleUpdateSlotInterveniente(index, "moderator", "manual", e.target.value)}
+                                    className="h-8 text-xs bg-card/50 flex-1"
+                                  />
+                                )}
+                              </div>
+                            </div>
+
+                            {/* 2. Louvores */}
+                            <div className="space-y-1">
+                              <Label className="text-[9px] uppercase text-muted-foreground font-semibold">Louvores</Label>
+                              <div className="flex gap-1.5">
+                                <select
+                                  value={slot.worshipType || "manual"}
+                                  onChange={(e) => handleUpdateSlotInterveniente(index, "worship", e.target.value as "user" | "manual", "")}
+                                  className="text-[10px] bg-card border border-border/60 rounded px-1 py-1.5 focus:outline-none text-primary font-bold w-[75px] shrink-0"
+                                >
+                                  <option value="user">Conta</option>
+                                  <option value="manual">Manual</option>
+                                </select>
+                                {slot.worshipType === "user" ? (
+                                  <select
+                                    value={slot.worshipValue || ""}
+                                    onChange={(e) => handleUpdateSlotInterveniente(index, "worship", "user", e.target.value)}
+                                    className="flex-1 text-[11px] bg-card border border-border/60 rounded px-2 py-1 focus:outline-none font-semibold text-foreground"
+                                  >
+                                    <option value="">— Selecione —</option>
+                                    {users.map(u => (
+                                      <option key={u.uid} value={u.uid}>{u.displayName || u.email}</option>
+                                    ))}
+                                  </select>
+                                ) : (
+                                  <Input
+                                    placeholder="Banda / Cantor"
+                                    value={slot.worshipValue || ""}
+                                    onChange={(e) => handleUpdateSlotInterveniente(index, "worship", "manual", e.target.value)}
+                                    className="h-8 text-xs bg-card/50 flex-1"
+                                  />
+                                )}
+                              </div>
+                            </div>
+
+                            {/* 3. Ensinamento da Palavra */}
+                            <div className="space-y-1">
+                              <Label className="text-[9px] uppercase text-muted-foreground font-semibold">Pregação / Palavra</Label>
+                              <div className="flex gap-1.5">
+                                <select
+                                  value={slot.preacherType || "manual"}
+                                  onChange={(e) => handleUpdateSlotInterveniente(index, "preacher", e.target.value as "user" | "manual", "")}
+                                  className="text-[10px] bg-card border border-border/60 rounded px-1 py-1.5 focus:outline-none text-primary font-bold w-[75px] shrink-0"
+                                >
+                                  <option value="user">Conta</option>
+                                  <option value="manual">Manual</option>
+                                </select>
+                                {slot.preacherType === "user" ? (
+                                  <select
+                                    value={slot.preacherValue || ""}
+                                    onChange={(e) => handleUpdateSlotInterveniente(index, "preacher", "user", e.target.value)}
+                                    className="flex-1 text-[11px] bg-card border border-border/60 rounded px-2 py-1 focus:outline-none font-semibold text-foreground"
+                                  >
+                                    <option value="">— Selecione —</option>
+                                    {users.map(u => (
+                                      <option key={u.uid} value={u.uid}>{u.displayName || u.email}</option>
+                                    ))}
+                                  </select>
+                                ) : (
+                                  <Input
+                                    placeholder="Nome do pregador"
+                                    value={slot.preacherValue || ""}
+                                    onChange={(e) => handleUpdateSlotInterveniente(index, "preacher", "manual", e.target.value)}
+                                    className="h-8 text-xs bg-card/50 flex-1"
+                                  />
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
                         <div className="space-y-2">
                           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                             <Label className="text-[10px] uppercase text-muted-foreground">Interveniente do Dia / Detalhes da Escala</Label>
@@ -973,6 +1277,26 @@ function ScalesDashboard() {
                     ))}
                   </div>
                 </div>
+
+                {/* Minhas Escalas Filter */}
+                {user && (
+                  <div className="p-6 rounded-3xl bg-card border border-border/60 shadow-elevated">
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="flex-1">
+                        <h3 className="font-display font-bold text-sm text-primary">Apenas as Minhas Escalas</h3>
+                        <p className="text-[10px] text-muted-foreground mt-0.5 leading-relaxed">
+                          Mostrar apenas os dias em que estou escalado(a) como Moderação, Louvor ou Palavra.
+                        </p>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={filterOnlyMine}
+                        onChange={(e) => setFilterOnlyMine(e.target.checked)}
+                        className="h-5 w-5 rounded border-border text-primary focus:ring-primary accent-primary cursor-pointer shrink-0"
+                      />
+                    </div>
+                  </div>
+                )}
 
                 {/* Scales list */}
                 <div className="p-6 rounded-3xl bg-card border border-border/60 shadow-elevated flex-1 min-h-[400px] flex flex-col">
@@ -1134,7 +1458,9 @@ function ScalesDashboard() {
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-border/60">
-                            {sortScaleSlots(selectedScale.slots).map((s, idx) => (
+                            {sortScaleSlots(selectedScale.slots)
+                              .filter((s) => !filterOnlyMine || isUserEscaladoInSlot(s, user))
+                              .map((s, idx) => (
                               <tr key={idx} className="hover:bg-muted/40 transition-colors">
                                 <td className="p-4 font-semibold text-foreground align-top text-sm">{s.activity}</td>
                                 <td className="p-4 text-foreground whitespace-pre-line leading-relaxed align-top text-xs">

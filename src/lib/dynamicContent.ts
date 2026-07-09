@@ -746,6 +746,12 @@ export interface ScaleSlot {
   month: string;
   dayOfMonth: string;
   slotDate?: string;
+  moderatorType?: "user" | "manual";
+  moderatorValue?: string;
+  worshipType?: "user" | "manual";
+  worshipValue?: string;
+  preacherType?: "user" | "manual";
+  preacherValue?: string;
 }
 
 export interface ChurchScale {
