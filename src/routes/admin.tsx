@@ -111,6 +111,7 @@ const SERVANT_DEPARTMENTS = [
 
 function AdminDashboard() {
   const { user, loading } = useAuth();
+  const isSecretaria = (u: typeof user) => u?.role === "Secretaria" || u?.role?.toLowerCase() === "secretaria";
   const [activeTab, setActiveTab] = useState<TabType>("carousel");
   
   // Data States
@@ -1101,7 +1102,7 @@ function AdminDashboard() {
             </div>
             <div className="px-4 py-2 rounded-xl bg-card border border-primary/20 text-xs font-semibold text-primary/80 tracking-wide flex items-center gap-2 self-start md:self-auto">
               <span className="h-2 w-2 rounded-full bg-emerald-500 animate-ping" />
-              Sincronização Ativa · {user.role === "Servo de Deus" ? "Nível Administrador" : "Nível Editor"}
+              Sincronização Ativa · {user.role === "Servo de Deus" ? "Nível Administrador" : isSecretaria(user) ? "Secretaria" : "Nível Editor"}
             </div>
           </div>
 
@@ -1109,17 +1110,24 @@ function AdminDashboard() {
             
             {/* Sidebar Tabs */}
             <div className="flex flex-row overflow-x-auto pb-3 gap-2 lg:flex-col lg:overflow-visible lg:pb-0 whitespace-nowrap scrollbar-none scroll-smooth">
-              <button
-                onClick={() => setActiveTab("carousel")}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all border shrink-0 ${
-                  activeTab === "carousel"
-                    ? "bg-gradient-gold text-primary-foreground border-transparent shadow-gold"
-                    : "bg-card border-border/60 text-muted-foreground hover:text-primary hover:border-primary/30"
-                }`}
-              >
-                <ImageIcon className="h-4 w-4" />
-                Slides do Carrossel
-              </button>
+              {/* Tabs visíveis apenas para Editores e Servos de Deus */}
+              {!isSecretaria(user) && (
+                <>
+                  <button
+                    onClick={() => setActiveTab("carousel")}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all border shrink-0 ${
+                      activeTab === "carousel"
+                        ? "bg-gradient-gold text-primary-foreground border-transparent shadow-gold"
+                        : "bg-card border-border/60 text-muted-foreground hover:text-primary hover:border-primary/30"
+                    }`}
+                  >
+                    <ImageIcon className="h-4 w-4" />
+                    Slides do Carrossel
+                  </button>
+                </>
+              )}
+
+              {/* Publicações - visível para todos */}
               <button
                 onClick={() => setActiveTab("announcements")}
                 className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all border shrink-0 ${
@@ -1131,67 +1139,74 @@ function AdminDashboard() {
                 <FileText className="h-4 w-4" />
                 Mural & Publicações
               </button>
-              <button
-                onClick={() => setActiveTab("info")}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all border shrink-0 ${
-                  activeTab === "info"
-                    ? "bg-gradient-gold text-primary-foreground border-transparent shadow-gold"
-                    : "bg-card border-border/60 text-muted-foreground hover:text-primary hover:border-primary/30"
-                }`}
-              >
-                <Settings className="h-4 w-4" />
-                Textos & Horários
-              </button>
 
-              <button
-                onClick={() => setActiveTab("videos")}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all border shrink-0 ${
-                  activeTab === "videos"
-                    ? "bg-gradient-gold text-primary-foreground border-transparent shadow-gold"
-                    : "bg-card border-border/60 text-muted-foreground hover:text-primary hover:border-primary/30"
-                }`}
-              >
-                <Video className="h-4 w-4" />
-                Cultos & Vídeos
-              </button>
+              {/* Tabs visíveis apenas para Editores e Servos de Deus */}
+              {!isSecretaria(user) && (
+                <>
+                  <button
+                    onClick={() => setActiveTab("info")}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all border shrink-0 ${
+                      activeTab === "info"
+                        ? "bg-gradient-gold text-primary-foreground border-transparent shadow-gold"
+                        : "bg-card border-border/60 text-muted-foreground hover:text-primary hover:border-primary/30"
+                    }`}
+                  >
+                    <Settings className="h-4 w-4" />
+                    Textos & Horários
+                  </button>
 
-              <button
-                onClick={() => setActiveTab("servants")}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all border shrink-0 ${
-                  activeTab === "servants"
-                    ? "bg-gradient-gold text-primary-foreground border-transparent shadow-gold"
-                    : "bg-card border-border/60 text-muted-foreground hover:text-primary hover:border-primary/30"
-                }`}
-              >
-                <Users className="h-4 w-4" />
-                Equipa & Servos
-              </button>
+                  <button
+                    onClick={() => setActiveTab("videos")}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all border shrink-0 ${
+                      activeTab === "videos"
+                        ? "bg-gradient-gold text-primary-foreground border-transparent shadow-gold"
+                        : "bg-card border-border/60 text-muted-foreground hover:text-primary hover:border-primary/30"
+                    }`}
+                  >
+                    <Video className="h-4 w-4" />
+                    Cultos & Vídeos
+                  </button>
 
-              <button
-                onClick={() => setActiveTab("drive")}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all border shrink-0 ${
-                  activeTab === "drive"
-                    ? "bg-gradient-gold text-primary-foreground border-transparent shadow-gold"
-                    : "bg-card border-border/60 text-muted-foreground hover:text-primary hover:border-primary/30"
-                }`}
-              >
-                <FolderOpen className="h-4 w-4" />
-                Biblioteca de Imagens
-              </button>
+                  <button
+                    onClick={() => setActiveTab("servants")}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all border shrink-0 ${
+                      activeTab === "servants"
+                        ? "bg-gradient-gold text-primary-foreground border-transparent shadow-gold"
+                        : "bg-card border-border/60 text-muted-foreground hover:text-primary hover:border-primary/30"
+                    }`}
+                  >
+                    <Users className="h-4 w-4" />
+                    Equipa & Servos
+                  </button>
 
-              <button
-                onClick={() => setActiveTab("siteConfig")}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all border shrink-0 ${
-                  activeTab === "siteConfig"
-                    ? "bg-gradient-gold text-primary-foreground border-transparent shadow-gold"
-                    : "bg-card border-border/60 text-muted-foreground hover:text-primary hover:border-primary/30"
-                }`}
-              >
-                <MapPin className="h-4 w-4" />
-                Rodapé & Contactos
-              </button>
+                  <button
+                    onClick={() => setActiveTab("drive")}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all border shrink-0 ${
+                      activeTab === "drive"
+                        ? "bg-gradient-gold text-primary-foreground border-transparent shadow-gold"
+                        : "bg-card border-border/60 text-muted-foreground hover:text-primary hover:border-primary/30"
+                    }`}
+                  >
+                    <FolderOpen className="h-4 w-4" />
+                    Biblioteca de Imagens
+                  </button>
 
-              {(user.role === "Servo de Deus" || user.role === "Secretaria") && (
+                  <button
+                    onClick={() => setActiveTab("siteConfig")}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all border shrink-0 ${
+                      activeTab === "siteConfig"
+                        ? "bg-gradient-gold text-primary-foreground border-transparent shadow-gold"
+                        : "bg-card border-border/60 text-muted-foreground hover:text-primary hover:border-primary/30"
+                    }`}
+                  >
+                    <MapPin className="h-4 w-4" />
+                    Rodapé & Contactos
+                  </button>
+                </>
+              )}
+
+              {/* Escalas - visível para Secretaria e Servo de Deus */}
+              {(user.role === "Servo de Deus" || isSecretaria(user)) && (
                 <Link
                   to="/escalas"
                   className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all border bg-card border-border/60 text-muted-foreground hover:text-primary hover:border-primary/30 shrink-0"
@@ -1201,6 +1216,7 @@ function AdminDashboard() {
                 </Link>
               )}
 
+              {/* Gestão de Utilizadores - apenas Servo de Deus */}
               {user.role === "Servo de Deus" && (
                 <button
                   onClick={() => setActiveTab("users")}
@@ -1215,22 +1231,26 @@ function AdminDashboard() {
                 </button>
               )}
 
-              <button
-                onClick={() => setActiveTab("whatsapp")}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all border shrink-0 ${
-                  activeTab === "whatsapp"
-                    ? "bg-gradient-gold text-primary-foreground border-transparent shadow-gold"
-                    : "bg-card border-border/60 text-muted-foreground hover:text-primary hover:border-primary/30"
-                }`}
-              >
-                <MessageSquare className="h-4 w-4" />
-                Disparos WhatsApp
-              </button>
+              {/* WhatsApp - apenas Editores e Servos */}
+              {!isSecretaria(user) && (
+                <button
+                  onClick={() => setActiveTab("whatsapp")}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all border shrink-0 ${
+                    activeTab === "whatsapp"
+                      ? "bg-gradient-gold text-primary-foreground border-transparent shadow-gold"
+                      : "bg-card border-border/60 text-muted-foreground hover:text-primary hover:border-primary/30"
+                  }`}
+                >
+                  <MessageSquare className="h-4 w-4" />
+                  Disparos WhatsApp
+                </button>
+              )}
               
               <div className="hidden lg:block mt-8 p-4 rounded-2xl bg-card/40 border border-primary/10 text-xs text-muted-foreground leading-relaxed whitespace-normal">
                 <span className="font-semibold text-primary block mb-1">Permissões de Acesso:</span>
-                * <strong>Servo de Deus:</strong> Acesso total às configurações e controle de membros.<br/>
-                * <strong>Editor:</strong> Apenas modificação do layout visual e publicações.
+                * <strong>Servo de Deus:</strong> Acesso total às configurações e controlo de membros.<br/>
+                * <strong>Editor:</strong> Modificação do layout visual e publicações.<br/>
+                * <strong>Secretaria:</strong> Apenas publicações e gestão de escalas.
               </div>
             </div>
 
