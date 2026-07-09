@@ -83,6 +83,16 @@ const formatScaleDate = (dateString: string) => {
   return { month, dayOfMonth: `${dayName} - ${formattedDate}` };
 };
 
+const cleanTextForPDF = (text: string): string => {
+  if (!text) return "";
+  return text
+    .replace(/➤/g, "- ") // Replace pointer symbol with safe dash
+    .replace(/[•●▪▫◦]/g, "- ") // Replace bullet points with dash
+    // Remove characters that aren't ASCII or basic Latin-1 accents (to avoid rendering & sizing bugs in standard PDF fonts)
+    .replace(/[^\x00-\x7F\xC0-\xFF\s]/g, "")
+    .trim();
+};
+
 const sortScaleSlots = (slotsList: ScaleSlot[]): ScaleSlot[] => {
   return [...slotsList].sort((a, b) => {
     if (a.slotDate && b.slotDate) {
@@ -417,10 +427,10 @@ function ScalesDashboard() {
     // Mapping Rows to exactly match user's custom columns:
     const sorted = sortScaleSlots(scale.slots);
     const tableRows = sorted.map(s => [
-      s.activity || "",
-      s.details || "",
-      s.month || "",
-      s.dayOfMonth || ""
+      cleanTextForPDF(s.activity || ""),
+      cleanTextForPDF(s.details || ""),
+      cleanTextForPDF(s.month || ""),
+      cleanTextForPDF(s.dayOfMonth || "")
     ]);
     
     autoTable(doc, {
