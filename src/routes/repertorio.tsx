@@ -804,7 +804,7 @@ function Repertoire() {
             </DialogHeader>
 
             <div className="py-4">
-              <div className="bg-card/60 border border-border/40 p-5 rounded-2xl max-h-[45vh] overflow-y-auto font-sans leading-relaxed text-sm whitespace-pre-line shadow-inner">
+              <div className="bg-card/60 border border-border/40 p-5 rounded-2xl max-h-none md:max-h-[45vh] overflow-y-visible md:overflow-y-auto font-sans leading-relaxed text-sm whitespace-pre-line shadow-inner">
                 {selectedSong.lyrics}
               </div>
             </div>
