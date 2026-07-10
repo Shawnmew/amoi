@@ -23,26 +23,40 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
 import { getInitialThemeScript } from "@/components/ThemeToggle";
+import { SiteLayout } from "../components/SiteLayout";
+import { Flame } from "lucide-react";
 
 function NotFoundComponent() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
-        <h1 className="text-7xl font-bold text-foreground">404</h1>
-        <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          The page you're looking for doesn't exist or has been moved.
-        </p>
-        <div className="mt-6">
-          <Link
-            to="/"
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            Go home
-          </Link>
+    <SiteLayout>
+      <section className="min-h-[calc(100vh-6rem)] flex items-center justify-center px-4 py-16 relative overflow-hidden">
+        {/* Background glow effects */}
+        <div className="absolute -top-40 -left-40 w-96 h-96 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute inset-0 opacity-20 pointer-events-none" style={{ background: "var(--gradient-radial-gold)" }} />
+
+        <div className="relative max-w-md w-full text-center bg-card/60 backdrop-blur-xl border border-primary/20 rounded-3xl p-10 shadow-elevated">
+          <div className="h-20 w-20 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto text-primary mb-6 border border-primary/30 shadow-gold">
+            <Flame className="h-10 w-10 animate-pulse" />
+          </div>
+
+          <h1 className="font-display text-7xl font-extrabold text-gradient-gold">404</h1>
+          <h2 className="mt-4 font-display text-xl font-bold text-foreground">Página Não Encontrada</h2>
+          <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
+            A página que procura não existe, foi removida ou o endereço de acesso está incorreto.
+          </p>
+
+          <div className="mt-8">
+            <Link
+              to="/"
+              className="inline-flex items-center justify-center w-full px-6 py-3 rounded-xl bg-gradient-gold text-primary-foreground font-bold shadow-gold hover:opacity-90 transition-all cursor-pointer text-sm"
+            >
+              Voltar ao Início
+            </Link>
+          </div>
         </div>
-      </div>
-    </div>
+      </section>
+    </SiteLayout>
   );
 }
 

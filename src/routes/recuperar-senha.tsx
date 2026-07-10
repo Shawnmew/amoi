@@ -8,7 +8,7 @@ import { auth, db } from "../lib/firebase";
 import { confirmPasswordReset, sendPasswordResetEmail, verifyPasswordResetCode } from "firebase/auth";
 import { doc, setDoc, getDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { toast } from "sonner";
-import { Mail, Lock, KeyRound, ShieldCheck, ArrowLeft, RefreshCw, Eye, EyeOff, CheckCircle2 } from "lucide-react";
+import { Mail, Lock, KeyRound, ShieldCheck, ArrowLeft, RefreshCw, Eye, EyeOff, CheckCircle2, Flame } from "lucide-react";
 import logoUrl from "@/assets/amoi-logo.png";
 
 export const Route = createFileRoute("/recuperar-senha")({
@@ -431,6 +431,20 @@ function RecuperarSenha() {
 
         </div>
       </section>
+
+      {/* Loading Vignette Overlay */}
+      {loading && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background/80 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="relative flex flex-col items-center justify-center p-8 bg-card/60 border border-primary/20 rounded-3xl shadow-elevated max-w-sm w-[90%] text-center">
+            <div className="absolute inset-0 opacity-10 pointer-events-none rounded-3xl" style={{ background: "var(--gradient-radial-gold)" }} />
+            <div className="h-16 w-16 bg-primary/10 rounded-full flex items-center justify-center border border-primary/30 animate-spin mb-4">
+              <Flame className="h-8 w-8 text-primary animate-pulse" />
+            </div>
+            <h3 className="font-display text-lg font-bold text-gradient-gold animate-pulse">A processar o pedido...</h3>
+            <p className="text-xs text-muted-foreground mt-2">Por favor aguarde enquanto validamos o código ou redefinimos a sua palavra-passe...</p>
+          </div>
+        </div>
+      )}
     </SiteLayout>
   );
 }

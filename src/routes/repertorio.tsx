@@ -66,6 +66,10 @@ function Repertoire() {
   const [selectedBulkIds, setSelectedBulkIds] = useState<string[]>([]);
   const [bulkMode, setBulkMode] = useState(false);
 
+  // File Progress states
+  const [progressPercent, setProgressPercent] = useState<number | null>(null);
+  const [progressLabel, setProgressLabel] = useState("");
+
   // Modals state
   const [selectedSong, setSelectedSong] = useState<RepertoireSong | null>(null);
   const [addEditDialogOpen, setAddEditDialogOpen] = useState(false);
@@ -218,8 +222,13 @@ function Repertoire() {
   };
 
   // Export selected songs to Holyrics JSON format
-  const handleExportRepertoireJSON = (selectedSongs: RepertoireSong[]) => {
+  const handleExportRepertoireJSON = async (selectedSongs: RepertoireSong[]) => {
     if (selectedSongs.length === 0) return;
+
+    setProgressPercent(20);
+    setProgressLabel("A iniciar exportação para JSON...");
+    await new Promise(r => setTimeout(r, 200));
+
     const holyricsSongs = selectedSongs.map((song, index) => ({
       id: song.createdAt || (Date.now() + index),
       title: song.title,
@@ -239,8 +248,17 @@ function Repertoire() {
       }
     }));
 
+    setProgressPercent(60);
+    setProgressLabel("A codificar ficheiro...");
+    await new Promise(r => setTimeout(r, 250));
+
     const blob = new Blob([JSON.stringify(holyricsSongs, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
+
+    setProgressPercent(90);
+    setProgressLabel("A descarregar arquivo...");
+    await new Promise(r => setTimeout(r, 200));
+
     const a = document.createElement("a");
     a.href = url;
     a.download = selectedSongs.length === 1 
@@ -250,18 +268,36 @@ function Repertoire() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+
+    setProgressPercent(100);
+    setProgressLabel("Download concluído!");
+    await new Promise(r => setTimeout(r, 300));
+    setProgressPercent(null);
+    setProgressLabel("");
+
     toast.success(`${selectedSongs.length} música(s) exportada(s) em JSON Holyrics!`);
   };
 
   // Export selected songs to PDF with AMOI logo
-  const handleExportRepertoirePDF = (selectedSongs: RepertoireSong[]) => {
+  const handleExportRepertoirePDF = async (selectedSongs: RepertoireSong[]) => {
     if (selectedSongs.length === 0) return;
+
+    setProgressPercent(10);
+    setProgressLabel("A iniciar exportação para PDF...");
+    await new Promise(r => setTimeout(r, 300));
+
     const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
     const img = new Image();
     img.src = logoUrl;
 
-    selectedSongs.forEach((song, sIdx) => {
-      if (sIdx > 0) {
+    const total = selectedSongs.length;
+    for (let i = 0; i < total; i++) {
+      const song = selectedSongs[i];
+      setProgressLabel(`A processar louvor ${i + 1} de ${total}: ${song.title}...`);
+      setProgressPercent(Math.round(10 + (i / total) * 80));
+      await new Promise(r => setTimeout(r, 200));
+
+      if (i > 0) {
         doc.addPage();
       }
 
@@ -324,7 +360,11 @@ function Repertoire() {
         doc.text(line, 14, y);
         y += lineHeight;
       });
-    });
+    }
+
+    setProgressLabel("A finalizar documento...");
+    setProgressPercent(95);
+    await new Promise(r => setTimeout(r, 200));
 
     // Footer page numbering
     const totalPages = doc.getNumberOfPages();
@@ -342,6 +382,13 @@ function Repertoire() {
       : `repertorio_amoi_${Date.now()}.pdf`;
     
     doc.save(filename);
+    
+    setProgressPercent(100);
+    setProgressLabel("Download concluído!");
+    await new Promise(r => setTimeout(r, 300));
+    setProgressPercent(null);
+    setProgressLabel("");
+
     toast.success(`${selectedSongs.length} música(s) exportada(s) em PDF!`);
   };
 
@@ -402,14 +449,24 @@ function Repertoire() {
     }
 
     setSubmitting(true);
+    setProgressPercent(0);
+    setProgressLabel("Iniciando importação...");
     let successCount = 0;
     let overwriteCount = 0;
     const updatedSongsList = [...songs];
+    const total = selectedImportIndexes.length;
 
     try {
-      for (const idx of selectedImportIndexes) {
+      for (let i = 0; i < total; i++) {
+        const idx = selectedImportIndexes[i];
         const song = importSongsList[idx];
         song.isPublic = importIsPublic;
+
+        setProgressLabel(`A importar: ${song.title}...`);
+        setProgressPercent(Math.round((i / total) * 100));
+
+        // Simulate small delay for premium progress visualization
+        await new Promise(r => setTimeout(r, 200));
 
         // Check if song already exists by title
         const existingIdx = updatedSongsList.findIndex(
@@ -433,6 +490,10 @@ function Repertoire() {
         }
       }
 
+      setProgressPercent(100);
+      setProgressLabel("Concluído!");
+      await new Promise(r => setTimeout(r, 400));
+
       setSongs(updatedSongsList);
       
       if (overwriteCount > 0) {
@@ -447,6 +508,8 @@ function Repertoire() {
       toast.error("Erro ao importar algumas músicas.");
     } finally {
       setSubmitting(false);
+      setProgressPercent(null);
+      setProgressLabel("");
     }
   };
 
@@ -982,6 +1045,22 @@ function Repertoire() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Progress Bar Overlay */}
+      {progressPercent !== null && (
+        <div className="fixed bottom-6 right-6 z-50 max-w-sm w-[90%] md:w-80 bg-card/90 backdrop-blur-xl border border-primary/30 rounded-3xl p-5 shadow-elevated animate-in fade-in slide-in-from-bottom-4">
+          <div className="flex justify-between items-center gap-4 mb-2">
+            <span className="text-xs font-bold text-foreground truncate">{progressLabel}</span>
+            <span className="text-xs font-bold text-primary">{progressPercent}%</span>
+          </div>
+          <div className="w-full bg-muted/60 h-2 rounded-full overflow-hidden border border-border/30">
+            <div
+              className="bg-gradient-gold h-full rounded-full transition-all duration-300"
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+        </div>
+      )}
     </SiteLayout>
   );
 }
