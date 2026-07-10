@@ -4,7 +4,7 @@ import Autoplay from "embla-carousel-autoplay";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, type CarouselApi } from "@/components/ui/carousel";
 import { Button } from "@/components/ui/button";
 import { SiteLayout } from "@/components/SiteLayout";
-import { ArrowRight, Calendar, Flame, HandHeart, Users, BookOpenText, User, Bell, Tag } from "lucide-react";
+import { ArrowRight, Calendar, Flame, HandHeart, Users, BookOpenText, User, Bell, Tag, AlertTriangle } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -250,10 +250,18 @@ function Home() {
                 <div
                   key={ann.id}
                   onClick={() => setSelectedAnn(ann)}
-                  className="relative group p-8 rounded-3xl bg-card border border-border/60 hover:border-primary/40 hover:scale-[1.01] transition-all duration-300 shadow-elevated cursor-pointer flex flex-col justify-between"
+                  className={`relative group p-8 rounded-3xl bg-card border hover:scale-[1.01] transition-all duration-300 shadow-elevated cursor-pointer flex flex-col justify-between ${
+                    ann.category === "Aviso"
+                      ? "border-destructive/30 hover:border-destructive/50"
+                      : "border-border/60 hover:border-primary/40"
+                  }`}
                 >
                   <div>
-                    <div className="absolute top-0 right-8 -translate-y-1/2 px-4 py-1 rounded-full bg-gradient-gold text-primary-foreground text-[10px] uppercase font-bold tracking-widest shadow-gold">
+                    <div className={`absolute top-0 right-8 -translate-y-1/2 px-4 py-1 rounded-full text-[10px] uppercase font-bold tracking-widest ${
+                      ann.category === "Aviso"
+                        ? "bg-gradient-fire text-secondary-foreground shadow-ember"
+                        : "bg-gradient-gold text-primary-foreground shadow-gold"
+                    }`}>
                       {ann.category}
                     </div>
                     {ann.imageUrl && (
@@ -265,7 +273,8 @@ function Home() {
                       <span className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5 text-primary" /> {ann.date}</span>
                       <span className="flex items-center gap-1"><User className="h-3.5 w-3.5 text-primary" /> {ann.author}</span>
                     </div>
-                    <h3 className="font-display text-2xl font-bold text-foreground group-hover:text-primary transition-colors mb-3">
+                    <h3 className="font-display text-2xl font-bold text-foreground group-hover:text-primary transition-colors mb-3 flex items-center gap-2">
+                      {ann.category === "Aviso" && <AlertTriangle className="h-5 w-5 text-destructive shrink-0" />}
                       {ann.title}
                     </h3>
                     <p className="text-muted-foreground leading-relaxed text-sm line-clamp-3">
@@ -303,7 +312,11 @@ function Home() {
                     <div className="p-6 md:p-10">
                       {/* Meta Tags */}
                       <div className="flex items-center gap-4 flex-wrap mb-6 text-xs text-muted-foreground">
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-bold uppercase tracking-wider">
+                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                          selectedAnn.category === "Aviso"
+                            ? "bg-destructive/10 border border-destructive/20 text-destructive"
+                            : "bg-primary/10 border border-primary/20 text-primary"
+                        }`}>
                           <Tag className="h-3.5 w-3.5" /> {selectedAnn.category}
                         </span>
                         <span className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5 text-primary" /> {selectedAnn.date}</span>

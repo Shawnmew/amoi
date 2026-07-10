@@ -3,7 +3,7 @@ import { useState, useEffect, useMemo } from "react";
 import { SiteLayout } from "@/components/SiteLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Calendar, User, Newspaper, Tag, ArrowRight } from "lucide-react";
+import { Search, Calendar, User, Newspaper, Tag, ArrowRight, AlertTriangle } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -144,7 +144,11 @@ function BoasNovas() {
                     <article
                       key={ann.id}
                       onClick={() => setSelectedAnn(ann)}
-                      className="flex flex-col rounded-3xl bg-card border border-border/60 hover:border-primary/40 hover:scale-[1.01] transition-all duration-300 shadow-elevated overflow-hidden group cursor-pointer"
+                      className={`flex flex-col rounded-3xl bg-card border hover:scale-[1.01] transition-all duration-300 shadow-elevated overflow-hidden group cursor-pointer ${
+                        ann.category === "Aviso"
+                          ? "border-destructive/30 hover:border-destructive/50"
+                          : "border-border/60 hover:border-primary/40"
+                      }`}
                     >
                       {/* Image */}
                       {ann.imageUrl && (
@@ -164,7 +168,11 @@ function BoasNovas() {
                         <div>
                           {/* Meta Category & Date */}
                           <div className="flex items-center justify-between mb-4">
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-bold uppercase tracking-wider">
+                            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                              ann.category === "Aviso"
+                                ? "bg-destructive/10 border border-destructive/20 text-destructive"
+                                : "bg-primary/10 border border-primary/20 text-primary"
+                            }`}>
                               <Tag className="h-3 w-3" /> {ann.category}
                             </span>
                             <span className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -173,7 +181,8 @@ function BoasNovas() {
                           </div>
 
                           {/* Title */}
-                          <h3 className="font-display text-xl md:text-2xl font-bold text-foreground leading-snug mb-3 group-hover:text-primary transition-colors duration-300">
+                          <h3 className="font-display text-xl md:text-2xl font-bold text-foreground leading-snug mb-3 group-hover:text-primary transition-colors duration-300 flex items-center gap-2">
+                            {ann.category === "Aviso" && <AlertTriangle className="h-5 w-5 text-destructive shrink-0" />}
                             {ann.title}
                           </h3>
 
@@ -223,7 +232,11 @@ function BoasNovas() {
                       <div className="p-6 md:p-10">
                         {/* Meta Tags */}
                         <div className="flex items-center gap-4 flex-wrap mb-6 text-xs text-muted-foreground">
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-bold uppercase tracking-wider">
+                          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                            selectedAnn.category === "Aviso"
+                              ? "bg-destructive/10 border border-destructive/20 text-destructive"
+                              : "bg-primary/10 border border-primary/20 text-primary"
+                          }`}>
                             <Tag className="h-3.5 w-3.5" /> {selectedAnn.category}
                           </span>
                           <span className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5 text-primary" /> {selectedAnn.date}</span>
