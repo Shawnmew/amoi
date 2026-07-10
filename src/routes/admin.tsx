@@ -23,6 +23,7 @@ import {
   ChurchUser,
   getDynamicSlides,
   saveDynamicSlides,
+  deleteDynamicSlide,
   getDynamicAnnouncements,
   saveDynamicAnnouncement,
   deleteDynamicAnnouncement,
@@ -344,6 +345,7 @@ function AdminDashboard() {
   const handleDeleteSlide = async (id: string) => {
     const updated = slides.filter(s => s.id !== id).map((s, idx) => ({ ...s, order: idx + 1 }));
     setSlides(updated);
+    await deleteDynamicSlide(id);
     await saveDynamicSlides(updated);
     toast.success("Slide removido.");
   };

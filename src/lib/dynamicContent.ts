@@ -128,6 +128,24 @@ export async function saveDynamicSlides(slides: CarouselSlide[]): Promise<void> 
   }
 }
 
+export async function deleteDynamicSlide(id: string): Promise<void> {
+  // LocalStorage
+  if (typeof window !== "undefined") {
+    const list = await getDynamicSlides();
+    const updated = list.filter(s => s.id !== id);
+    localStorage.setItem("amoi_carousel_slides", JSON.stringify(updated));
+  }
+
+  // Firestore
+  try {
+    if (db) {
+      await deleteDoc(doc(db, "carousel_slides", id));
+    }
+  } catch (e) {
+    console.error("Error deleting slide from Firestore:", e);
+  }
+}
+
 // ============ ANNOUNCEMENTS ============
 
 export async function getDynamicAnnouncements(): Promise<Announcement[]> {
