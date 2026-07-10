@@ -64,6 +64,12 @@ function Repertoire() {
   const [formIsPublic, setFormIsPublic] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
+  // Import state
+  const [importSongsList, setImportSongsList] = useState<RepertoireSong[]>([]);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [selectedImportIndexes, setSelectedImportIndexes] = useState<number[]>([]);
+  const [importIsPublic, setImportIsPublic] = useState(true);
+
   // Fetch repertoire
   useEffect(() => {
     async function loadRepertoire() {
@@ -197,6 +203,86 @@ function Repertoire() {
     toast.success("Letra copiada para a área de transferência!");
   };
 
+  // Handle Holyrics JSON file upload & parsing
+  const handleFileImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const parsed = JSON.parse(event.target?.result as string);
+        const parsedSongs: RepertoireSong[] = [];
+        
+        const items = Array.isArray(parsed) ? parsed : [parsed];
+        
+        items.forEach((item: any, index: number) => {
+          const title = item.title;
+          const artist = item.artist || item.author || "Autor Desconhecido";
+          const lyrics = item.lyrics?.full_text || (typeof item.lyrics === "string" ? item.lyrics : "");
+          
+          if (title && lyrics) {
+            parsedSongs.push({
+              id: `song-holyrics-${Date.now()}-${index}-${Math.random().toString(36).substr(2, 5)}`,
+              title: String(title).trim(),
+              artist: String(artist).trim(),
+              lyrics: String(lyrics).trim(),
+              isPublic: importIsPublic,
+              createdAt: Date.now() + index,
+              createdBy: user?.email || "import_holyrics"
+            });
+          }
+        });
+
+        if (parsedSongs.length === 0) {
+          toast.error("Nenhuma música válida com título e letra foi encontrada no arquivo.");
+          return;
+        }
+
+        setImportSongsList(parsedSongs);
+        setSelectedImportIndexes(parsedSongs.map((_, i) => i)); // all checked by default
+        setImportDialogOpen(true);
+        // Reset file input value
+        e.target.value = "";
+      } catch (err) {
+        console.error("JSON parse error:", err);
+        toast.error("Erro ao ler o arquivo JSON. Certifique-se de que é um arquivo JSON válido do Holyrics.");
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  // Confirm and save selected imported songs
+  const handleConfirmImport = async () => {
+    if (selectedImportIndexes.length === 0) {
+      toast.error("Selecione pelo menos uma música para importar.");
+      return;
+    }
+
+    setSubmitting(true);
+    let successCount = 0;
+    const importedSongs: RepertoireSong[] = [];
+
+    try {
+      for (const idx of selectedImportIndexes) {
+        const song = importSongsList[idx];
+        song.isPublic = importIsPublic;
+        await saveDynamicRepertoireSong(song);
+        importedSongs.push(song);
+        successCount++;
+      }
+
+      setSongs((prev) => [...importedSongs, ...prev]);
+      toast.success(`${successCount} música(s) importada(s) com sucesso!`);
+      setImportDialogOpen(false);
+    } catch (err) {
+      console.error("Error during import:", err);
+      toast.error("Erro ao importar algumas músicas.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   // Restrict screen for non-logged in users
   if (loading) {
     return (
@@ -251,12 +337,23 @@ function Repertoire() {
           </div>
 
           {isBandaOrAdmin && (
-            <Button
-              onClick={handleOpenAdd}
-              className="bg-gradient-gold text-primary-foreground font-bold shadow-gold cursor-pointer"
-            >
-              <Plus className="h-4 w-4 mr-2" /> Adicionar Música
-            </Button>
+            <div className="flex flex-wrap gap-2.5">
+              <label className="inline-flex items-center justify-center px-4 py-2 rounded-xl text-xs font-bold border border-border text-foreground hover:bg-muted transition-colors cursor-pointer select-none">
+                <FileText className="h-4 w-4 mr-2 text-primary" /> Importar Holyrics (JSON)
+                <input
+                  type="file"
+                  accept=".json"
+                  onChange={handleFileImport}
+                  className="hidden"
+                />
+              </label>
+              <Button
+                onClick={handleOpenAdd}
+                className="bg-gradient-gold text-primary-foreground font-bold shadow-gold cursor-pointer"
+              >
+                <Plus className="h-4 w-4 mr-2" /> Adicionar Música
+              </Button>
+            </div>
           )}
         </div>
 
@@ -505,6 +602,102 @@ function Repertoire() {
               </Button>
             </div>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* IMPORT HOLYRICS DIALOG */}
+      <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
+        <DialogContent className="max-w-lg w-[95%] bg-card border border-border/80 rounded-3xl p-6 shadow-elevated text-foreground max-h-[90vh] overflow-y-auto">
+          <DialogHeader className="pb-3 border-b border-border/40">
+            <DialogTitle className="text-lg font-bold font-display text-primary flex items-center gap-2">
+              <FileText className="h-5 w-5" /> Importar Músicas do Holyrics
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Encontrámos <strong>{importSongsList.length}</strong> música(s) no arquivo. Selecione as que deseja importar.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-3">
+            {/* Privacy toggle for imported batch */}
+            <div className="p-3.5 bg-muted/40 border border-border/50 rounded-2xl flex items-center justify-between gap-4">
+              <div className="flex-1">
+                <h4 className="text-xs font-bold text-foreground">Definir privacidade da importação</h4>
+                <p className="text-[9px] text-muted-foreground leading-relaxed mt-0.5">
+                  Importar músicas como públicas (todos lêem) ou privadas (apenas banda).
+                </p>
+              </div>
+              <select
+                value={importIsPublic ? "public" : "private"}
+                onChange={(e) => {
+                  const isPub = e.target.value === "public";
+                  setImportIsPublic(isPub);
+                  // Update current import list preview state as well
+                  setImportSongsList(prev => prev.map(s => ({ ...s, isPublic: isPub })));
+                }}
+                className="text-xs bg-card border border-border/60 rounded px-2.5 py-1.5 focus:outline-none text-foreground font-semibold"
+              >
+                <option value="public">Público</option>
+                <option value="private">Privado (Banda)</option>
+              </select>
+            </div>
+
+            {/* List scrollarea with checkboxes */}
+            <div className="border border-border/60 rounded-2xl max-h-[35vh] overflow-y-auto divide-y divide-border/40 bg-card/50">
+              {importSongsList.map((song, idx) => {
+                const isChecked = selectedImportIndexes.includes(idx);
+                return (
+                  <div key={idx} className="p-3 flex items-center justify-between gap-3 hover:bg-muted/30 transition-colors">
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-xs font-bold text-foreground truncate">{song.title}</h4>
+                      <p className="text-[10px] text-muted-foreground truncate">{song.artist}</p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={() => {
+                        setSelectedImportIndexes((prev) =>
+                          isChecked ? prev.filter((i) => i !== idx) : [...prev, idx]
+                        );
+                      }}
+                      className="h-4.5 w-4.5 rounded border-border text-primary focus:ring-primary accent-primary cursor-pointer shrink-0"
+                    />
+                  </div>
+                );
+              })}
+            </div>
+            
+            <div className="text-[10px] text-muted-foreground flex justify-between px-1">
+              <span>Selecionadas: <strong>{selectedImportIndexes.length}</strong> de <strong>{importSongsList.length}</strong></span>
+              <button
+                type="button"
+                onClick={() => setSelectedImportIndexes(
+                  selectedImportIndexes.length === importSongsList.length ? [] : importSongsList.map((_, i) => i)
+                )}
+                className="text-primary hover:underline font-semibold"
+              >
+                {selectedImportIndexes.length === importSongsList.length ? "Desmarcar todas" : "Selecionar todas"}
+              </button>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-3 border-t border-border/40">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setImportDialogOpen(false)}
+              className="border-border/60 hover:bg-muted font-bold text-xs py-2 px-4 cursor-pointer"
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              onClick={handleConfirmImport}
+              disabled={submitting || selectedImportIndexes.length === 0}
+              className="bg-gradient-gold text-primary-foreground font-bold shadow-gold text-xs py-2 px-5 cursor-pointer"
+            >
+              {submitting ? "A Importar..." : `Importar Músicas (${selectedImportIndexes.length})`}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </SiteLayout>
