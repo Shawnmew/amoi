@@ -1600,24 +1600,61 @@ function AdminDashboard() {
                       <div className="space-y-4">
                         <div className="font-semibold text-sm text-muted-foreground pb-2 border-b border-border/30">Seção "Bem-vindo" (Página Inicial)</div>
                         
-                        <div className="space-y-2">
-                          <Label htmlFor="welcome-title" className="text-xs uppercase tracking-wider text-muted-foreground">Título Principal</Label>
-                          <Input
-                            id="welcome-title"
-                            value={info.welcomeTitle}
-                            onChange={(e) => setInfo({ ...info, welcomeTitle: e.target.value })}
-                            className="bg-card border-border/60"
-                          />
+                        <div className="grid md:grid-cols-3 gap-4">
+                          <div className="space-y-2 md:col-span-1">
+                            <Label htmlFor="welcome-subtitle" className="text-xs uppercase tracking-wider text-muted-foreground">Etiqueta Superior (ex: Bem-vindo)</Label>
+                            <Input
+                              id="welcome-subtitle"
+                              value={info.welcomeSubtitle || ""}
+                              onChange={(e) => setInfo({ ...info, welcomeSubtitle: e.target.value })}
+                              className="bg-card border-border/60"
+                              placeholder="Bem-vindo"
+                            />
+                          </div>
+                          <div className="space-y-2 md:col-span-2">
+                            <Label htmlFor="welcome-title" className="text-xs uppercase tracking-wider text-muted-foreground">Título Principal</Label>
+                            <Input
+                              id="welcome-title"
+                              value={info.welcomeTitle}
+                              onChange={(e) => setInfo({ ...info, welcomeTitle: e.target.value })}
+                              className="bg-card border-border/60"
+                            />
+                          </div>
                         </div>
 
                         <div className="space-y-2">
-                          <Label htmlFor="welcome-desc" className="text-xs uppercase tracking-wider text-muted-foreground">Descrição</Label>
+                          <Label htmlFor="welcome-desc" className="text-xs uppercase tracking-wider text-muted-foreground">Descrição Principal</Label>
                           <Textarea
                             id="welcome-desc"
                             value={info.welcomeDesc}
                             onChange={(e) => setInfo({ ...info, welcomeDesc: e.target.value })}
-                            className="bg-card border-border/60 min-h-[100px]"
+                            className="bg-card border-border/60 min-h-[80px]"
                           />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="welcome-secondary" className="text-xs uppercase tracking-wider text-muted-foreground">Descrição Secundária / Convite</Label>
+                          <Textarea
+                            id="welcome-secondary"
+                            value={info.welcomeSecondary || ""}
+                            onChange={(e) => setInfo({ ...info, welcomeSecondary: e.target.value })}
+                            className="bg-card border-border/60 min-h-[60px]"
+                            placeholder="Sejas tu novo na fé ou caminhando há muito tempo..."
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="welcome-image" className="text-xs uppercase tracking-wider text-muted-foreground">Link da Imagem Principal (Google Drive ou URL)</Label>
+                          <Input
+                            id="welcome-image"
+                            value={info.welcomeImage || ""}
+                            onChange={(e) => setInfo({ ...info, welcomeImage: e.target.value })}
+                            className="bg-card border-border/60"
+                            placeholder="Link do Google Drive ou link direto da imagem. Se vazio, usa a imagem padrão."
+                          />
+                          <p className="text-[10px] text-muted-foreground leading-relaxed">
+                            Pode carregar a foto no Google Drive e colar o link de partilha aqui. O sistema converte-o de forma automática.
+                          </p>
                         </div>
                       </div>
 

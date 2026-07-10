@@ -45,8 +45,11 @@ export interface Announcement {
 }
 
 export interface ChurchInfo {
+  welcomeSubtitle?: string;
   welcomeTitle: string;
   welcomeDesc: string;
+  welcomeSecondary?: string;
+  welcomeImage?: string;
   schedule: Array<{ day: string; time: string }>;
 }
 
@@ -61,8 +64,11 @@ export const DEFAULT_SLIDES: CarouselSlide[] = [
 export const DEFAULT_ANNOUNCEMENTS: Announcement[] = [];
 
 export const DEFAULT_INFO: ChurchInfo = {
+  welcomeSubtitle: "Bem-vindo",
   welcomeTitle: "Uma casa de oração para todos os povos.",
   welcomeDesc: "A AMOI é mais do que uma igreja — é uma família espiritual que arde pela presença de Deus. Acreditamos no poder transformador da oração, na centralidade da Palavra e na adoração que move o coração do Pai.",
+  welcomeSecondary: "Sejas tu novo na fé ou caminhando há muito tempo, há um lugar reservado para ti entre os Bravos Guerreiros da Fé.",
+  welcomeImage: "",
   schedule: [
     { day: "Domingo", time: "09h00 às 12h30 · Culto de Adoração" },
     { day: "Quarta-Feira", time: "18h00 às 19h00 · Culto de Libertação" },

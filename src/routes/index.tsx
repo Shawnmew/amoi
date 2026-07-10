@@ -164,33 +164,46 @@ function Home() {
       <section className="py-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 grid md:grid-cols-2 gap-14 items-center">
           <div>
-            <span className="text-xs uppercase tracking-[0.3em] text-primary font-semibold">Bem-vindo</span>
+            <span className="text-xs uppercase tracking-[0.3em] text-primary font-semibold">
+              {info.welcomeSubtitle || "Bem-vindo"}
+            </span>
             <h2 className="mt-3 text-4xl md:text-5xl font-bold">
-              {info.welcomeTitle.includes("oração") ? (
+              {info.welcomeTitle.toLowerCase().includes("oração") ? (
                 <>
-                  {info.welcomeTitle.split("oração")[0]}
+                  {info.welcomeTitle.split(/oração/i)[0]}
                   <span className="text-gradient-gold">oração</span>
-                  {info.welcomeTitle.split("oração")[1]}
+                  {info.welcomeTitle.split(/oração/i)[1]}
                 </>
               ) : (
                 info.welcomeTitle
               )}
             </h2>
             <div className="gold-divider w-32 my-6" />
-            <p className="text-muted-foreground leading-relaxed text-lg">
+            <p className="text-muted-foreground leading-relaxed text-lg font-sans">
               {info.welcomeDesc}
             </p>
-            <p className="mt-4 text-muted-foreground leading-relaxed">
-              Sejas tu novo na fé ou caminhando há muito tempo, há um lugar reservado para ti entre os
-              <strong className="text-primary"> Bravos Guerreiros da Fé</strong>.
-            </p>
-            <Button asChild className="mt-8 bg-gradient-fire text-secondary-foreground shadow-ember font-semibold">
+            {info.welcomeSecondary ? (
+              <p className="mt-4 text-muted-foreground leading-relaxed font-sans">
+                {info.welcomeSecondary}
+              </p>
+            ) : (
+              <p className="mt-4 text-muted-foreground leading-relaxed font-sans">
+                Sejas tu novo na fé ou caminhando há muito tempo, há um lugar reservado para ti entre os
+                <strong className="text-primary"> Bravos Guerreiros da Fé</strong>.
+              </p>
+            )}
+            <Button asChild className="mt-8 bg-gradient-fire text-secondary-foreground shadow-ember font-semibold cursor-pointer">
               <Link to="/sobre">Conhecer a Nossa História <ArrowRight className="ml-1 h-4 w-4" /></Link>
             </Button>
           </div>
           <div className="relative">
             <div className="absolute -inset-4 bg-gradient-gold opacity-20 blur-3xl rounded-full" />
-            <img src={worship} alt="Comunidade em oração" className="relative rounded-2xl shadow-elevated border border-primary/20" loading="lazy" />
+            <img 
+              src={info.welcomeImage ? convertGoogleDriveLink(info.welcomeImage) : worship} 
+              alt="Comunidade em oração" 
+              className="relative rounded-2xl shadow-elevated border border-primary/20 w-full object-cover max-h-[400px]" 
+              loading="lazy" 
+            />
           </div>
         </div>
       </section>
