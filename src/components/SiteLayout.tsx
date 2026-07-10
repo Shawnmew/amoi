@@ -93,6 +93,15 @@ export function SiteLayout({ children }: { children: ReactNode }) {
                 Escalas
               </Link>
             )}
+            {user && (
+              <Link
+                to="/repertorio"
+                className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-primary transition-colors relative"
+                activeProps={{ className: "px-4 py-2 text-sm font-semibold text-primary relative" }}
+              >
+                Repertório
+              </Link>
+            )}
           </nav>
 
           <div className="hidden md:flex items-center gap-2">
@@ -102,7 +111,7 @@ export function SiteLayout({ children }: { children: ReactNode }) {
                 <span className="text-xs text-muted-foreground mr-2 max-w-[120px] truncate" title={user.displayName || user.email || ""}>
                   Olá, {user.displayName?.split(" ")[0] || user.email}
                 </span>
-                {user.role?.toLowerCase() !== "membro" && user.role !== "Bravo" && (
+                {user.role?.toLowerCase() !== "membro" && user.role !== "Bravo" && user.role !== "Banda" && (
                   <Button asChild variant="ghost" size="sm" className="mr-1 text-primary hover:text-primary">
                     <Link to="/admin">Painel</Link>
                   </Button>
@@ -161,6 +170,15 @@ export function SiteLayout({ children }: { children: ReactNode }) {
                   Escalas
                 </Link>
               )}
+              {user && (
+                <Link
+                  to="/repertorio"
+                  onClick={() => setOpen(false)}
+                  className="px-3 py-3 rounded-md text-sm font-semibold text-primary hover:bg-muted"
+                >
+                  Repertório
+                </Link>
+              )}
               <div className="flex flex-col gap-2 pt-3 border-t border-border/60 mt-2">
                 {user ? (
                   <>
@@ -170,7 +188,7 @@ export function SiteLayout({ children }: { children: ReactNode }) {
                       </span>
                     </div>
                     <div className="flex gap-2">
-                      {user.role?.toLowerCase() !== "membro" && user.role !== "Bravo" && (
+                      {user.role?.toLowerCase() !== "membro" && user.role !== "Bravo" && user.role !== "Banda" && (
                         <Button asChild size="sm" variant="ghost" className="flex-1 text-primary hover:text-primary">
                           <Link to="/admin" onClick={() => setOpen(false)}>Painel</Link>
                         </Button>

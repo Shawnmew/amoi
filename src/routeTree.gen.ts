@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SobreRouteImport } from './routes/sobre'
+import { Route as RepertorioRouteImport } from './routes/repertorio'
 import { Route as RegistroRouteImport } from './routes/registro'
 import { Route as RecuperarSenhaRouteImport } from './routes/recuperar-senha'
 import { Route as PerfilRouteImport } from './routes/perfil'
@@ -24,6 +25,11 @@ import { Route as IndexRouteImport } from './routes/index'
 const SobreRoute = SobreRouteImport.update({
   id: '/sobre',
   path: '/sobre',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RepertorioRoute = RepertorioRouteImport.update({
+  id: '/repertorio',
+  path: '/repertorio',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RegistroRoute = RegistroRouteImport.update({
@@ -88,6 +94,7 @@ export interface FileRoutesByFullPath {
   '/perfil': typeof PerfilRoute
   '/recuperar-senha': typeof RecuperarSenhaRoute
   '/registro': typeof RegistroRoute
+  '/repertorio': typeof RepertorioRoute
   '/sobre': typeof SobreRoute
 }
 export interface FileRoutesByTo {
@@ -101,6 +108,7 @@ export interface FileRoutesByTo {
   '/perfil': typeof PerfilRoute
   '/recuperar-senha': typeof RecuperarSenhaRoute
   '/registro': typeof RegistroRoute
+  '/repertorio': typeof RepertorioRoute
   '/sobre': typeof SobreRoute
 }
 export interface FileRoutesById {
@@ -115,6 +123,7 @@ export interface FileRoutesById {
   '/perfil': typeof PerfilRoute
   '/recuperar-senha': typeof RecuperarSenhaRoute
   '/registro': typeof RegistroRoute
+  '/repertorio': typeof RepertorioRoute
   '/sobre': typeof SobreRoute
 }
 export interface FileRouteTypes {
@@ -130,6 +139,7 @@ export interface FileRouteTypes {
     | '/perfil'
     | '/recuperar-senha'
     | '/registro'
+    | '/repertorio'
     | '/sobre'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -143,6 +153,7 @@ export interface FileRouteTypes {
     | '/perfil'
     | '/recuperar-senha'
     | '/registro'
+    | '/repertorio'
     | '/sobre'
   id:
     | '__root__'
@@ -156,6 +167,7 @@ export interface FileRouteTypes {
     | '/perfil'
     | '/recuperar-senha'
     | '/registro'
+    | '/repertorio'
     | '/sobre'
   fileRoutesById: FileRoutesById
 }
@@ -170,6 +182,7 @@ export interface RootRouteChildren {
   PerfilRoute: typeof PerfilRoute
   RecuperarSenhaRoute: typeof RecuperarSenhaRoute
   RegistroRoute: typeof RegistroRoute
+  RepertorioRoute: typeof RepertorioRoute
   SobreRoute: typeof SobreRoute
 }
 
@@ -180,6 +193,13 @@ declare module '@tanstack/react-router' {
       path: '/sobre'
       fullPath: '/sobre'
       preLoaderRoute: typeof SobreRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/repertorio': {
+      id: '/repertorio'
+      path: '/repertorio'
+      fullPath: '/repertorio'
+      preLoaderRoute: typeof RepertorioRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/registro': {
@@ -266,6 +286,7 @@ const rootRouteChildren: RootRouteChildren = {
   PerfilRoute: PerfilRoute,
   RecuperarSenhaRoute: RecuperarSenhaRoute,
   RegistroRoute: RegistroRoute,
+  RepertorioRoute: RepertorioRoute,
   SobreRoute: SobreRoute,
 }
 export const routeTree = rootRouteImport

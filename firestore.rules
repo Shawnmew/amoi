@@ -64,6 +64,17 @@ service cloud.firestore {
       );
     }
 
+    // Apenas quem é Banda (Repertório)
+    function isBanda() {
+      return isSignedIn() && (
+        request.auth.token.email == 'banda@amoi.org' ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && (
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Banda' ||
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'banda'
+        ))
+      );
+    }
+
     // --- Users Collection ---
     match /users/{userId} {
       // Qualquer pessoa autenticada pode ler perfis
@@ -144,6 +155,16 @@ service cloud.firestore {
     match /intervenientes/{itemId} {
       allow read: if isSecretariaOrServo() || isBravo();
       allow write: if isSecretariaOrServo();
+    }
+
+    // --- Repertoire (Louvores & Banda) ---
+    match /repertoire/{songId} {
+      allow read: if isSignedIn() && (
+        resource.data.isPublic == true ||
+        isServo() ||
+        isBanda()
+      );
+      allow write: if isServo() || isBanda();
     }
     // --- Password Reset OTPs ---
     match /passwordResets/{docId} {

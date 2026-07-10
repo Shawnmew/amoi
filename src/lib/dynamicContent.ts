@@ -256,7 +256,7 @@ export async function saveDynamicInfo(info: ChurchInfo): Promise<void> {
 
 // ============ USER MANAGEMENT ============
 
-export type UserRole = "membro" | "Editor" | "Servo de Deus" | "Secretaria" | "Bravo";
+export type UserRole = "membro" | "Editor" | "Servo de Deus" | "Secretaria" | "Bravo" | "Banda";
 
 export interface ChurchUser {
   uid: string;
@@ -1004,6 +1004,113 @@ export async function saveFooterConfig(config: FooterConfig): Promise<void> {
     }
   } catch (e) {
     console.error("Error saving footer config to Firestore:", e);
+    throw e;
+  }
+}
+
+// ============ REPERTOIRE (LOUVORES & BANDA) ============
+
+export interface RepertoireSong {
+  id: string;
+  title: string;
+  artist: string;
+  lyrics: string;
+  isPublic: boolean;
+  createdAt: number;
+  createdBy: string;
+}
+
+export const DEFAULT_REPERTOIRE: RepertoireSong[] = [
+  {
+    id: "rep-1",
+    title: "Grandes Coisas",
+    artist: "Fernandinho",
+    lyrics: "Eu ouvi os teus louvores\nE Te adoro, Senhor\nTua graça me constrange\nTua bondade me alcança\n\nTu és o Deus de milagres\nNão há outro como Tu\nGrandes coisas fez o Senhor por nós\nPor isso estamos alegres...",
+    isPublic: true,
+    createdAt: 1783700000000,
+    createdBy: "admin@amoi.org"
+  },
+  {
+    id: "rep-2",
+    title: "Ao Único",
+    artist: "Aline Barros",
+    lyrics: "Ao único que é digno de receber\nA honra e a glória, a força e o poder\nAo Rei eterno, imortal, invisível mas real\nA Ele ministramos o louvor...\n\nCoroamos a Ti, ó Rei Jesus\nCoroamos a Ti, ó Rei Jesus\nAdoramos o Teu nome\nNos rendemos a Teus pés...",
+    isPublic: false,
+    createdAt: 1783700000100,
+    createdBy: "banda@amoi.org"
+  }
+];
+
+export async function getDynamicRepertoire(): Promise<RepertoireSong[]> {
+  try {
+    if (db) {
+      const snap = await getDocs(collection(db, "repertoire"));
+      const list: RepertoireSong[] = [];
+      snap.forEach((doc) => {
+        list.push({ id: doc.id, ...doc.data() } as RepertoireSong);
+      });
+      if (list.length > 0) {
+        if (typeof window !== "undefined") {
+          localStorage.setItem("amoi_repertoire", JSON.stringify(list));
+        }
+        return list;
+      }
+    }
+  } catch (e) {
+    console.error("Error loading repertoire from Firestore:", e);
+  }
+
+  // LocalStorage fallback
+  if (typeof window !== "undefined") {
+    const local = localStorage.getItem("amoi_repertoire");
+    if (local) {
+      try {
+        return JSON.parse(local);
+      } catch {}
+    }
+  }
+  return DEFAULT_REPERTOIRE;
+}
+
+export async function saveDynamicRepertoireSong(song: RepertoireSong): Promise<void> {
+  // LocalStorage
+  if (typeof window !== "undefined") {
+    const list = await getDynamicRepertoire();
+    const idx = list.findIndex(s => s.id === song.id);
+    if (idx >= 0) {
+      list[idx] = song;
+    } else {
+      list.push(song);
+    }
+    localStorage.setItem("amoi_repertoire", JSON.stringify(list));
+  }
+
+  // Firestore
+  try {
+    if (db) {
+      await setDoc(doc(db, "repertoire", song.id), song);
+    }
+  } catch (e) {
+    console.error("Error saving song to Firestore:", e);
+    throw e;
+  }
+}
+
+export async function deleteDynamicRepertoireSong(id: string): Promise<void> {
+  // LocalStorage
+  if (typeof window !== "undefined") {
+    const list = await getDynamicRepertoire();
+    const updated = list.filter(s => s.id !== id);
+    localStorage.setItem("amoi_repertoire", JSON.stringify(updated));
+  }
+
+  // Firestore
+  try {
+    if (db) {
+      await deleteDoc(doc(db, "repertoire", id));
+    }
+  } catch (e) {
+    console.error("Error deleting song from Firestore:", e);
     throw e;
   }
 }
