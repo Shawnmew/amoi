@@ -17,7 +17,8 @@ import {
   EyeOff,
   Copy,
   Loader2,
-  FileText
+  FileText,
+  FileDown
 } from "lucide-react";
 import {
   Dialog,
@@ -33,6 +34,8 @@ import {
   deleteDynamicRepertoireSong
 } from "../lib/dynamicContent";
 import { toast } from "sonner";
+import { jsPDF } from "jspdf";
+import logoUrl from "@/assets/amoi-logo.png";
 
 export const Route = createFileRoute("/repertorio")({
   head: () => ({
@@ -44,6 +47,13 @@ export const Route = createFileRoute("/repertorio")({
   component: Repertoire,
 });
 
+const cleanTextForPDF = (text: string): string => {
+  if (!text) return "";
+  return text
+    .replace(/[^\x00-\x7F\xC0-\xFF\s]/g, "")
+    .trim();
+};
+
 function Repertoire() {
   const { user, loading } = useAuth();
 
@@ -51,6 +61,10 @@ function Repertoire() {
   const [songs, setSongs] = useState<RepertoireSong[]>([]);
   const [loadingSongs, setLoadingSongs] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Bulk selection state
+  const [selectedBulkIds, setSelectedBulkIds] = useState<string[]>([]);
+  const [bulkMode, setBulkMode] = useState(false);
 
   // Modals state
   const [selectedSong, setSelectedSong] = useState<RepertoireSong | null>(null);
@@ -203,6 +217,134 @@ function Repertoire() {
     toast.success("Letra copiada para a área de transferência!");
   };
 
+  // Export selected songs to Holyrics JSON format
+  const handleExportRepertoireJSON = (selectedSongs: RepertoireSong[]) => {
+    if (selectedSongs.length === 0) return;
+    const holyricsSongs = selectedSongs.map((song, index) => ({
+      id: song.createdAt || (Date.now() + index),
+      title: song.title,
+      artist: song.artist,
+      author: "",
+      note: "",
+      copyright: "",
+      language: "",
+      key: "",
+      bpm: 0.0,
+      time_sig: "",
+      midi: null,
+      order: "",
+      arrangements: [],
+      lyrics: {
+        full_text: song.lyrics
+      }
+    }));
+
+    const blob = new Blob([JSON.stringify(holyricsSongs, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = selectedSongs.length === 1 
+      ? `holyrics_${selectedSongs[0].title.toLowerCase().replace(/\s+/g, "_")}.json`
+      : `holyrics_repertorio_${Date.now()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success(`${selectedSongs.length} música(s) exportada(s) em JSON Holyrics!`);
+  };
+
+  // Export selected songs to PDF with AMOI logo
+  const handleExportRepertoirePDF = (selectedSongs: RepertoireSong[]) => {
+    if (selectedSongs.length === 0) return;
+    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+    const img = new Image();
+    img.src = logoUrl;
+
+    selectedSongs.forEach((song, sIdx) => {
+      if (sIdx > 0) {
+        doc.addPage();
+      }
+
+      // Draw Logo at top left
+      doc.addImage(img, "PNG", 14, 10, 20, 20);
+      
+      // Header Text next to Logo
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      doc.setTextColor(15, 15, 17);
+      doc.text("MINISTÉRIO DE ORAÇÃO E INTERCESSÃO", 38, 15);
+      
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(13);
+      doc.setTextColor(212, 175, 55); // Gold
+      doc.text("AMOI", 38, 20);
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8.5);
+      doc.setTextColor(120, 120, 120);
+      doc.text("Repertório Oficial de Louvores", 38, 25);
+
+      // Gold line
+      doc.setDrawColor(212, 175, 55);
+      doc.setLineWidth(0.5);
+      doc.line(14, 32, 196, 32);
+
+      // Song Title
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(18);
+      doc.setTextColor(15, 15, 17);
+      doc.text(cleanTextForPDF(song.title.toUpperCase()), 14, 43);
+
+      // Artist
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      doc.setTextColor(100, 100, 100);
+      doc.text(`Artista/Ministério: ${cleanTextForPDF(song.artist)}`, 14, 49);
+
+      // Lyrics
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10.5);
+      doc.setTextColor(30, 30, 30);
+
+      const splitLyrics = doc.splitTextToSize(cleanTextForPDF(song.lyrics), 182);
+      
+      let y = 57;
+      const lineHeight = 5.5;
+      const pageHeight = doc.internal.pageSize.getHeight();
+
+      splitLyrics.forEach((line: string) => {
+        if (y + lineHeight > pageHeight - 15) {
+          doc.addPage();
+          // Draw header border line on new pages
+          doc.setDrawColor(212, 175, 55);
+          doc.setLineWidth(0.5);
+          doc.line(14, 14, 196, 14);
+          y = 22;
+        }
+        doc.text(line, 14, y);
+        y += lineHeight;
+      });
+    });
+
+    // Footer page numbering
+    const totalPages = doc.getNumberOfPages();
+    for (let p = 1; p <= totalPages; p++) {
+      doc.setPage(p);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(7.5);
+      doc.setTextColor(150, 150, 150);
+      doc.text("Associação Ministério de Oração e Intercessão · Louvor & Banda", 14, 287);
+      doc.text(`Página ${p} de ${totalPages}`, 175, 287);
+    }
+
+    const filename = selectedSongs.length === 1 
+      ? `louvor_${selectedSongs[0].title.toLowerCase().replace(/\s+/g, "_")}.pdf`
+      : `repertorio_amoi_${Date.now()}.pdf`;
+    
+    doc.save(filename);
+    toast.success(`${selectedSongs.length} música(s) exportada(s) em PDF!`);
+  };
+
   // Handle Holyrics JSON file upload & parsing
   const handleFileImport = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -261,19 +403,44 @@ function Repertoire() {
 
     setSubmitting(true);
     let successCount = 0;
-    const importedSongs: RepertoireSong[] = [];
+    let overwriteCount = 0;
+    const updatedSongsList = [...songs];
 
     try {
       for (const idx of selectedImportIndexes) {
         const song = importSongsList[idx];
         song.isPublic = importIsPublic;
-        await saveDynamicRepertoireSong(song);
-        importedSongs.push(song);
-        successCount++;
+
+        // Check if song already exists by title
+        const existingIdx = updatedSongsList.findIndex(
+          (s) => s.title.toLowerCase().trim() === song.title.toLowerCase().trim()
+        );
+
+        if (existingIdx >= 0) {
+          // Overwrite existing song
+          song.id = updatedSongsList[existingIdx].id;
+          song.createdAt = updatedSongsList[existingIdx].createdAt || song.createdAt;
+          song.createdBy = updatedSongsList[existingIdx].createdBy || song.createdBy;
+          
+          await saveDynamicRepertoireSong(song);
+          updatedSongsList[existingIdx] = song;
+          overwriteCount++;
+        } else {
+          // New song
+          await saveDynamicRepertoireSong(song);
+          updatedSongsList.unshift(song);
+          successCount++;
+        }
       }
 
-      setSongs((prev) => [...importedSongs, ...prev]);
-      toast.success(`${successCount} música(s) importada(s) com sucesso!`);
+      setSongs(updatedSongsList);
+      
+      if (overwriteCount > 0) {
+        toast.success(`${successCount} música(s) importada(s) e ${overwriteCount} música(s) existente(s) atualizada(s)!`);
+      } else {
+        toast.success(`${successCount} música(s) importada(s) com sucesso!`);
+      }
+      
       setImportDialogOpen(false);
     } catch (err) {
       console.error("Error during import:", err);
@@ -357,15 +524,89 @@ function Repertoire() {
           )}
         </div>
 
-        {/* Search Bar */}
-        <div className="relative max-w-md w-full mb-8">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Pesquisar por título, artista ou letra..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 bg-card border-border/60"
-          />
+        {/* Search & Bulk Actions Bar */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+          <div className="relative max-w-md w-full">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Pesquisar por título, artista ou letra..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 bg-card border-border/60"
+            />
+          </div>
+
+          <div className="flex flex-wrap gap-2.5 items-center w-full md:w-auto justify-end">
+            {bulkMode ? (
+              <>
+                <span className="text-xs text-muted-foreground font-semibold px-2">
+                  Selecionadas: <strong className="text-primary">{selectedBulkIds.length}</strong>
+                </span>
+                <Button
+                  onClick={() => {
+                    const allIds = filteredSongs.map(s => s.id);
+                    if (selectedBulkIds.length === allIds.length) {
+                      setSelectedBulkIds([]);
+                    } else {
+                      setSelectedBulkIds(allIds);
+                    }
+                  }}
+                  variant="outline"
+                  size="sm"
+                  className="border-border text-foreground text-xs font-semibold cursor-pointer"
+                >
+                  {selectedBulkIds.length === filteredSongs.length ? "Desmarcar Todas" : "Selecionar Todas"}
+                </Button>
+                <Button
+                  onClick={() => {
+                    const matchedSongs = songs.filter(s => selectedBulkIds.includes(s.id));
+                    handleExportRepertoireJSON(matchedSongs);
+                  }}
+                  disabled={selectedBulkIds.length === 0}
+                  variant="outline"
+                  size="sm"
+                  className="border-border text-foreground text-xs font-bold cursor-pointer"
+                >
+                  <FileText className="h-3.5 w-3.5 mr-1 text-primary" /> Exportar JSON ({selectedBulkIds.length})
+                </Button>
+                <Button
+                  onClick={() => {
+                    const matchedSongs = songs.filter(s => selectedBulkIds.includes(s.id));
+                    handleExportRepertoirePDF(matchedSongs);
+                  }}
+                  disabled={selectedBulkIds.length === 0}
+                  variant="outline"
+                  size="sm"
+                  className="border-border text-foreground text-xs font-bold cursor-pointer"
+                >
+                  <FileDown className="h-3.5 w-3.5 mr-1 text-primary" /> Exportar PDF ({selectedBulkIds.length})
+                </Button>
+                <Button
+                  onClick={() => {
+                    setBulkMode(false);
+                    setSelectedBulkIds([]);
+                  }}
+                  variant="ghost"
+                  size="sm"
+                  className="text-muted-foreground hover:text-foreground text-xs font-semibold cursor-pointer"
+                >
+                  Cancelar
+                </Button>
+              </>
+            ) : (
+              <Button
+                onClick={() => {
+                  setBulkMode(true);
+                  setSelectedBulkIds([]);
+                }}
+                variant="outline"
+                size="sm"
+                className="border-border text-foreground text-xs font-semibold cursor-pointer"
+              >
+                <FileDown className="h-3.5 w-3.5 mr-2 text-primary" /> Seleção em Massa
+              </Button>
+            )}
+          </div>
         </div>
 
         {loadingSongs ? (
@@ -379,15 +620,38 @@ function Repertoire() {
               {filteredSongs.map((song) => (
                 <div
                   key={song.id}
-                  onClick={() => setSelectedSong(song)}
-                  className="p-6 rounded-3xl bg-card/40 border border-border/60 hover:border-primary/50 hover:bg-card/70 transition-all cursor-pointer flex flex-col justify-between shadow-elevated relative group"
+                  onClick={() => {
+                    if (bulkMode) {
+                      const isSel = selectedBulkIds.includes(song.id);
+                      setSelectedBulkIds(prev => 
+                        isSel ? prev.filter(id => id !== song.id) : [...prev, song.id]
+                      );
+                    } else {
+                      setSelectedSong(song);
+                    }
+                  }}
+                  className={`p-6 rounded-3xl border transition-all cursor-pointer flex flex-col justify-between shadow-elevated relative group ${
+                    bulkMode && selectedBulkIds.includes(song.id)
+                      ? "bg-primary/5 border-primary"
+                      : "bg-card/40 border-border/60 hover:border-primary/50 hover:bg-card/70"
+                  }`}
                 >
                   <div>
                     {/* Privacy badge and indicators */}
                     <div className="flex justify-between items-center gap-2 mb-3">
-                      <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
-                        {song.artist}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        {bulkMode && (
+                          <input
+                            type="checkbox"
+                            checked={selectedBulkIds.includes(song.id)}
+                            readOnly
+                            className="h-4 w-4 rounded border-border text-primary focus:ring-primary accent-primary cursor-pointer shrink-0"
+                          />
+                        )}
+                        <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
+                          {song.artist}
+                        </span>
+                      </div>
                       {isBandaOrAdmin && (
                         <span className={`inline-flex items-center gap-1 text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
                           song.isPublic 
@@ -482,15 +746,33 @@ function Repertoire() {
               </div>
             </div>
 
-            <div className="flex justify-between gap-3 pt-3 border-t border-border/40">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => handleCopyLyrics(selectedSong)}
-                className="border-border/60 hover:bg-muted font-semibold text-xs py-2 px-3 cursor-pointer"
-              >
-                <Copy className="h-3.5 w-3.5 mr-2" /> Copiar Letra
-              </Button>
+            <div className="flex flex-col sm:flex-row justify-between gap-3 pt-4 border-t border-border/40">
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => handleCopyLyrics(selectedSong)}
+                  className="border-border/60 hover:bg-muted font-semibold text-xs py-2 px-3 cursor-pointer"
+                >
+                  <Copy className="h-3.5 w-3.5 mr-1" /> Copiar
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => handleExportRepertoireJSON([selectedSong])}
+                  className="border-border/60 hover:bg-muted font-semibold text-xs py-2 px-3 cursor-pointer"
+                >
+                  <FileText className="h-3.5 w-3.5 mr-1 text-primary" /> JSON
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => handleExportRepertoirePDF([selectedSong])}
+                  className="border-border/60 hover:bg-muted font-semibold text-xs py-2 px-3 cursor-pointer"
+                >
+                  <FileDown className="h-3.5 w-3.5 mr-1 text-primary" /> PDF
+                </Button>
+              </div>
 
               <div className="flex gap-2">
                 {isBandaOrAdmin && (
