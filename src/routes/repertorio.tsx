@@ -88,12 +88,15 @@ function Repertoire() {
   const [selectedImportIndexes, setSelectedImportIndexes] = useState<number[]>([]);
   const [importIsPublic, setImportIsPublic] = useState(true);
 
+  // Auth roles
+  const isBandaOrAdmin = !!(user && (user.role === "Banda" || user.role === "Servo de Deus"));
+
   // Fetch repertoire
   useEffect(() => {
     async function loadRepertoire() {
       if (!user) return;
       try {
-        const data = await getDynamicRepertoire();
+        const data = await getDynamicRepertoire(isBandaOrAdmin);
         setSongs(data);
       } catch (err) {
         console.error("Error fetching repertoire:", err);
@@ -102,10 +105,7 @@ function Repertoire() {
       }
     }
     loadRepertoire();
-  }, [user]);
-
-  // Auth roles
-  const isBandaOrAdmin = user && (user.role === "Banda" || user.role === "Servo de Deus");
+  }, [user, isBandaOrAdmin]);
 
   // Filtering songs based on user role and query
   const filteredSongs = useMemo(() => {
@@ -118,10 +118,15 @@ function Repertoire() {
         // Search filter
         const query = searchQuery.toLowerCase().trim();
         if (!query) return true;
+        
+        const title = song.title || "";
+        const artist = song.artist || "";
+        const lyrics = song.lyrics || "";
+        
         return (
-          song.title.toLowerCase().includes(query) ||
-          song.artist.toLowerCase().includes(query) ||
-          song.lyrics.toLowerCase().includes(query)
+          title.toLowerCase().includes(query) ||
+          artist.toLowerCase().includes(query) ||
+          lyrics.toLowerCase().includes(query)
         );
       })
       .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
@@ -470,7 +475,7 @@ function Repertoire() {
 
         // Check if song already exists by title
         const existingIdx = updatedSongsList.findIndex(
-          (s) => s.title.toLowerCase().trim() === song.title.toLowerCase().trim()
+          (s) => (s.title || "").toLowerCase().trim() === (song.title || "").toLowerCase().trim()
         );
 
         if (existingIdx >= 0) {

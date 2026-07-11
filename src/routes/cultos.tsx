@@ -86,9 +86,13 @@ function Cultos() {
 
   const filtered = useMemo(() => {
     return longVideos.filter((c) => {
-      const matchesCat = cat === "Todos" || c.category === cat;
-      const matchesQuery = c.title.toLowerCase().includes(query.toLowerCase()) ||
-        c.speaker.toLowerCase().includes(query.toLowerCase());
+      const title = c.title || "";
+      const speaker = c.speaker || "";
+      const category = c.category || "";
+      
+      const matchesCat = cat === "Todos" || category === cat;
+      const matchesQuery = title.toLowerCase().includes(query.toLowerCase()) ||
+        speaker.toLowerCase().includes(query.toLowerCase());
       return matchesCat && matchesQuery;
     });
   }, [longVideos, query, cat]);

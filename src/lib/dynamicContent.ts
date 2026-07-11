@@ -1,4 +1,4 @@
-import { collection, getDocs, doc, setDoc, deleteDoc, query, orderBy, addDoc, getDoc } from "firebase/firestore";
+import { collection, getDocs, doc, setDoc, deleteDoc, query, orderBy, addDoc, getDoc, where } from "firebase/firestore";
 import { db } from "./firebase";
 
 import worship from "@/assets/hero-worship.jpg";
@@ -1059,10 +1059,13 @@ export const DEFAULT_REPERTOIRE: RepertoireSong[] = [
   }
 ];
 
-export async function getDynamicRepertoire(): Promise<RepertoireSong[]> {
+export async function getDynamicRepertoire(isBandaOrAdmin: boolean = false): Promise<RepertoireSong[]> {
   try {
     if (db) {
-      const snap = await getDocs(collection(db, "repertoire"));
+      const q = isBandaOrAdmin
+        ? collection(db, "repertoire")
+        : query(collection(db, "repertoire"), where("isPublic", "==", true));
+      const snap = await getDocs(q);
       const list: RepertoireSong[] = [];
       snap.forEach((doc) => {
         list.push({ id: doc.id, ...doc.data() } as RepertoireSong);
@@ -1093,7 +1096,7 @@ export async function getDynamicRepertoire(): Promise<RepertoireSong[]> {
 export async function saveDynamicRepertoireSong(song: RepertoireSong): Promise<void> {
   // LocalStorage
   if (typeof window !== "undefined") {
-    const list = await getDynamicRepertoire();
+    const list = await getDynamicRepertoire(true);
     const idx = list.findIndex(s => s.id === song.id);
     if (idx >= 0) {
       list[idx] = song;
@@ -1117,7 +1120,7 @@ export async function saveDynamicRepertoireSong(song: RepertoireSong): Promise<v
 export async function deleteDynamicRepertoireSong(id: string): Promise<void> {
   // LocalStorage
   if (typeof window !== "undefined") {
-    const list = await getDynamicRepertoire();
+    const list = await getDynamicRepertoire(true);
     const updated = list.filter(s => s.id !== id);
     localStorage.setItem("amoi_repertoire", JSON.stringify(updated));
   }

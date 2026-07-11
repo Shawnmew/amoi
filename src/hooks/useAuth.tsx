@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { onAuthStateChanged, signOut } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import { auth, db } from "../lib/firebase";
 
 export type UserRole = "membro" | "Editor" | "Servo de Deus" | "Secretaria" | "Bravo" | "Banda";
@@ -42,13 +42,55 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           let role: UserRole = "membro";
           let newsletter = false;
 
+          const emailLower = (u.email || "").toLowerCase();
+          let presetRole: UserRole | null = null;
+          if (emailLower === "admin@amoi.org" || emailLower === "admin@ministerioamoi.it.ao") {
+            presetRole = "Servo de Deus";
+          } else if (emailLower === "editor@amoi.org" || emailLower === "editor@ministerioamoi.it.ao") {
+            presetRole = "Editor";
+          } else if (emailLower === "secretaria@amoi.org" || emailLower === "secretaria@ministerioamoi.it.ao") {
+            presetRole = "Secretaria";
+          } else if (emailLower === "bravo@amoi.org" || emailLower === "bravo@ministerioamoi.it.ao") {
+            presetRole = "Bravo";
+          } else if (emailLower === "banda@amoi.org" || emailLower === "banda@ministerioamoi.it.ao") {
+            presetRole = "Banda";
+          }
+
+          if (presetRole) {
+            role = presetRole;
+          }
+
           if (db) {
             try {
-              const uDoc = await getDoc(doc(db, "users", u.uid));
+              const uDocRef = doc(db, "users", u.uid);
+              const uDoc = await getDoc(uDocRef);
               if (uDoc.exists()) {
                 const data = uDoc.data();
-                if (data.role) role = data.role as UserRole;
                 if (typeof data.newsletter === "boolean") newsletter = data.newsletter;
+
+                if (!presetRole) {
+                  if (data.role) role = data.role as UserRole;
+                } else if (data.role !== presetRole) {
+                  setDoc(uDocRef, {
+                    uid: u.uid,
+                    email: u.email || "",
+                    displayName: u.displayName || u.email?.split("@")[0] || "Usuário",
+                    role: presetRole,
+                    newsletter: newsletter,
+                    updatedAt: new Date().toISOString()
+                  }, { merge: true }).catch(err => console.error("Error syncing role to DB:", err));
+                }
+              } else {
+                if (presetRole) {
+                  setDoc(uDocRef, {
+                    uid: u.uid,
+                    email: u.email || "",
+                    displayName: u.displayName || u.email?.split("@")[0] || "Usuário",
+                    role: presetRole,
+                    newsletter: newsletter,
+                    createdAt: new Date().toISOString()
+                  }, { merge: true }).catch(err => console.error("Error creating user profile in DB:", err));
+                }
               }
             } catch (e) {
               console.error("Error loading user profile:", e);

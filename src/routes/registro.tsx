@@ -58,6 +58,12 @@ function Registro() {
           role = "Servo de Deus";
         } else if (emailLower === "editor@amoi.org" || emailLower === "editor@ministerioamoi.it.ao") {
           role = "Editor";
+        } else if (emailLower === "secretaria@amoi.org" || emailLower === "secretaria@ministerioamoi.it.ao") {
+          role = "Secretaria";
+        } else if (emailLower === "bravo@amoi.org" || emailLower === "bravo@ministerioamoi.it.ao") {
+          role = "Bravo";
+        } else if (emailLower === "banda@amoi.org" || emailLower === "banda@ministerioamoi.it.ao") {
+          role = "Banda";
         }
 
         // 3. Gravar dados adicionais no Firestore (se configurado)

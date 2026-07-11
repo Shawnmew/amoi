@@ -76,9 +76,13 @@ function OChamado() {
 
   const groupedServants = useMemo(() => {
     const filtered = servants.filter((s) => {
-      const matchesCat = cat === "Todos" || s.dept === cat;
-      const matchesQuery = s.name.toLowerCase().includes(query.toLowerCase()) ||
-        s.role.toLowerCase().includes(query.toLowerCase());
+      const sName = s.name || "";
+      const sRole = s.role || "";
+      const sDept = s.dept || "";
+      
+      const matchesCat = cat === "Todos" || sDept === cat;
+      const matchesQuery = sName.toLowerCase().includes(query.toLowerCase()) ||
+        sRole.toLowerCase().includes(query.toLowerCase());
       return matchesCat && matchesQuery;
     });
 
@@ -87,10 +91,11 @@ function OChamado() {
     order.forEach(d => { groups[d] = []; });
 
     filtered.forEach(s => {
-      if (!groups[s.dept]) {
-        groups[s.dept] = [];
+      const sDept = s.dept || "Outros";
+      if (!groups[sDept]) {
+        groups[sDept] = [];
       }
-      groups[s.dept].push(s);
+      groups[sDept].push(s);
     });
 
     return order
@@ -100,7 +105,9 @@ function OChamado() {
           const orderA = a.order !== undefined ? a.order : 999;
           const orderB = b.order !== undefined ? b.order : 999;
           if (orderA !== orderB) return orderA - orderB;
-          return a.name.localeCompare(b.name);
+          const nameA = a.name || "";
+          const nameB = b.name || "";
+          return nameA.localeCompare(nameB);
         });
         return { dept, servants: sortedDeptList };
       })
@@ -111,7 +118,16 @@ function OChamado() {
     return groupedServants.reduce((sum, g) => sum + g.servants.length, 0);
   }, [groupedServants]);
 
-  const initials = (name: string) => name.split(" ").map(n => n[0]).join("").substring(0, 2).toUpperCase();
+  const initials = (name?: string) => {
+    if (!name) return "";
+    return name
+      .split(" ")
+      .filter(Boolean)
+      .map(n => n[0])
+      .join("")
+      .substring(0, 2)
+      .toUpperCase();
+  };
 
   const getServantImage = (s: ChurchServant) => {
     if (s.img) {
@@ -236,15 +252,15 @@ function OChamado() {
                             )}
                           </div>
                           <div className="absolute inset-x-0 bottom-0 p-3 sm:p-5 bg-gradient-to-t from-card via-card/95 to-transparent pt-12 sm:pt-16">
-                            <h3 className="font-display text-sm sm:text-lg text-foreground leading-snug line-clamp-1 sm:line-clamp-2">{s.name}</h3>
+                            <h3 className="font-display text-sm sm:text-lg text-foreground leading-snug line-clamp-1 sm:line-clamp-2">{s.name || "Sem Nome"}</h3>
                             <div className="text-[9px] sm:text-[10px] uppercase tracking-widest text-primary mt-0.5 sm:mt-1 font-bold truncate">
-                              {s.role}
+                              {s.role || "Servo de Deus"}
                             </div>
                             <div className="text-[8px] sm:text-[9px] uppercase tracking-widest text-muted-foreground mt-0.5 truncate">
-                              {s.dept}
+                              {s.dept || "Geral"}
                             </div>
                             <p className="mt-1 sm:mt-2 text-[10px] sm:text-xs text-muted-foreground leading-relaxed line-clamp-2 sm:line-clamp-3">
-                              {s.bio}
+                              {s.bio || ""}
                             </p>
                           </div>
                         </article>

@@ -60,13 +60,18 @@ function BoasNovas() {
 
   const filteredAnnouncements = useMemo(() => {
     return announcements.filter((ann) => {
+      const category = ann.category || "";
+      const title = ann.title || "";
+      const content = ann.content || "";
+      const author = ann.author || "";
+
       const matchesCategory =
         selectedCategory === "Todos" ||
-        ann.category.toLowerCase() === selectedCategory.toLowerCase();
+        category.toLowerCase() === selectedCategory.toLowerCase();
       const matchesSearch =
-        ann.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        ann.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        ann.author.toLowerCase().includes(searchQuery.toLowerCase());
+        title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        content.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        author.toLowerCase().includes(searchQuery.toLowerCase());
       return matchesCategory && matchesSearch;
     });
   }, [announcements, searchQuery, selectedCategory]);
