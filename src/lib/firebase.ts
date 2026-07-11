@@ -1,6 +1,6 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import { getFirestore, enableIndexedDbPersistence } from "firebase/firestore";
 
 export const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -20,3 +20,13 @@ const app = isBrowser && firebaseConfig.apiKey && firebaseConfig.apiKey !== "you
 
 export const auth = app ? getAuth(app) : null;
 export const db = app ? getFirestore(app) : null;
+
+if (db && isBrowser) {
+  enableIndexedDbPersistence(db).catch((err) => {
+    if (err.code === "failed-precondition") {
+      console.warn("Firestore offline persistence failed-precondition: multiple tabs open");
+    } else if (err.code === "unimplemented") {
+      console.warn("Firestore offline persistence is unimplemented in this browser");
+    }
+  });
+}

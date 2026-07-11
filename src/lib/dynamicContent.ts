@@ -61,7 +61,24 @@ export const DEFAULT_SLIDES: CarouselSlide[] = [
   { id: "5", src: baptism, title: "Vidas Renovadas", subtitle: "Celebramos novas conversões e batismos", order: 5 },
 ];
 
-export const DEFAULT_ANNOUNCEMENTS: Announcement[] = [];
+export const DEFAULT_ANNOUNCEMENTS: Announcement[] = [
+  {
+    id: "ann-1",
+    title: "Cultos de Louvor e Adoração",
+    category: "Notícia",
+    content: "Venha participar dos nossos cultos semanais. Quartas e Sextas às 18h00, e Domingos às 09h00. Esperamos por si e pela sua família!",
+    date: "2026-07-10",
+    author: "Secretaria AMOI"
+  },
+  {
+    id: "ann-2",
+    title: "Campanha de Oração pelas Famílias",
+    category: "Evento",
+    content: "Participe da grande campanha de intercessão e oração pelas famílias da AMOI. Uma jornada de fé e restauração espiritual.",
+    date: "2026-07-08",
+    author: "Pastoral AMOI"
+  }
+];
 
 export const DEFAULT_INFO: ChurchInfo = {
   welcomeSubtitle: "Bem-vindo",
@@ -668,7 +685,71 @@ export interface ChurchServant {
   order?: number;
 }
 
-export const DEFAULT_SERVANTS: ChurchServant[] = [];
+export const DEFAULT_SERVANTS: ChurchServant[] = [
+  {
+    id: "serv-1",
+    name: "Serva Elizabeth CastelBranco",
+    role: "Líder & Visionária da AMOI",
+    dept: "Departamento Administrativo",
+    bio: "Esposa do Pastor Nicolau CastelBranco, é a líder e visionária fundadora da AMOI, guiando o ministério com sabedoria, oração e direção divina.",
+    img: "serva-elizabeth",
+    order: 1
+  },
+  {
+    id: "serv-2",
+    name: "Pastor Nelson Nunes",
+    role: "Pastor",
+    dept: "Departamento Administrativo",
+    bio: "Pastor dedicado ao ministério na AMOI, focado no ensino da Palavra e no cuidado espiritual da igreja.",
+    img: "pastor-nelson",
+    order: 2
+  },
+  {
+    id: "serv-3",
+    name: "Anciã Isabel Nunes",
+    role: "Anciã",
+    dept: "Departamento Administrativo",
+    bio: "Esposa do Pastor Nelson Nunes, é uma anciã dedicada à intercessão, apoio espiritual e ao fortalecimento das famílias na igreja.",
+    img: "ancia-isabel",
+    order: 3
+  },
+  {
+    id: "serv-4",
+    name: "Profeta Edgar Marcolino",
+    role: "Profeta",
+    dept: "Departamento Administrativo",
+    bio: "Ministério profético da AMOI, atuando no despertamento espiritual e na revelação da palavra de Deus.",
+    img: "profeta-edgar",
+    order: 4
+  },
+  {
+    id: "serv-5",
+    name: "Anciã Maria Júlia Marcolino",
+    role: "Anciã",
+    dept: "Departamento Administrativo",
+    bio: "Esposa do Profeta Edgar Marcolino, atua como anciã com dedicação, oração e aconselhamento.",
+    img: "ancia-maria-julia",
+    order: 5
+  },
+  {
+    id: "serv-6",
+    name: "Anciã Rosalina Canjila",
+    role: "Anciã",
+    dept: "Departamento Administrativo",
+    bio: "Consagrada anciã da AMOI, atua com dedicação e coração disponível para Deus nas reuniões de aconselhamento e oração.",
+    img: "ancia-rosalina",
+    order: 6
+  },
+  {
+    id: "serv-7",
+    name: "Diaconisa Judith Fernandes",
+    role: "Diaconisa",
+    dept: "Departamento Administrativo",
+    bio: "Diaconisa da AMOI, dedicada ao serviço da casa do Senhor com alegria, zelo e apoio constante a todos os membros.",
+    img: "diaconisa-judith",
+    order: 7
+  }
+];
 
 export async function getDynamicServants(): Promise<ChurchServant[]> {
   try {
