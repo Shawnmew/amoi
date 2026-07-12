@@ -10,14 +10,7 @@ import {
   convertGoogleDriveLink
 } from "../lib/dynamicContent";
 
-import leader1 from "@/assets/pastor-nelson.jpg";
-import leader2 from "@/assets/ancia-isabel.jpg";
-import leader3 from "@/assets/profeta-edgar.jpg";
-import leader4 from "@/assets/profetiza-maria.jpg";
-import leader5 from "@/assets/serva-elizabeth.jpg";
-import leader6 from "@/assets/pastor-nicolau.jpg";
-import leader7 from "@/assets/ancia-rosalina.jpg";
-import leader8 from "@/assets/diaconisa-judith.jpg";
+
 
 export const Route = createFileRoute("/o-chamado")({
   head: () => ({
@@ -48,15 +41,7 @@ const DEPARTMENTS = [
 ] as const;
 
 function OChamado() {
-  const [servants, setServants] = useState<ChurchServant[]>(() => {
-    if (typeof window !== "undefined") {
-      const local = localStorage.getItem("amoi_servants");
-      if (local) {
-        try { return JSON.parse(local); } catch {}
-      }
-    }
-    return DEFAULT_SERVANTS;
-  });
+  const [servants, setServants] = useState<ChurchServant[]>(DEFAULT_SERVANTS);
 
   useEffect(() => {
     let active = true;
@@ -134,14 +119,14 @@ function OChamado() {
       if (s.img.startsWith("http")) {
         return convertGoogleDriveLink(s.img);
       }
-      if (s.img === "pastor-nelson") return leader1;
-      if (s.img === "ancia-isabel") return leader2;
-      if (s.img === "profeta-edgar") return leader3;
-      if (s.img === "ancia-maria-julia") return leader4;
-      if (s.img === "serva-elizabeth") return leader5;
-      if (s.img === "pastor-nicolau") return leader6;
-      if (s.img === "ancia-rosalina") return leader7;
-      if (s.img === "diaconisa-judith") return leader8;
+      if (s.img === "pastor-nelson") return "/assets/pastor-nelson.jpg";
+      if (s.img === "ancia-isabel") return "/assets/ancia-isabel.jpg";
+      if (s.img === "profeta-edgar") return "/assets/profeta-edgar.jpg";
+      if (s.img === "ancia-maria-julia") return "/assets/profetiza-maria.jpg";
+      if (s.img === "serva-elizabeth") return "/assets/serva-elizabeth.jpg";
+      if (s.img === "pastor-nicolau") return "/assets/pastor-nicolau.jpg";
+      if (s.img === "ancia-rosalina") return "/assets/ancia-rosalina.jpg";
+      if (s.img === "diaconisa-judith") return "/assets/diaconisa-judith.jpg";
       return s.img;
     }
     return undefined;

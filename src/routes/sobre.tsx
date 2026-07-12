@@ -1,14 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { SiteLayout } from "@/components/SiteLayout";
 import { Flame, Quote } from "lucide-react";
-import leader1 from "@/assets/pastor-nelson.jpg";
-import leader2 from "@/assets/ancia-isabel.jpg";
-import leader3 from "@/assets/profeta-edgar.jpg";
-import leader4 from "@/assets/profetiza-maria.jpg";
-import leader5 from "@/assets/serva-elizabeth.jpg";
-import leader7 from "@/assets/ancia-rosalina.jpg";
-import leader8 from "@/assets/diaconisa-judith.jpg";
-import preaching from "@/assets/caminhada.jpg";
+import {
+  ChurchServant,
+  getDynamicServants,
+  convertGoogleDriveLink
+} from "../lib/dynamicContent";
 
 export const Route = createFileRoute("/sobre")({
   head: () => ({
@@ -21,16 +19,6 @@ export const Route = createFileRoute("/sobre")({
   }),
   component: Sobre,
 });
-
-const LEADERS = [
-  { name: "Serva Elizabeth CastelBranco", role: "Líder & Visionária da AMOI", img: leader5, bio: "Esposa do Pastor Nicolau CastelBranco, é a líder e visionária fundadora da AMOI, guiando o ministério com sabedoria, oração e direção divina." },
-  { name: "Pastor Nelson Nunes", role: "Pastor", img: leader1, bio: "Pastor dedicado ao ministério na AMOI, focado no ensino da Palavra e no cuidado espiritual da igreja." },
-  { name: "Anciã Isabel Nunes", role: "Anciã", img: leader2, bio: "Esposa do Pastor Nelson Nunes, é uma anciã dedicada à intercessão, apoio espiritual e ao fortalecimento das famílias na igreja." },
-  { name: "Profeta Edgar Marcolino", role: "Profeta", img: leader3, bio: "Ministério profético da AMOI, atuando no despertamento espiritual e na revelação da palavra de Deus." },
-  { name: "Anciã Maria Júlia Marcolino", role: "Anciã", img: leader4, bio: "Esposa do Profeta Edgar Marcolino, atua como anciã com dedicação, oração e aconselhamento." },
-  { name: "Anciã Rosalina Canjila", role: "Anciã", img: leader7, bio: "Consagrada anciã da AMOI, atua com dedicação e coração disponível para Deus nas reuniões de aconselhamento e oração." },
-  { name: "Diaconisa Judith Fernandes", role: "Diaconisa", img: leader8, bio: "Diaconisa da AMOI, dedicada ao serviço da casa do Senhor com alegria, zelo e apoio constante a todos os membros." },
-];
 
 const TIMELINE = [
   {
@@ -76,6 +64,53 @@ const TIMELINE = [
 ];
 
 function Sobre() {
+  const [leaders, setLeaders] = useState<ChurchServant[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    getDynamicServants().then((fetched) => {
+      if (active && fetched) {
+        // Filter by Os Bravos Guerreiros da Fé or Departamento Administrativo
+        const adminLeaders = fetched.filter(
+          s => s.dept === "Os Bravos Guerreiros da Fé" || s.dept === "Departamento Administrativo"
+        );
+        setLeaders(adminLeaders);
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const initials = (name?: string) => {
+    if (!name) return "";
+    return name
+      .split(" ")
+      .filter(Boolean)
+      .map(n => n[0])
+      .join("")
+      .substring(0, 2)
+      .toUpperCase();
+  };
+
+  const getLeaderImage = (s: ChurchServant) => {
+    if (s.img) {
+      if (s.img.startsWith("http")) {
+        return convertGoogleDriveLink(s.img);
+      }
+      if (s.img === "pastor-nelson") return "/assets/pastor-nelson.jpg";
+      if (s.img === "ancia-isabel") return "/assets/ancia-isabel.jpg";
+      if (s.img === "profeta-edgar") return "/assets/profeta-edgar.jpg";
+      if (s.img === "ancia-maria-julia") return "/assets/profetiza-maria.jpg";
+      if (s.img === "serva-elizabeth") return "/assets/serva-elizabeth.jpg";
+      if (s.img === "pastor-nicolau") return "/assets/pastor-nicolau.jpg";
+      if (s.img === "ancia-rosalina") return "/assets/ancia-rosalina.jpg";
+      if (s.img === "diaconisa-judith") return "/assets/diaconisa-judith.jpg";
+      return s.img;
+    }
+    return undefined;
+  };
+
   return (
     <SiteLayout>
       {/* Hero */}
@@ -102,12 +137,12 @@ function Sobre() {
           <div className="lg:col-span-2 lg:sticky lg:top-28">
             <div className="relative">
               <div className="absolute -inset-4 bg-gradient-gold opacity-20 blur-3xl rounded-full" />
-              <img src={preaching} alt="Culto e oração na AMOI" className="relative rounded-2xl shadow-elevated border border-primary/20" loading="lazy" />
+              <img src="/assets/caminhada.jpg" alt="Culto e oração na AMOI" className="relative rounded-2xl shadow-elevated border border-primary/20" loading="lazy" />
             </div>
             <figure className="mt-8 p-6 rounded-2xl bg-card border border-primary/20">
               <Quote className="h-7 w-7 text-primary" />
               <blockquote className="mt-3 font-display text-sm md:text-base italic text-foreground leading-relaxed">
-                "O Espírito do Senhor DEUS está sobre mim, porque o SENHOR tem me ungido para pregar boas novas ao pobre. Ele tem me enviado para atar as feridas do dilacerado, para proclamar liberdade aos cativos e a abertura da prisão para aqueles que estão encarcerados; para proclamar o ano aceitável do SENHOR, e o dia da vingança do nosso Deus, para confortar todos que pranteiam; para nomear aqueles que pranteiam em Sião, para dar-lhes beleza em lugar de cinzas, o óleo de alegria em lugar de pranto, a veste de louvor em lugar de espírito de opressão..."
+                "O Espírito do Senhor DEUS está sobre mim, porque o SENHOR tem me ungido para pregar boas novas ao pobre. Ele tem me enviado para atar as feridas do dilacerado, para proclamar liberdade aos cativos e a abertura da prisão para aqueles que estão encarcerados; para proclamar o ano aceitável do SENHOR, e o dia da vingança do nosso Deus, para confortar todos que pranteiam; para nomear aqueles que pranteiam em Sião, para dar-lhes beleza em lugar de cinzas, o óleo de alegria em lugar de pranto, a veste de louvor em lugar de spirit de opressão..."
               </blockquote>
               <figcaption className="mt-3 text-sm text-muted-foreground">— Isaías 61:1-3 BKJ</figcaption>
             </figure>
@@ -117,7 +152,7 @@ function Sobre() {
             <h2 className="text-3xl md:text-4xl font-bold">A nossa caminhada</h2>
             <div className="gold-divider w-24 my-5" />
             <p className="text-muted-foreground leading-relaxed text-lg">
-              A AMOI surgiu da convicção de que a oração é a chave do avivamento. Aquilo que começou
+               A AMOI surgiu da convicção de que a oração é a chave do avivamento. Aquilo que começou
               como pequenas reuniões de intercessão tornou-se uma comunidade vibrante, comprometida
               em formar discípulos firmes, intercessores ardentes e adoradores autênticos.
             </p>
@@ -167,23 +202,34 @@ function Sobre() {
           </div>
 
           <div className="mt-14 grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {LEADERS.map((p) => (
-              <article key={p.name} className="group relative rounded-2xl overflow-hidden bg-card border border-border/60 hover:border-primary/50 transition-all hover:-translate-y-1 shadow-elevated">
-                <div className="aspect-[4/5] overflow-hidden">
-                  <img
-                    src={p.img}
-                    alt={p.name}
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                    loading="lazy"
-                  />
-                </div>
-                <div className="absolute inset-x-0 bottom-0 p-5 bg-gradient-to-t from-card via-card/95 to-transparent pt-16">
-                  <h3 className="font-display text-xl text-foreground">{p.name}</h3>
-                  <div className="text-xs uppercase tracking-widest text-primary mt-1 font-semibold">{p.role}</div>
-                  <p className="mt-2 text-sm text-muted-foreground leading-relaxed line-clamp-3">{p.bio}</p>
-                </div>
-              </article>
-            ))}
+            {leaders.map((p) => {
+              const imgUrl = getLeaderImage(p);
+              return (
+                <article key={p.id} className="group relative rounded-2xl overflow-hidden bg-card border border-border/60 hover:border-primary/50 transition-all hover:-translate-y-1 shadow-elevated">
+                  <div className="aspect-[4/5] overflow-hidden bg-muted flex items-center justify-center">
+                    {imgUrl ? (
+                      <img
+                        src={imgUrl}
+                        alt={p.name}
+                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="h-full w-full bg-gradient-to-br from-card via-secondary/40 to-primary/20 flex items-center justify-center border border-primary/20 transition-transform duration-500 group-hover:scale-105">
+                        <span className="font-display text-2xl font-bold text-gradient-gold tracking-widest">
+                          {initials(p.name)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="absolute inset-x-0 bottom-0 p-5 bg-gradient-to-t from-card via-card/95 to-transparent pt-16">
+                    <h3 className="font-display text-xl text-foreground">{p.name}</h3>
+                    <div className="text-xs uppercase tracking-widest text-primary mt-1 font-semibold">{p.role}</div>
+                    <p className="mt-2 text-sm text-muted-foreground leading-relaxed line-clamp-3">{p.bio}</p>
+                  </div>
+                </article>
+              );
+            })}
           </div>
         </div>
       </section>

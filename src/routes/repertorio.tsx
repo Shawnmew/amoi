@@ -35,7 +35,7 @@ import {
 } from "../lib/dynamicContent";
 import { toast } from "sonner";
 import { jsPDF } from "jspdf";
-import logoUrl from "@/assets/amoi-logo.png";
+const logoUrl = "/assets/amoi-logo.png";
 
 export const Route = createFileRoute("/repertorio")({
   head: () => ({
@@ -216,6 +216,28 @@ function Repertoire() {
     } catch (err) {
       console.error("Error deleting song:", err);
       toast.error("Erro ao eliminar a música.");
+    }
+  };
+
+  // Bulk Delete Songs
+  const handleBulkDelete = async () => {
+    if (selectedBulkIds.length === 0) return;
+    
+    if (!window.confirm(`Tem a certeza que deseja eliminar as ${selectedBulkIds.length} músicas selecionadas do repertório?`)) {
+      return;
+    }
+    
+    const toastId = toast.loading(`A eliminar ${selectedBulkIds.length} músicas...`);
+    try {
+      await Promise.all(selectedBulkIds.map(id => deleteDynamicRepertoireSong(id)));
+      
+      setSongs((prev) => prev.filter(s => !selectedBulkIds.includes(s.id)));
+      setSelectedBulkIds([]);
+      setBulkMode(false);
+      toast.success("Músicas eliminadas com sucesso.", { id: toastId });
+    } catch (err) {
+      console.error("Error bulk deleting songs:", err);
+      toast.error("Erro ao eliminar algumas músicas.", { id: toastId });
     }
   };
 
@@ -649,6 +671,17 @@ function Repertoire() {
                 >
                   <FileDown className="h-3.5 w-3.5 mr-1 text-primary" /> Exportar PDF ({selectedBulkIds.length})
                 </Button>
+                {isBandaOrAdmin && (
+                  <Button
+                    onClick={handleBulkDelete}
+                    disabled={selectedBulkIds.length === 0}
+                    variant="destructive"
+                    size="sm"
+                    className="text-xs font-bold cursor-pointer"
+                  >
+                    <Trash2 className="h-3.5 w-3.5 mr-1" /> Eliminar Seleção ({selectedBulkIds.length})
+                  </Button>
+                )}
                 <Button
                   onClick={() => {
                     setBulkMode(false);

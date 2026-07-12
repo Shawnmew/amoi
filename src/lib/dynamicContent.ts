@@ -1,12 +1,6 @@
 import { collection, getDocs, doc, setDoc, deleteDoc, query, orderBy, addDoc, getDoc, where } from "firebase/firestore";
 import { db } from "./firebase";
 
-import worship from "@/assets/hero-worship.jpg";
-import preaching from "@/assets/hero-preaching.jpg";
-import choir from "@/assets/hero-choir.jpg";
-import prayer from "@/assets/hero-prayer.jpg";
-import baptism from "@/assets/hero-baptism.jpg";
-
 export function convertGoogleDriveLink(url: string): string {
   if (!url) return url;
   
@@ -25,6 +19,8 @@ export function convertGoogleDriveLink(url: string): string {
   }
   return url;
 }
+
+// ============ CAROUSEL SLIDES ============
 
 export interface CarouselSlide {
   id: string;
@@ -54,31 +50,14 @@ export interface ChurchInfo {
 }
 
 export const DEFAULT_SLIDES: CarouselSlide[] = [
-  { id: "1", src: worship, title: "Adoração que Move o Céu", subtitle: "Cultos com a presença viva do Espírito Santo", order: 1 },
-  { id: "2", src: preaching, title: "A Palavra que Transforma", subtitle: "Ensino bíblico sólido para todas as idades", order: 2 },
-  { id: "3", src: choir, title: "Louvor de Vitória", subtitle: "Ministério de música ungido e vibrante", order: 3 },
-  { id: "4", src: prayer, title: "Oração e Intercessão", subtitle: "Quebrando barreiras pelo poder do Espírito", order: 4 },
-  { id: "5", src: baptism, title: "Vidas Renovadas", subtitle: "Celebramos novas conversões e batismos", order: 5 },
+  { id: "1", src: "/assets/hero-worship.jpg", title: "Adoração que Move o Céu", subtitle: "Cultos com a presença viva do Espírito Santo", order: 1 },
+  { id: "2", src: "/assets/hero-preaching.jpg", title: "A Palavra que Transforma", subtitle: "Ensino bíblico sólido para todas as idades", order: 2 },
+  { id: "3", src: "/assets/hero-choir.jpg", title: "Louvor de Vitória", subtitle: "Ministério de música ungido e vibrante", order: 3 },
+  { id: "4", src: "/assets/hero-prayer.jpg", title: "Oração e Intercessão", subtitle: "Quebrando barreiras pelo poder do Espírito", order: 4 },
+  { id: "5", src: "/assets/hero-baptism.jpg", title: "Vidas Renovadas", subtitle: "Celebramos novas conversões e batismos", order: 5 },
 ];
 
-export const DEFAULT_ANNOUNCEMENTS: Announcement[] = [
-  {
-    id: "ann-1",
-    title: "Cultos de Louvor e Adoração",
-    category: "Notícia",
-    content: "Venha participar dos nossos cultos semanais. Quartas e Sextas às 18h00, e Domingos às 09h00. Esperamos por si e pela sua família!",
-    date: "2026-07-10",
-    author: "Secretaria AMOI"
-  },
-  {
-    id: "ann-2",
-    title: "Campanha de Oração pelas Famílias",
-    category: "Evento",
-    content: "Participe da grande campanha de intercessão e oração pelas famílias da AMOI. Uma jornada de fé e restauração espiritual.",
-    date: "2026-07-08",
-    author: "Pastoral AMOI"
-  }
-];
+export const DEFAULT_ANNOUNCEMENTS: Announcement[] = [];
 
 export const DEFAULT_INFO: ChurchInfo = {
   welcomeSubtitle: "Bem-vindo",
@@ -93,9 +72,19 @@ export const DEFAULT_INFO: ChurchInfo = {
   ],
 };
 
+// Memory Cache for fast transitions and reducing Firebase reads
+let cacheSlides: any[] | null = null;
+let cacheAnnouncements: any[] | null = null;
+let cacheInfo: any | null = null;
+let cacheServants: any[] | null = null;
+let cacheRepertoire: Record<string, any[]> = {};
+
 // ============ CAROUSEL SLIDES ============
 
 export async function getDynamicSlides(): Promise<CarouselSlide[]> {
+  if (cacheSlides && cacheSlides.length > 0) {
+    return cacheSlides;
+  }
   try {
     if (db) {
       const q = query(collection(db, "carousel_slides"), orderBy("order", "asc"));
@@ -105,9 +94,7 @@ export async function getDynamicSlides(): Promise<CarouselSlide[]> {
         list.push({ id: doc.id, ...doc.data() } as CarouselSlide);
       });
       if (list.length > 0) {
-        if (typeof window !== "undefined") {
-          localStorage.setItem("amoi_carousel_slides", JSON.stringify(list));
-        }
+        cacheSlides = list;
         return list;
       }
     }
@@ -115,23 +102,11 @@ export async function getDynamicSlides(): Promise<CarouselSlide[]> {
     console.error("Error loading slides from Firestore:", e);
   }
 
-  // LocalStorage Fallback
-  if (typeof window !== "undefined") {
-    const local = localStorage.getItem("amoi_carousel_slides");
-    if (local) {
-      try {
-        return JSON.parse(local);
-      } catch {}
-    }
-  }
   return DEFAULT_SLIDES;
 }
 
 export async function saveDynamicSlides(slides: CarouselSlide[]): Promise<void> {
-  // LocalStorage
-  if (typeof window !== "undefined") {
-    localStorage.setItem("amoi_carousel_slides", JSON.stringify(slides));
-  }
+  cacheSlides = null; // Clear cache
 
   // Firestore
   try {
@@ -146,12 +121,7 @@ export async function saveDynamicSlides(slides: CarouselSlide[]): Promise<void> 
 }
 
 export async function deleteDynamicSlide(id: string): Promise<void> {
-  // LocalStorage
-  if (typeof window !== "undefined") {
-    const list = await getDynamicSlides();
-    const updated = list.filter(s => s.id !== id);
-    localStorage.setItem("amoi_carousel_slides", JSON.stringify(updated));
-  }
+  cacheSlides = null; // Clear cache
 
   // Firestore
   try {
@@ -166,6 +136,9 @@ export async function deleteDynamicSlide(id: string): Promise<void> {
 // ============ ANNOUNCEMENTS ============
 
 export async function getDynamicAnnouncements(): Promise<Announcement[]> {
+  if (cacheAnnouncements && cacheAnnouncements.length > 0) {
+    return cacheAnnouncements;
+  }
   try {
     if (db) {
       const q = query(collection(db, "announcements"), orderBy("date", "desc"));
@@ -175,9 +148,7 @@ export async function getDynamicAnnouncements(): Promise<Announcement[]> {
         list.push({ id: doc.id, ...doc.data() } as Announcement);
       });
       if (list.length > 0) {
-        if (typeof window !== "undefined") {
-          localStorage.setItem("amoi_announcements", JSON.stringify(list));
-        }
+        cacheAnnouncements = list;
         return list;
       }
     }
@@ -185,30 +156,11 @@ export async function getDynamicAnnouncements(): Promise<Announcement[]> {
     console.error("Error loading announcements from Firestore:", e);
   }
 
-  // LocalStorage Fallback
-  if (typeof window !== "undefined") {
-    const local = localStorage.getItem("amoi_announcements");
-    if (local) {
-      try {
-        return JSON.parse(local);
-      } catch {}
-    }
-  }
   return DEFAULT_ANNOUNCEMENTS;
 }
 
 export async function saveDynamicAnnouncement(ann: Announcement): Promise<void> {
-  // LocalStorage
-  if (typeof window !== "undefined") {
-    const list = await getDynamicAnnouncements();
-    const idx = list.findIndex(a => a.id === ann.id);
-    if (idx >= 0) {
-      list[idx] = ann;
-    } else {
-      list.unshift(ann);
-    }
-    localStorage.setItem("amoi_announcements", JSON.stringify(list));
-  }
+  cacheAnnouncements = null; // Clear cache
 
   // Firestore
   try {
@@ -221,12 +173,7 @@ export async function saveDynamicAnnouncement(ann: Announcement): Promise<void> 
 }
 
 export async function deleteDynamicAnnouncement(id: string): Promise<void> {
-  // LocalStorage
-  if (typeof window !== "undefined") {
-    const list = await getDynamicAnnouncements();
-    const updated = list.filter(a => a.id !== id);
-    localStorage.setItem("amoi_announcements", JSON.stringify(updated));
-  }
+  cacheAnnouncements = null; // Clear cache
 
   // Firestore
   try {
@@ -241,6 +188,9 @@ export async function deleteDynamicAnnouncement(id: string): Promise<void> {
 // ============ CHURCH INFO / PAGE CONTENT ============
 
 export async function getDynamicInfo(): Promise<ChurchInfo> {
+  if (cacheInfo) {
+    return cacheInfo;
+  }
   try {
     if (db) {
       const snap = await getDocs(collection(db, "church_info"));
@@ -251,9 +201,7 @@ export async function getDynamicInfo(): Promise<ChurchInfo> {
         }
       });
       if (info.welcomeTitle) {
-        if (typeof window !== "undefined") {
-          localStorage.setItem("amoi_church_info", JSON.stringify(info));
-        }
+        cacheInfo = info as ChurchInfo;
         return info as ChurchInfo;
       }
     }
@@ -261,23 +209,11 @@ export async function getDynamicInfo(): Promise<ChurchInfo> {
     console.error("Error loading info from Firestore:", e);
   }
 
-  // LocalStorage Fallback
-  if (typeof window !== "undefined") {
-    const local = localStorage.getItem("amoi_church_info");
-    if (local) {
-      try {
-        return JSON.parse(local);
-      } catch {}
-    }
-  }
   return DEFAULT_INFO;
 }
 
 export async function saveDynamicInfo(info: ChurchInfo): Promise<void> {
-  // LocalStorage
-  if (typeof window !== "undefined") {
-    localStorage.setItem("amoi_church_info", JSON.stringify(info));
-  }
+  cacheInfo = null; // Clear cache
 
   // Firestore
   try {
@@ -752,6 +688,9 @@ export const DEFAULT_SERVANTS: ChurchServant[] = [
 ];
 
 export async function getDynamicServants(): Promise<ChurchServant[]> {
+  if (cacheServants && cacheServants.length > 0) {
+    return cacheServants;
+  }
   try {
     if (db) {
       const snap = await getDocs(collection(db, "servants"));
@@ -769,9 +708,7 @@ export async function getDynamicServants(): Promise<ChurchServant[]> {
       });
 
       if (list.length > 0) {
-        if (typeof window !== "undefined") {
-          localStorage.setItem("amoi_servants", JSON.stringify(list));
-        }
+        cacheServants = list;
         return list;
       }
     }
@@ -779,37 +716,11 @@ export async function getDynamicServants(): Promise<ChurchServant[]> {
     console.error("Error loading servants from Firestore:", e);
   }
 
-  // LocalStorage Fallback
-  if (typeof window !== "undefined") {
-    const local = localStorage.getItem("amoi_servants");
-    if (local) {
-      try {
-        const list = JSON.parse(local) as ChurchServant[];
-        list.sort((a, b) => {
-          const orderA = a.order !== undefined ? a.order : 999;
-          const orderB = b.order !== undefined ? b.order : 999;
-          if (orderA !== orderB) return orderA - orderB;
-          return a.name.localeCompare(b.name);
-        });
-        return list;
-      } catch {}
-    }
-  }
   return DEFAULT_SERVANTS;
 }
 
 export async function saveDynamicServant(servant: ChurchServant): Promise<void> {
-  // LocalStorage
-  if (typeof window !== "undefined") {
-    const list = await getDynamicServants();
-    const idx = list.findIndex(s => s.id === servant.id);
-    if (idx >= 0) {
-      list[idx] = servant;
-    } else {
-      list.push(servant);
-    }
-    localStorage.setItem("amoi_servants", JSON.stringify(list));
-  }
+  cacheServants = null; // Clear cache
 
   // Firestore
   try {
@@ -823,12 +734,7 @@ export async function saveDynamicServant(servant: ChurchServant): Promise<void> 
 }
 
 export async function deleteDynamicServant(id: string): Promise<void> {
-  // LocalStorage
-  if (typeof window !== "undefined") {
-    const list = await getDynamicServants();
-    const updated = list.filter(s => s.id !== id);
-    localStorage.setItem("amoi_servants", JSON.stringify(updated));
-  }
+  cacheServants = null; // Clear cache
 
   // Firestore
   try {
@@ -1119,28 +1025,13 @@ export interface RepertoireSong {
   createdBy: string;
 }
 
-export const DEFAULT_REPERTOIRE: RepertoireSong[] = [
-  {
-    id: "rep-1",
-    title: "Grandes Coisas",
-    artist: "Fernandinho",
-    lyrics: "Eu ouvi os teus louvores\nE Te adoro, Senhor\nTua graça me constrange\nTua bondade me alcança\n\nTu és o Deus de milagres\nNão há outro como Tu\nGrandes coisas fez o Senhor por nós\nPor isso estamos alegres...",
-    isPublic: true,
-    createdAt: 1783700000000,
-    createdBy: "admin@amoi.org"
-  },
-  {
-    id: "rep-2",
-    title: "Ao Único",
-    artist: "Aline Barros",
-    lyrics: "Ao único que é digno de receber\nA honra e a glória, a força e o poder\nAo Rei eterno, imortal, invisível mas real\nA Ele ministramos o louvor...\n\nCoroamos a Ti, ó Rei Jesus\nCoroamos a Ti, ó Rei Jesus\nAdoramos o Teu nome\nNos rendemos a Teus pés...",
-    isPublic: false,
-    createdAt: 1783700000100,
-    createdBy: "banda@amoi.org"
-  }
-];
+export const DEFAULT_REPERTOIRE: RepertoireSong[] = [];
 
 export async function getDynamicRepertoire(isBandaOrAdmin: boolean = false): Promise<RepertoireSong[]> {
+  const cacheKey = isBandaOrAdmin ? "all" : "public";
+  if (cacheRepertoire[cacheKey] && cacheRepertoire[cacheKey].length > 0) {
+    return cacheRepertoire[cacheKey];
+  }
   try {
     if (db) {
       const q = isBandaOrAdmin
@@ -1152,9 +1043,7 @@ export async function getDynamicRepertoire(isBandaOrAdmin: boolean = false): Pro
         list.push({ id: doc.id, ...doc.data() } as RepertoireSong);
       });
       if (list.length > 0) {
-        if (typeof window !== "undefined") {
-          localStorage.setItem("amoi_repertoire", JSON.stringify(list));
-        }
+        cacheRepertoire[cacheKey] = list;
         return list;
       }
     }
@@ -1162,30 +1051,11 @@ export async function getDynamicRepertoire(isBandaOrAdmin: boolean = false): Pro
     console.error("Error loading repertoire from Firestore:", e);
   }
 
-  // LocalStorage fallback
-  if (typeof window !== "undefined") {
-    const local = localStorage.getItem("amoi_repertoire");
-    if (local) {
-      try {
-        return JSON.parse(local);
-      } catch {}
-    }
-  }
   return DEFAULT_REPERTOIRE;
 }
 
 export async function saveDynamicRepertoireSong(song: RepertoireSong): Promise<void> {
-  // LocalStorage
-  if (typeof window !== "undefined") {
-    const list = await getDynamicRepertoire(true);
-    const idx = list.findIndex(s => s.id === song.id);
-    if (idx >= 0) {
-      list[idx] = song;
-    } else {
-      list.push(song);
-    }
-    localStorage.setItem("amoi_repertoire", JSON.stringify(list));
-  }
+  cacheRepertoire = {}; // Clear cache
 
   // Firestore
   try {
@@ -1199,12 +1069,7 @@ export async function saveDynamicRepertoireSong(song: RepertoireSong): Promise<v
 }
 
 export async function deleteDynamicRepertoireSong(id: string): Promise<void> {
-  // LocalStorage
-  if (typeof window !== "undefined") {
-    const list = await getDynamicRepertoire(true);
-    const updated = list.filter(s => s.id !== id);
-    localStorage.setItem("amoi_repertoire", JSON.stringify(updated));
-  }
+  cacheRepertoire = {}; // Clear cache
 
   // Firestore
   try {

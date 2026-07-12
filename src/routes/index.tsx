@@ -25,7 +25,6 @@ import {
   convertGoogleDriveLink
 } from "../lib/dynamicContent";
 import { useAuth } from "../hooks/useAuth";
-import worship from "@/assets/hero-worship.jpg";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -46,35 +45,9 @@ function Home() {
   const [selectedAnn, setSelectedAnn] = useState<Announcement | null>(null);
 
   // Dynamic Content states initialized with cached values for instant render on refresh
-  const [slides, setSlides] = useState<CarouselSlide[]>(() => {
-    if (typeof window !== "undefined") {
-      const local = localStorage.getItem("amoi_carousel_slides");
-      if (local) {
-        try { return JSON.parse(local); } catch {}
-      }
-    }
-    return DEFAULT_SLIDES;
-  });
-
-  const [info, setInfo] = useState<ChurchInfo>(() => {
-    if (typeof window !== "undefined") {
-      const local = localStorage.getItem("amoi_church_info");
-      if (local) {
-        try { return JSON.parse(local); } catch {}
-      }
-    }
-    return DEFAULT_INFO;
-  });
-
-  const [announcements, setAnnouncements] = useState<Announcement[]>(() => {
-    if (typeof window !== "undefined") {
-      const local = localStorage.getItem("amoi_announcements");
-      if (local) {
-        try { return JSON.parse(local); } catch {}
-      }
-    }
-    return DEFAULT_ANNOUNCEMENTS;
-  });
+  const [slides, setSlides] = useState<CarouselSlide[]>(DEFAULT_SLIDES);
+  const [info, setInfo] = useState<ChurchInfo>(DEFAULT_INFO);
+  const [announcements, setAnnouncements] = useState<Announcement[]>(DEFAULT_ANNOUNCEMENTS);
 
   useEffect(() => {
     async function loadData() {
@@ -199,7 +172,7 @@ function Home() {
           <div className="relative">
             <div className="absolute -inset-4 bg-gradient-gold opacity-20 blur-3xl rounded-full" />
             <img 
-              src={info.welcomeImage ? convertGoogleDriveLink(info.welcomeImage) : worship} 
+              src={info.welcomeImage ? convertGoogleDriveLink(info.welcomeImage) : "/assets/hero-worship.jpg"} 
               alt="Comunidade em oração" 
               className="relative rounded-2xl shadow-elevated border border-primary/20 w-full object-cover max-h-[400px]" 
               loading="lazy" 
@@ -346,7 +319,7 @@ function Home() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 grid md:grid-cols-2 gap-14 items-center">
           <div className="order-2 md:order-1 relative">
             <div className="absolute -inset-4 bg-gradient-fire opacity-20 blur-3xl rounded-full" />
-            <img src={worship} alt="Culto AMOI" className="relative rounded-2xl shadow-elevated border border-primary/20" loading="lazy" />
+            <img src="/assets/hero-worship.jpg" alt="Culto AMOI" className="relative rounded-2xl shadow-elevated border border-primary/20" loading="lazy" />
           </div>
           <div className="order-1 md:order-2">
             <span className="text-xs uppercase tracking-[0.3em] text-primary font-semibold">Programação</span>

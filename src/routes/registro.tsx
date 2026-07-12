@@ -10,7 +10,7 @@ import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import { auth, db } from "../lib/firebase";
 import { useAuth } from "../hooks/useAuth";
-import logoUrl from "@/assets/amoi-logo.png";
+const logoUrl = "/assets/amoi-logo.png";
 
 export const Route = createFileRoute("/registro")({
   head: () => ({
@@ -81,8 +81,9 @@ function Registro() {
           });
         }
         
+        const dest = role === "Banda" ? "/repertorio" : "/";
         toast.success("Conta criada com sucesso! Bem-vindo à AMOI.");
-        navigate({ to: "/" });
+        navigate({ to: dest });
       } catch (err: any) {
         console.error(err);
         let errorMsg = "Erro ao criar conta. Por favor, tente novamente.";
@@ -112,12 +113,14 @@ function Registro() {
           return;
         }
         
+        const emailLower = email.toLowerCase().trim();
+        const mRole = (emailLower === "banda@amoi.org" || emailLower === "banda@ministerioamoi.it.ao") ? "Banda" : "membro";
         const newMUser = {
           uid: "mock-uid-" + Date.now(),
           email,
           password,
           name: `${firstname} ${lastname}`.trim(),
-          role: "membro",
+          role: mRole,
           newsletter,
           phone,
           createdAt: new Date().toISOString()
@@ -126,9 +129,10 @@ function Registro() {
         mockDb.push(newMUser);
         localStorage.setItem("amoi_mock_users_db", JSON.stringify(mockDb));
         
-        loginMock(newMUser.email, newMUser.name, "membro", newsletter);
+        loginMock(newMUser.email, newMUser.name, newMUser.role || "membro", newsletter);
         toast.success("Conta de teste criada com sucesso!");
-        navigate({ to: "/" });
+        const dest = newMUser.role === "Banda" ? "/repertorio" : "/";
+        navigate({ to: dest });
       }
     } catch (err) {
       console.error(err);

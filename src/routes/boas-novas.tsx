@@ -33,15 +33,7 @@ export const Route = createFileRoute("/boas-novas")({
 const CATEGORIES = ["Todos", "Notícia", "Evento", "Aviso"] as const;
 
 function BoasNovas() {
-  const [announcements, setAnnouncements] = useState<Announcement[]>(() => {
-    if (typeof window !== "undefined") {
-      const local = localStorage.getItem("amoi_announcements");
-      if (local) {
-        try { return JSON.parse(local); } catch {}
-      }
-    }
-    return DEFAULT_ANNOUNCEMENTS;
-  });
+  const [announcements, setAnnouncements] = useState<Announcement[]>(DEFAULT_ANNOUNCEMENTS);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<(typeof CATEGORIES)[number]>("Todos");
   const [selectedAnn, setSelectedAnn] = useState<Announcement | null>(null);

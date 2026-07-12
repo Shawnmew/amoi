@@ -1,7 +1,7 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect, type ReactNode } from "react";
 import { Menu, X, Facebook, Instagram, Youtube, Mail, MapPin, Phone, ChevronDown, User } from "lucide-react";
-import logoUrl from "@/assets/amoi-logo.png";
+const logoUrl = "/assets/amoi-logo.png";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAuth } from "../hooks/useAuth";
@@ -21,6 +21,17 @@ export function SiteLayout({ children }: { children: ReactNode }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const isBanda = user && user.role === "Banda";
+
+  useEffect(() => {
+    if (isBanda) {
+      const path = window.location.pathname;
+      if (path !== "/repertorio") {
+        navigate({ to: "/repertorio" });
+      }
+    }
+  }, [user, isBanda, navigate]);
   const [footerConfig, setFooterConfig] = useState({
     address: "Bairro Mandume B, Quarteirão 3, Rua Projectada, Zango 1, Paragem da Praça, Entrada dos Motoqueiros, Bengo, Angola (XCX3+WH9)",
     phone: "+244 930 565 382",
@@ -32,6 +43,20 @@ export function SiteLayout({ children }: { children: ReactNode }) {
   });
 
   useEffect(() => {
+    // Clear old accumulated browser cache keys
+    const cacheKeys = [
+      "amoi_carousel_slides",
+      "amoi_announcements",
+      "amoi_church_info",
+      "amoi_servants",
+      "amoi_scales",
+      "amoi_repertoire",
+      "amoi_mock_videos_db"
+    ];
+    cacheKeys.forEach(k => {
+      try { localStorage.removeItem(k); } catch (e) {}
+    });
+
     if (!db) return;
     const fetchFooter = async () => {
       try {
@@ -74,7 +99,7 @@ export function SiteLayout({ children }: { children: ReactNode }) {
           </Link>
 
           <nav className="hidden md:flex items-center gap-1">
-            {NAV.map((item) => (
+            {!isBanda && NAV.map((item) => (
               <Link
                 key={item.to}
                 to={item.to}
@@ -87,56 +112,60 @@ export function SiteLayout({ children }: { children: ReactNode }) {
             ))}
 
             {/* Dropdown for smaller desktop/tablet screens (md to xl) */}
-            <div 
-              className="relative hidden md:block xl:hidden"
-              onMouseEnter={() => setDropdownOpen(true)}
-              onMouseLeave={() => setDropdownOpen(false)}
-            >
-              <button className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-primary transition-colors flex items-center gap-1 cursor-pointer select-none">
-                Serviços <ChevronDown className="h-3.5 w-3.5" />
-              </button>
-              
-              {dropdownOpen && (
-                <div className="absolute left-0 mt-1 w-48 rounded-2xl bg-card border border-border/80 shadow-elevated p-2.5 space-y-1 backdrop-blur-xl bg-card/95 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
-                  <Link
-                    to="/o-chamado"
-                    className="block px-3.5 py-2 rounded-xl text-xs font-semibold text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all"
-                    onClick={() => setDropdownOpen(false)}
-                  >
-                    O Chamado
-                  </Link>
-                  {user && (user.role === "Servo de Deus" || user.role === "Secretaria" || user.role === "Bravo") && (
+            {!isBanda && (
+              <div 
+                className="relative hidden md:block xl:hidden"
+                onMouseEnter={() => setDropdownOpen(true)}
+                onMouseLeave={() => setDropdownOpen(false)}
+              >
+                <button className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-primary transition-colors flex items-center gap-1 cursor-pointer select-none">
+                  Serviços <ChevronDown className="h-3.5 w-3.5" />
+                </button>
+                
+                {dropdownOpen && (
+                  <div className="absolute left-0 mt-1 w-48 rounded-2xl bg-card border border-border/80 shadow-elevated p-2.5 space-y-1 backdrop-blur-xl bg-card/95 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
                     <Link
-                      to="/escalas"
+                      to="/o-chamado"
                       className="block px-3.5 py-2 rounded-xl text-xs font-semibold text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all"
                       onClick={() => setDropdownOpen(false)}
                     >
-                      Escalas
+                      O Chamado
                     </Link>
-                  )}
-                  {user && (
-                    <Link
-                      to="/repertorio"
-                      className="block px-3.5 py-2 rounded-xl text-xs font-semibold text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all"
-                      onClick={() => setDropdownOpen(false)}
-                    >
-                      Repertório
-                    </Link>
-                  )}
-                </div>
-              )}
-            </div>
+                    {user && (user.role === "Servo de Deus" || user.role === "Secretaria" || user.role === "Bravo") && (
+                      <Link
+                        to="/escalas"
+                        className="block px-3.5 py-2 rounded-xl text-xs font-semibold text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all"
+                        onClick={() => setDropdownOpen(false)}
+                      >
+                        Escalas
+                      </Link>
+                    )}
+                    {user && (
+                      <Link
+                        to="/repertorio"
+                        className="block px-3.5 py-2 rounded-xl text-xs font-semibold text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all"
+                        onClick={() => setDropdownOpen(false)}
+                      >
+                        Repertório
+                      </Link>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Inline links for larger desktop screens (xl and above) */}
             <div className="hidden xl:flex items-center gap-1">
-              <Link
-                to="/o-chamado"
-                className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-primary transition-colors relative"
-                activeProps={{ className: "px-4 py-2 text-sm font-semibold text-primary relative" }}
-              >
-                O Chamado
-              </Link>
-              {user && (user.role === "Servo de Deus" || user.role === "Secretaria" || user.role === "Bravo") && (
+              {!isBanda && (
+                <Link
+                  to="/o-chamado"
+                  className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-primary transition-colors relative"
+                  activeProps={{ className: "px-4 py-2 text-sm font-semibold text-primary relative" }}
+                >
+                  O Chamado
+                </Link>
+              )}
+              {user && !isBanda && (user.role === "Servo de Deus" || user.role === "Secretaria" || user.role === "Bravo") && (
                 <Link
                   to="/escalas"
                   className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-primary transition-colors relative"
@@ -155,6 +184,16 @@ export function SiteLayout({ children }: { children: ReactNode }) {
                 </Link>
               )}
             </div>
+
+            {isBanda && (
+              <Link
+                to="/repertorio"
+                className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-primary transition-colors relative"
+                activeProps={{ className: "px-4 py-2 text-sm font-semibold text-primary relative" }}
+              >
+                Repertório
+              </Link>
+            )}
           </nav>
 
           <div className="hidden md:flex items-center gap-2.5">
@@ -240,7 +279,7 @@ export function SiteLayout({ children }: { children: ReactNode }) {
         {open && (
           <div className="md:hidden border-t border-border/60 bg-background/95 backdrop-blur-xl">
             <div className="px-4 py-4 flex flex-col gap-1">
-              {NAV.map((item) => (
+              {!isBanda && NAV.map((item) => (
                 <Link
                   key={item.to}
                   to={item.to}
@@ -250,14 +289,16 @@ export function SiteLayout({ children }: { children: ReactNode }) {
                   {item.label}
                 </Link>
               ))}
-              <Link
-                to="/o-chamado"
-                onClick={() => setOpen(false)}
-                className="px-3 py-3 rounded-md text-sm font-medium hover:bg-muted"
-              >
-                O Chamado
-              </Link>
-              {user && (user.role === "Servo de Deus" || user.role === "Secretaria" || user.role === "Bravo") && (
+              {!isBanda && (
+                <Link
+                  to="/o-chamado"
+                  onClick={() => setOpen(false)}
+                  className="px-3 py-3 rounded-md text-sm font-medium hover:bg-muted"
+                >
+                  O Chamado
+                </Link>
+              )}
+              {user && !isBanda && (user.role === "Servo de Deus" || user.role === "Secretaria" || user.role === "Bravo") && (
                 <Link
                   to="/escalas"
                   onClick={() => setOpen(false)}

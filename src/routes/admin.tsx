@@ -1049,7 +1049,7 @@ function AdminDashboard() {
     );
   }
 
-  if (user.role?.toLowerCase() === "membro" || user.role?.toLowerCase() === "bravo") {
+  if (user.role?.toLowerCase() === "membro" || user.role?.toLowerCase() === "bravo" || user.role === "Banda") {
     return (
       <SiteLayout>
         <section className="min-h-[calc(100vh-6rem)] flex items-center justify-center px-4 py-16">

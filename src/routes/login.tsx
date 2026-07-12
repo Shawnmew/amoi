@@ -7,9 +7,10 @@ import { Label } from "@/components/ui/label";
 import { Flame, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "../lib/firebase";
+import { auth, db } from "../lib/firebase";
 import { useAuth } from "../hooks/useAuth";
-import logoUrl from "@/assets/amoi-logo.png";
+import { doc, getDoc } from "firebase/firestore";
+const logoUrl = "/assets/amoi-logo.png";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
@@ -36,9 +37,28 @@ function Login() {
     // 1. Caso o Firebase esteja ativo
     if (auth) {
       try {
-        await signInWithEmailAndPassword(auth, email, password);
+        const userCred = await signInWithEmailAndPassword(auth, email, password);
+        let dest = "/";
+        if (db) {
+          try {
+            const uDocRef = doc(db, "users", userCred.user.uid);
+            const uDoc = await getDoc(uDocRef);
+            if (uDoc.exists()) {
+              const data = uDoc.data();
+              if (data.role === "Banda") {
+                dest = "/repertorio";
+              }
+            }
+          } catch (e) {
+            console.error("Error checking role for redirect:", e);
+          }
+        }
+        const emailLower = email.toLowerCase().trim();
+        if (emailLower === "banda@amoi.org" || emailLower === "banda@ministerioamoi.it.ao") {
+          dest = "/repertorio";
+        }
         toast.success("Bem-vindo de volta à AMOI!");
-        navigate({ to: "/" });
+        navigate({ to: dest });
       } catch (err: any) {
         console.error(err);
         let errorMsg = "Erro ao entrar. Por favor, verifique as suas credenciais.";
@@ -64,7 +84,8 @@ function Login() {
         if (found) {
           loginMock(found.email, found.name, found.role || "membro", typeof found.newsletter === "boolean" ? found.newsletter : true);
           toast.success(`Entrou no Modo Demo como ${found.name}!`);
-          navigate({ to: "/" });
+          const dest = found.role === "Banda" ? "/repertorio" : "/";
+          navigate({ to: dest });
         } else {
           toast.error("Email ou palavra-passe incorretos (Use: admin@amoi.org / admin).");
         }

@@ -9,7 +9,7 @@ import { confirmPasswordReset, sendPasswordResetEmail, verifyPasswordResetCode }
 import { doc, setDoc, getDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { toast } from "sonner";
 import { Mail, Lock, KeyRound, ShieldCheck, ArrowLeft, RefreshCw, Eye, EyeOff, CheckCircle2, Flame } from "lucide-react";
-import logoUrl from "@/assets/amoi-logo.png";
+const logoUrl = "/assets/amoi-logo.png";
 
 export const Route = createFileRoute("/recuperar-senha")({
   head: () => ({

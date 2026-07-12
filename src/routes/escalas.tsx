@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth, AuthUser } from "../hooks/useAuth";
-import logoUrl from "@/assets/amoi-logo.png";
+const logoUrl = "/assets/amoi-logo.png";
 import {
   ChurchScale,
   ScaleSlot,
