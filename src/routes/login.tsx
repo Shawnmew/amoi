@@ -37,28 +37,9 @@ function Login() {
     // 1. Caso o Firebase esteja ativo
     if (auth) {
       try {
-        const userCred = await signInWithEmailAndPassword(auth, email, password);
-        let dest = "/";
-        if (db) {
-          try {
-            const uDocRef = doc(db, "users", userCred.user.uid);
-            const uDoc = await getDoc(uDocRef);
-            if (uDoc.exists()) {
-              const data = uDoc.data();
-              if (data.role === "Banda") {
-                dest = "/repertorio";
-              }
-            }
-          } catch (e) {
-            console.error("Error checking role for redirect:", e);
-          }
-        }
-        const emailLower = email.toLowerCase().trim();
-        if (emailLower === "banda@amoi.org" || emailLower === "banda@ministerioamoi.it.ao") {
-          dest = "/repertorio";
-        }
+        await signInWithEmailAndPassword(auth, email, password);
         toast.success("Bem-vindo de volta à AMOI!");
-        navigate({ to: dest });
+        navigate({ to: "/" });
       } catch (err: any) {
         console.error(err);
         let errorMsg = "Erro ao entrar. Por favor, verifique as suas credenciais.";
@@ -84,8 +65,7 @@ function Login() {
         if (found) {
           loginMock(found.email, found.name, found.role || "membro", typeof found.newsletter === "boolean" ? found.newsletter : true);
           toast.success(`Entrou no Modo Demo como ${found.name}!`);
-          const dest = found.role === "Banda" ? "/repertorio" : "/";
-          navigate({ to: dest });
+          navigate({ to: "/" });
         } else {
           toast.error("Email ou palavra-passe incorretos (Use: admin@amoi.org / admin).");
         }

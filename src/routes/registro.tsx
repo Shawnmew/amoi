@@ -81,9 +81,8 @@ function Registro() {
           });
         }
         
-        const dest = role === "Banda" ? "/repertorio" : "/";
         toast.success("Conta criada com sucesso! Bem-vindo à AMOI.");
-        navigate({ to: dest });
+        navigate({ to: "/" });
       } catch (err: any) {
         console.error(err);
         let errorMsg = "Erro ao criar conta. Por favor, tente novamente.";
@@ -131,8 +130,7 @@ function Registro() {
         
         loginMock(newMUser.email, newMUser.name, newMUser.role || "membro", newsletter);
         toast.success("Conta de teste criada com sucesso!");
-        const dest = newMUser.role === "Banda" ? "/repertorio" : "/";
-        navigate({ to: dest });
+        navigate({ to: "/" });
       }
     } catch (err) {
       console.error(err);
