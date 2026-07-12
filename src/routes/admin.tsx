@@ -1764,6 +1764,7 @@ function AdminDashboard() {
                           >
                             <option value="membro">Membro</option>
                             <option value="Bravo">Bravo</option>
+                            <option value="Banda">Banda</option>
                             <option value="Editor">Editor</option>
                             <option value="Secretaria">Secretaria</option>
                             <option value="Servo de Deus">Servo de Deus (Admin)</option>
@@ -1855,6 +1856,8 @@ function AdminDashboard() {
                                     className="bg-card border border-border/60 text-xs rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-primary font-semibold text-primary"
                                   >
                                     <option value="membro">Membro</option>
+                                    <option value="Bravo">Bravo</option>
+                                    <option value="Banda">Banda</option>
                                     <option value="Editor">Editor</option>
                                     <option value="Secretaria">Secretaria</option>
                                     <option value="Servo de Deus">Servo de Deus</option>
@@ -1947,6 +1950,7 @@ function AdminDashboard() {
                                 >
                                   <option value="membro">Membro</option>
                                   <option value="Bravo">Bravo</option>
+                                  <option value="Banda">Banda</option>
                                   <option value="Editor">Editor</option>
                                   <option value="Secretaria">Secretaria</option>
                                   <option value="Servo de Deus">Servo de Deus (Admin)</option>
